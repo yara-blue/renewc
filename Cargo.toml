@@ -2,7 +2,7 @@
 name = "renew-certs"
 version = "0.1.0"
 edition = "2021"
-description = "TLS certificate management and serving using rustls"
+description = "Zero runtime dependencies crosscompiled (for aarch64) Http01 CertBot alternative"
 license = "Apache-2.0 OR MIT"
 build = "build.rs"
 
