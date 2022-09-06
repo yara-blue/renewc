@@ -8,12 +8,16 @@ build = "build.rs"
 
 [dependencies]
 instant-acme = "0.1"
+tracing = { version = "0.1" }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 clap = { version = "3", features = ["derive"] }
 axum = "0.5"
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-simple_logger = "2.3"
+tower = "0.4"
+tower-http = { version = "0.3", features = ["trace"] }
+tokio = { version = "1", features = ["time", "macros", "rt-multi-thread"] }
 rcgen = "0.9"
 log = "0.4"
+color-eyre = "0.6.2"
 
 [build-dependencies]
 reqwest = { version = "0.11", features = ["blocking", "rustls"] }
