@@ -1,0 +1,21 @@
+[package]
+name = "renew-certs"
+version = "0.1.0"
+edition = "2021"
+description = "TLS certificate management and serving using rustls"
+license = "Apache-2.0 OR MIT"
+build = "build.rs"
+
+[dependencies]
+instant-acme = "0.1"
+clap = { version = "3", features = ["derive"] }
+axum = "0.5"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+simple_logger = "2.3"
+rcgen = "0.9"
+log = "0.4"
+
+[build-dependencies]
+reqwest = { version = "0.11", features = ["blocking", "rustls"] }
+flate2 = "1"
+tar = "0.4"
