@@ -1,7 +1,7 @@
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
+use time::Duration;
 
 use color_eyre::eyre::{self, Context};
 use color_eyre::Help;
@@ -23,7 +23,7 @@ pub fn extract_combined(path: &Path) -> eyre::Result<Option<Signed>> {
         Err(e) if e.kind() == ErrorKind::NotFound => return Ok(None),
         Err(e) => {
             return Err(e)
-                .wrap_err("Could not read certificate")
+                .wrap_err("Could not check for existing certificate")
                 .suggestion("Check if the path is correct")
                 .with_note(|| format!("path: {path:?}"));
         }
@@ -60,10 +60,9 @@ pub fn analyze(combined: Signed) -> eyre::Result<(Duration, bool)> {
             .iter_organization()
             .map(|o| o.as_str().unwrap())
             .any(|s| s.contains("STAGING"));
-        expires_in = expires_in.max(
+        expires_in = expires_in.min(
             x509.validity()
                 .time_to_expiration()
-                .map(|dur| dur.try_into().unwrap())
                 .unwrap_or(Duration::ZERO),
         )
     }

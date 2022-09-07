@@ -18,8 +18,8 @@ tower-http = { version = "0.3", features = ["trace"] }
 tokio = { version = "1", features = ["time", "macros", "rt-multi-thread"] }
 rcgen = "0.9"
 log = "0.4"
-color-eyre = "0.6.2"
-time = "0.3.14"
+color-eyre = "0.6"
+time = "0.3"
 
 [build-dependencies]
 reqwest = { version = "0.11", features = ["blocking", "rustls"] }

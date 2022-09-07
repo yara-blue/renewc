@@ -5,7 +5,7 @@ use color_eyre::eyre::{self, Context};
 use color_eyre::Help;
 use rcgen::{Certificate, CertificateParams, DistinguishedName};
 use tokio::time::sleep;
-use tracing::{error, debug};
+use tracing::{debug, error};
 
 use crate::cert::Signed;
 
@@ -20,8 +20,8 @@ use instant_acme as acme;
 // Alternatively, restore an account from serialized credentials by
 // using `Account::from_credentials()`.
 #[tracing::instrument(skip_all)]
-async fn account(prod: bool) -> Result<Account, acme::Error> {
-    let url = match prod {
+async fn account(production: bool) -> Result<Account, acme::Error> {
+    let url = match production {
         true => LetsEncrypt::Production.url(),
         false => LetsEncrypt::Staging.url(),
     };
@@ -113,7 +113,8 @@ async fn wait_for_order_rdy(
         let state = order.state().await.unwrap();
         match &state.status {
             OrderStatus::Ready => break Ok(state),
-            OrderStatus::Invalid => break Err(eyre::eyre!("order is invalid")).suggestion("sometimes this happens when the challenge server is not reachable. Try the debug flag to investigate"),
+            OrderStatus::Invalid => break Err(eyre::eyre!("order is invalid"))
+                .suggestion("sometimes this happens when the challenge server is not reachable. Try the debug flag to investigate"),
             _ => (),
         }
 
@@ -155,10 +156,10 @@ fn prepare_sign_request(names: &[String]) -> Result<(Certificate, Vec<u8>), rcge
 pub async fn request(
     names: Vec<String>,
     port: u16,
-    prod: bool,
+    production: bool,
     debug: bool,
 ) -> eyre::Result<Signed> {
-    let account = account(prod).await?;
+    let account = account(production).await?;
     let (mut order, state) = order(&account, &names).await?;
 
     let challenges = prepare_challenge(&mut order, state).await?;
