@@ -1,5 +1,6 @@
-[target.aarch64-unknown-linux-gnu]
-linker = "aarch64-linux-gnu-gcc"
-
 [target.aarch64-unknown-linux-musl]
-linker = "aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc"
+linker = "setup_crosscompile/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc"
+
+[env]
+TARGET_CC = { value = "setup_crosscompile/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc", relative = true }
+TARGET_AR = { value = "setup_crosscompile/aarch64-linux-musl-cross/bin/aarch64-linux-musl-ar", relative = true }

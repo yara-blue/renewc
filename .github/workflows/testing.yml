@@ -30,5 +30,9 @@ jobs:
           target/
         key: ${{ runner.os }}-cargo2-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Test
-      run: cargo build
+    - name: setup crosscompiler
+      working-directory: ./setup_crosscompile
+      run: cargo r
+    - name: crosscompile
+      run: cargo b --target aarch64-unknown-linux-musl
+      
