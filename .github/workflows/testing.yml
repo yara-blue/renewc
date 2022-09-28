@@ -1,0 +1,34 @@
+name: Tests
+
+on:
+  pull_request:
+    # complemented with branch protection on main this will 
+    # need to complete successfully before we auto deploy from main
+    branches: main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+
+    - uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo2-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Test
+      run: cargo build
