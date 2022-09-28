@@ -10,7 +10,7 @@ fn setup_aarch_crosscomp() {
 
     let aarch_musl_cross = Path::new("aarch64-linux-musl-cross");
     if !aarch_musl_cross.is_dir() {
-        println!("downloading musl crosscompiler")
+        println!("downloading musl crosscompiler");
         let bytes = reqwest::blocking::get("https://musl.cc/aarch64-linux-musl-cross.tgz").unwrap();
         let buf = BufReader::new(bytes);
         let tarfile = GzDecoder::new(buf);
