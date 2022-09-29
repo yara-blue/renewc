@@ -33,6 +33,8 @@ jobs:
     - name: setup crosscompiler
       working-directory: ./setup_crosscompile
       run: cargo r
+    - name: add aarch64 musl toolchain
+      run: rustup target add aarch64-unknown-linux-musl
     - name: crosscompile
       run: cargo b --target aarch64-unknown-linux-musl
       
