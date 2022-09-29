@@ -11,7 +11,16 @@ fn setup_aarch_crosscomp() {
     let aarch_musl_cross = Path::new("aarch64-linux-musl-cross");
     if !aarch_musl_cross.is_dir() {
         println!("downloading musl crosscompiler");
-        let bytes = reqwest::blocking::get("https://musl.cc/aarch64-linux-musl-cross.tgz").unwrap();
+
+        let mut sources = ["https://musl.cc/aarch64-linux-musl-cross.tgz", "https://github.com/tsl0922/musl-toolchains/releases/download/2021-11-23/aarch64-linux-musl-cross.tgz"].into_iter();
+        let bytes = loop {
+            let source = sources.next().expect("No more mirrors to try");
+            match reqwest::blocking::get(source) {
+                Ok(bytes) => break bytes,
+                Err(e) => println!("Error trying to download from {source:?}, trying another mirror"),
+            }
+        };
+
         let buf = BufReader::new(bytes);
         let tarfile = GzDecoder::new(buf);
         let mut archive = Archive::new(tarfile);
