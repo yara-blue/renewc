@@ -15,7 +15,7 @@ axum = "0.5"
 tower = "0.4"
 tower-http = { version = "0.3", features = ["trace"] }
 tokio = { version = "1", features = ["time", "macros", "rt-multi-thread"] }
-rcgen = "0.9"
+rcgen = "0.10"
 log = "0.4"
 color-eyre = "0.6"
 time = "0.3"
