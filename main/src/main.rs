@@ -11,6 +11,7 @@ mod renew;
 mod server;
 mod systemd;
 mod util;
+mod diagnostics;
 
 #[derive(Parser, Debug)]
 pub struct InstallArgs {
@@ -46,7 +47,7 @@ pub struct RenewArgs {
 
     /// External port 80 should be forwarded to this
     /// internal port
-    #[clap(long, default_value_t = 80)]
+    #[clap(long, default_value_t = 80, value_parser = clap::value_parser!(u16).range(1..))]
     port: u16,
 
     /// cert path including file name, for example

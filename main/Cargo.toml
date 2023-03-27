@@ -1,0 +1,25 @@
+[package]
+name = "renew-certs"
+version = "0.1.0"
+edition = "2021"
+description = "Zero runtime dependencies Http01 CertBot alternative"
+license = "Apache-2.0 OR MIT"
+
+[dependencies]
+instant-acme = "0.1"
+x509-parser = "0.14"
+tracing = { version = "0.1" }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+clap = { version = "4", features = ["derive"] }
+axum = "0.5"
+tower = "0.4"
+tower-http = { version = "0.3", features = ["trace"] }
+tokio = { version = "1", features = ["time", "macros", "rt-multi-thread"] }
+rcgen = "0.10"
+log = "0.4"
+color-eyre = "0.6"
+time = "0.3"
+netstat2 = "0.9"
+libproc = "0.13"
+hyper = "0.14.24"
+itertools = "0.10.5"

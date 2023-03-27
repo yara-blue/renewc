@@ -12,6 +12,8 @@ use tracing::error;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::diagnostics;
+
 pub struct Http01Challenge {
     pub url: String,
     pub token: String,
@@ -52,9 +54,7 @@ pub async fn run(port: u16, challenges: &[Http01Challenge]) -> eyre::Result<()> 
 
     let addr = ([0, 0, 0, 0], port).into();
     axum::Server::try_bind(&addr)
-        .wrap_err("could not bind to adress")
-        .suggestion("is the port accessible without sudo? try running as super user if its not")
-        .with_note(|| format!("port: {port}"))?
+        .map_err(|e| diagnostics::cant_bind_port(e, port))?
         .serve(app.into_make_service())
         .await?;
 
