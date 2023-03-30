@@ -1,3 +1,5 @@
+use std::net::Ipv4Addr;
+
 #[derive(Debug)]
 pub enum Error {}
 
@@ -8,16 +10,118 @@ pub struct Config {
     backends: Vec<()>,
 }
 
-enum ConfigEntry {
-    Comment,
-    Global,
-    Default,
-    Frontend,
-    Backend,
+#[derive(Debug)]
+enum ConfigEntry<'input> {
+    BlankLine,
+    Comment(&'input str),
+    Global {
+        comment: Option<&'input str>,
+        lines: Vec<Line<'input>>,
+    },
+    Default {
+        comment: Option<&'input str>,
+        proxy: Option<&'input str>,
+        lines: Vec<Line<'input>>,
+    },
+    Frontend {
+        comment: Option<&'input str>,
+        proxy: &'input str,
+        lines: Vec<Line<'input>>,
+    },
+    Backend {
+        comment: Option<&'input str>,
+        proxy: &'input str,
+        lines: Vec<Line<'input>>,
+    },
+    UserList {
+        comment: Option<&'input str>,
+        proxy: &'input str,
+        lines: Vec<Line<'input>>,
+    },
+    Listen {
+        comment: Option<&'input str>,
+        proxy: &'input str,
+        lines: Vec<Line<'input>>,
+    },
+}
+
+#[derive(Debug)]
+pub enum Host<'input> {
+    Ipv4(Ipv4Addr),
+    Dns(&'input str),
+    Wildcard,
+}
+
+#[derive(Debug)]
+pub struct Address<'input> {
+    host: Host<'input>,
+    port: Option<u16>,
+}
+
+#[derive(Debug)]
+pub enum BackendModifier {
+    If,
+    Unless,
+}
+
+#[derive(Debug)]
+pub enum Password<'input> {
+    Secure(&'input str),
+    Insecure(&'input str),
+}
+
+#[derive(Debug)]
+pub enum Line<'input> {
+    Server {
+        name: &'input str,
+        addr: Address<'input>,
+        other: Option<&'input str>,
+        comment: Option<&'input str>,
+    },
+    Option {
+        keyword: &'input str,
+        value: Option<&'input str>,
+        comment: Option<&'input str>,
+    },
+    Bind {
+        addr: Address<'input>,
+        value: Option<&'input str>,
+        comment: Option<&'input str>,
+    },
+    Acl {
+        name: &'input str,
+        rule: Option<&'input str>,
+        comment: Option<&'input str>,
+    },
+    Backend {
+        name: &'input str,
+        modifier: Option<BackendModifier>,
+        condition: Option<&'input str>,
+        comment: Option<&'input str>,
+    },
+    Group {
+        name: &'input str,
+        user: Option<&'input str>,
+        comment: Option<&'input str>,
+    },
+    User {
+        name: &'input str,
+        password: Password<'input>,
+        groups: Vec<&'input str>,
+        comment: Option<&'input str>, 
+    },
+    Config {
+        key: &'input str,
+        value: Option<&'input str>,
+        comment: Option<&'input str>, 
+    },
+    Comment(&'input str),
+    Blank,
 }
 
 pub fn parse(input: impl AsRef<str>) -> Result<Config, Error> {
-    // let entries = parser::config(input.as_ref()).unwrap();
+    let entries = parser::configuration(input.as_ref()).unwrap();
+    dbg!(entries);
     Ok(Config {
         global: (),
         defaults: (),
@@ -28,142 +132,204 @@ pub fn parse(input: impl AsRef<str>) -> Result<Config, Error> {
 
 peg::parser! {
     grammar parser() for str {
-        pub rule configuration() -> ()
-            = (comment_line() / blank_line() / global_section() / defaults_section() / userlist_section() / listen_section() / frontend_section() / backend_section())* {}
-        pub rule global_section() -> ()
-            = global_header() config_block() {}
+        pub(super) rule configuration() -> Vec<ConfigEntry<'input>>
+            = (config_comment() / config_blank() / global_section() / defaults_section() / userlist_section() / listen_section() / frontend_section() / backend_section())*
 
-        rule defaults_section() -> ()
-            = defaults_header() config_block() {}
+        pub(super) rule global_section() -> ConfigEntry<'input>
+            = comment:global_header() lines:config_block() {
+                ConfigEntry::Global{ comment, lines }
+            }
 
-        rule userlist_section() -> ()
-            = userlist_header() config_block() {}
+        rule defaults_section() -> ConfigEntry<'input>
+            = h:defaults_header() lines:config_block() {
+                ConfigEntry::Default{ comment: h.1, proxy: h.0, lines }
+            }
 
-        rule listen_section() -> ()
-            = listen_header() config_block() {}
+        rule userlist_section() -> ConfigEntry<'input>
+            = h:userlist_header() lines:config_block() {
+                ConfigEntry::UserList{ comment: h.1, proxy: h.0 , lines}
+            }
 
-        rule frontend_section() -> ()
-            = frontend_header() config_block() {}
+        rule listen_section() -> ConfigEntry<'input>
+            = h:listen_header() lines:config_block() {
+                ConfigEntry::Listen{ comment: h.1, proxy: h.0 , lines}
+            }
 
-        rule backend_section() -> ()
-            = backend_header() config_block() {}
+        rule frontend_section() -> ConfigEntry<'input>
+            = h:frontend_header() lines:config_block() {
+                ConfigEntry::Frontend{ comment: h.1, proxy: h.0, lines }
+            }
 
-        rule global_header() -> ()
-            = whitespace() "global" whitespace() comment_text()? line_break() {}
+        rule backend_section() -> ConfigEntry<'input>
+            = h:backend_header() lines:config_block() {
+                ConfigEntry::Backend{ comment: h.1, proxy: h.0 , lines}
+            }
 
-        rule userlist_header() -> ()
-            = whitespace() "userlist" whitespace() proxy_name() comment_text()? line_break() {}
+        rule global_header() -> Option<&'input str>
+            = whitespace() "global" whitespace() c:comment_text()? line_break() { c }
 
-        rule defaults_header() -> ()
-            = whitespace() "defaults" whitespace() proxy_name()? whitespace() comment_text()? line_break() {}
+        rule userlist_header() -> (&'input str, Option<&'input str>)
+            = whitespace() "userlist" whitespace() p:proxy_name() c:comment_text()? line_break() {(p,c)}
 
-        rule listen_header() -> ()
-            = whitespace() "listen" whitespace() proxy_name() whitespace() service_address()? value()? comment_text()? line_break() {}
+        rule defaults_header() -> (Option<&'input str>, Option<&'input str>)
+            = whitespace() "defaults" whitespace() p:proxy_name()? whitespace() c:comment_text()? line_break() {(p,c)}
 
-        rule frontend_header() -> ()
-            = whitespace() "frontend" whitespace() proxy_name() whitespace() service_address()? value()? comment_text()? line_break() {}
+        rule listen_header() -> (&'input str, Option<&'input str>)
+            = whitespace() "listen" whitespace() p:proxy_name() whitespace() service_address()? value()? c:comment_text()? line_break() {(p,c)}
 
-        rule backend_header() -> ()
-            = whitespace() "backend" whitespace() proxy_name() whitespace() value()? comment_text()? line_break() {}
+        rule frontend_header() -> (&'input str, Option<&'input str>)
+            = whitespace() "frontend" whitespace() p:proxy_name() whitespace() service_address()? value()? c:comment_text()? line_break() {(p,c)}
 
-        rule config_block() -> ()
-            = (server_line() / option_line() / bind_line() / acl_line() / backend_line() / group_line() / user_line() / config_line() / comment_line() / blank_line())* {}
+        rule backend_header() -> (&'input str, Option<&'input str>)
+            = whitespace() "backend" whitespace() p:proxy_name() whitespace() value()? c:comment_text()? line_break() {(p,c)}
 
-        rule server_line() -> ()
-            = whitespace() "server" whitespace() server_name() whitespace() service_address() value()? comment_text()? line_break() {}
+        rule config_block() -> Vec<Line<'input>>
+            = e:(server_line() / option_line() / bind_line() / acl_line() / backend_line() / group_line() / user_line() / config_line() / comment_line() / blank_line())* { e }
 
-        rule option_line() -> ()
-            = whitespace() "option" whitespace() keyword() whitespace() value()? comment_text()? line_break() {}
+        rule server_line() -> Line<'input>
+            = whitespace() "server" whitespace() name:server_name() whitespace() addr:service_address() other:value()? comment:comment_text()? line_break() {
+                Line::Server { name, addr, other, comment }
+            }
 
-        rule bind_line() -> ()
-            = whitespace() "bind" whitespaceplus() service_address() whitespace() value()? comment_text()? line_break() {}
+        rule option_line() -> Line<'input>
+            = whitespace() "option" whitespace() keyword:keyword() whitespace() value:value()? comment:comment_text()? line_break() {
+                Line::Option { keyword, value, comment }
+            }
 
-        rule acl_line() -> ()
-        = whitespace() "acl" whitespace() acl_name() whitespace() value()? comment_text()? line_break() {}
+        rule bind_line() -> Line<'input>
+            = whitespace() "bind" whitespaceplus() addr:service_address() whitespace() value:value()? comment:comment_text()? line_break() {
+                Line::Bind { addr, value, comment }
+            }
 
-        rule backend_line() -> ()
-            = whitespace() ("use_backend" / "default_backend") whitespace() backend_name() whitespace() ("if" / "unless")? whitespace() backend_condition()? comment_text()? line_break() {}
+        rule acl_line() -> Line<'input>
+        = whitespace() "acl" whitespace() name:acl_name() whitespace() r:value()? comment:comment_text()? line_break() {
+            Line::Acl { name, rule: r, comment }
+        }
 
-        rule group_line() -> ()
-            = whitespace() "group" whitespace() group_name() whitespace() ("users" whitespace())? value()? comment_text()? line_break() {}
+        rule modifier() -> BackendModifier
+        = "if" { BackendModifier::If } / "unless" { BackendModifier::Unless }
 
-        rule user_line() -> ()
-            = whitespace() "user" whitespace() user_name() whitespace() ("password" / "insecure-password") whitespace() password() whitespace() ("groups" whitespace())? value()? comment_text()? line_break() {}
+        rule backend_line() -> Line<'input>
+            = whitespace() ("use_backend" / "default_backend") whitespace() name:backend_name() whitespace() modifier:modifier()? whitespace() condition:backend_condition()? comment:comment_text()? line_break() {
+                Line::Backend {name, modifier, condition, comment }
+            }
 
-        pub(super) rule config_line() -> ()
-            = whitespace() !("defaults" / "global" / "userlist" / "listen" / "frontend" / "backend") keyword() whitespace() value()? comment_text()? line_break() {}
+        rule group_line() -> Line<'input>
+            = whitespace() "group" whitespace() name:group_name() whitespace() ("users" whitespace())? user:value()? comment:comment_text()? line_break() {
+                Line::Group { name, user, comment }
+            }
 
-        rule comment_line() -> ()
-            = whitespace() comment_text() line_break() {}
+        rule password_type() -> bool
+            = "password" { true } / "insecure-password" { false }
 
-        rule blank_line() -> ()
-            = whitespace() line_break() {}
+        rule groups() -> Vec<&'input str>
+            = "groups" groups:$(whitespace() value())+ { 
+                let mut groups = groups;
+                for group in &mut groups {
+                    *group = group.trim();
+                }
+                groups
+            }
 
-        rule comment_text() -> ()
-            = "#" char()* &line_break() {}
+        rule user_line() -> Line<'input>
+            = whitespace() "user" whitespace() name:user_name() whitespace() secure:password_type() whitespace() password:password() whitespace() groups:groups()? comment:comment_text()? line_break() {
+                let password = if secure {
+                    Password::Secure(password)
+                } else {
+                    Password::Insecure(password)
+                };
+                let groups = groups.unwrap_or_else(Vec::new);
+                Line::User { name, password, groups, comment}
+            }
 
-        rule line_break() -> ()
-            = ['\n'] {}
+        pub(super) rule config_line() -> Line<'input>
+            = whitespace() !("defaults" / "global" / "userlist" / "listen" / "frontend" / "backend") key:keyword() whitespace() value:value()? comment:comment_text()? line_break() { 
+                Line::Config { key, value, comment }
+            }
 
-        rule keyword() -> ()
-            = (("errorfile" / "timeout") whitespace())? ['a'..='z' | '0'..='9' | '-' | '_' | '.']+ {}
+        rule config_comment() -> ConfigEntry<'input>
+            = whitespace() t:comment_text() line_break() { ConfigEntry::Comment(t) }
 
-        rule alphanumeric_plus() -> ()
-            = ['a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_' | '.' | ':']+ {}
+        rule comment_line() -> Line<'input>
+            = whitespace() t:comment_text() line_break() { Line::Comment(t) }
 
-        rule server_name() -> ()
-            = alphanumeric_plus() {}
+        rule blank_line() -> Line<'input>
+            = whitespace() line_break() { Line::Blank }
 
-        rule acl_name() -> ()
-            = alphanumeric_plus() {}
+        rule config_blank() -> ConfigEntry<'input>
+            = whitespace() line_break() { ConfigEntry::BlankLine }
 
-        rule backend_name() -> ()
-            = alphanumeric_plus() {}
+        rule comment_text() -> &'input str
+            = "#" s:$(char()*) &line_break() { s }
 
-        rule group_name() -> ()
-            = alphanumeric_plus() {}
+        rule line_break()
+            = quiet!{['\n']}
 
-        rule user_name() -> ()
-            = alphanumeric_plus() {}
+        rule keyword() -> &'input str
+            = $((("errorfile" / "timeout") whitespace())? ['a'..='z' | '0'..='9' | '-' | '_' | '.']+)
 
-        rule not_comment_or_end() -> () 
-            = [^ '#' | '\n']+ {}
+        rule alphanumeric_plus() -> &'input str
+            = $(['a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_' | '.' | ':']+)
 
-        rule password() -> ()
-            = not_comment_or_end() {}
+        rule server_name() -> &'input str
+            = alphanumeric_plus()
 
-        rule backend_condition() -> ()
-            = not_comment_or_end() {}
+        rule acl_name() -> &'input str
+            = alphanumeric_plus()
 
-        rule service_address() -> ()
-            = host() [':']? port() {}
+        rule backend_name() -> &'input str
+            = alphanumeric_plus()
 
-        rule host() -> ()
-            = ipv4_host() / dns_host() / wildcard_host() {}
+        rule group_name() -> &'input str
+            = alphanumeric_plus()
 
-        rule port() -> ()
-            = ['0'..='9']* {}
+        rule user_name() -> &'input str
+            = alphanumeric_plus()
 
-        rule digits() -> ()
-            = ['0'..='9']+ {}
+        rule not_comment_or_end() -> &'input str
+            = $([^ '#' | '\n']+)
 
-        rule ipv4_host() -> ()
-            = digits() "." digits() "." digits() "." digits() {}
+        rule password() -> &'input str
+            = not_comment_or_end()
 
-        rule dns_host() -> ()
-            = ['a'..='z' | 'A'..='Z' | '-' | '.' | '0'..='9']+ {}
+        rule backend_condition() -> &'input str
+            = not_comment_or_end()
 
-        rule wildcard_host() -> ()
-            = "*" {}
+        rule service_address() -> Address<'input>
+            = host:host() [':']? port:port()? {
+                Address {host, port}
+            }
 
-        rule proxy_name() -> ()
-            = alphanumeric_plus() {}
+        rule host() -> Host<'input>
+            = ipv4_host() / dns_host() / wildcard_host()
 
-        rule value() -> ()
-            = not_comment_or_end() {}
+        rule port() -> u16
+            = p:$(['0'..='9']+) { p.parse().expect("port must fit in a u16") }
 
-        rule char() -> ()
-            = !['\n'] "." {}
+        rule digits_u8() -> u8
+            = d:$(['0'..='9']*<1,3>) {
+                d.parse().expect("digits must represent unsigned 8 bit integer")
+            }
+
+        rule ipv4_host() -> Host<'input>
+            = a:digits_u8() "." b:digits_u8() "." c:digits_u8() "." d:digits_u8() {
+                Host::Ipv4(Ipv4Addr::new(a,b,c,d))
+            }
+
+        rule dns_host() -> Host<'input>
+            = s:$(['a'..='z' | 'A'..='Z' | '-' | '.' | '0'..='9']+) { Host::Dns(s) }
+
+        rule wildcard_host() -> Host<'input>
+            = "*" { Host::Wildcard }
+
+        rule proxy_name() -> &'input str
+            = alphanumeric_plus()
+
+        rule value() -> &'input str
+            = not_comment_or_end()
+
+        rule char()
+            = quiet!{!['\n'] "."}
 
         pub(super) rule whitespace()
             = quiet!{[' ' | '\t']*}
