@@ -1,4 +1,4 @@
-use color_eyre::{eyre::WrapErr, Help, Report};
+use color_eyre::{Help, Report};
 use itertools::Itertools;
 use libproc::libproc::proc_pid;
 use netstat2::SocketInfo;
@@ -16,6 +16,7 @@ fn root() -> bool {
 #[derive(Debug)]
 struct PortUser {
     name: String,
+    #[allow(dead_code)] /// we use it as we use the Debug impl
     path: String,
 }
 
@@ -107,7 +108,7 @@ where
 
         if !users.is_empty() {
             r = r.with_warning(|| format!("Users: {users:?}"));
-            r = applications::improve_report(r, &users)
+            r = applications::improve_report(port, r, &users)
         }
 
         if !errs.resolving_name.is_empty() {

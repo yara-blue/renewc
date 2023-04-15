@@ -24,4 +24,4 @@ libproc = "0.13"
 hyper = "0.14.24"
 itertools = "0.10.5"
 
-haproxy-config = "0.1"
+haproxy-config = "0.4"

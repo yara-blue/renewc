@@ -5,8 +5,7 @@ use axum::{Extension, Router};
 use tower_http::trace::TraceLayer;
 use tower::ServiceBuilder;
 
-use color_eyre::eyre::{self, Context};
-use color_eyre::Help;
+use color_eyre::eyre;
 use tracing::error;
 
 use std::collections::HashMap;

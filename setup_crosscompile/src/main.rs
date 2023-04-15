@@ -17,7 +17,9 @@ fn setup_aarch_crosscomp() {
             let source = sources.next().expect("No more mirrors to try");
             match reqwest::blocking::get(source) {
                 Ok(bytes) => break bytes,
-                Err(e) => println!("Error trying to download from {source:?}, trying another mirror"),
+                Err(_) => {
+                    println!("Error trying to download from {source:?}, trying another mirror")
+                }
             }
         };
 
