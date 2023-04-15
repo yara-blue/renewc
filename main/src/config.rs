@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
+use crate::diagnostics;
+
 #[derive(clap::ValueEnum, Debug, Clone)]
 pub enum Format {
     /// a PEM file containing both the required certificates and any associated private key
@@ -52,7 +54,6 @@ pub struct RenewArgs {
     reload: Option<String>,
 }
 
-
 pub struct Config {
     pub(crate) domains: Vec<String>,
     pub(crate) email: Vec<String>,
@@ -61,8 +62,8 @@ pub struct Config {
     pub(crate) path: PathBuf,
     pub(crate) format: Format,
     pub(crate) reload: Option<String>,
+    pub(crate) diagnostics: diagnostics::Config,
 }
-
 
 impl From<RenewArgs> for Config {
     fn from(args: RenewArgs) -> Self {
@@ -74,6 +75,7 @@ impl From<RenewArgs> for Config {
             path: args.path,
             format: args.format,
             reload: args.reload,
+            diagnostics: Default::default(),
         }
     }
 }

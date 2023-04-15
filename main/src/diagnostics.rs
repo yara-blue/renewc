@@ -4,6 +4,9 @@ use libproc::libproc::proc_pid;
 use netstat2::SocketInfo;
 
 mod applications;
+pub use applications::Config;
+
+use crate::config;
 
 fn root() -> bool {
     if proc_pid::am_root() {
@@ -16,7 +19,8 @@ fn root() -> bool {
 #[derive(Debug)]
 struct PortUser {
     name: String,
-    #[allow(dead_code)] /// we use it as we use the Debug impl
+    #[allow(dead_code)]
+    /// we use it as we use the Debug impl
     path: String,
 }
 
@@ -82,14 +86,14 @@ fn insufficent_permission(port: u16) -> bool {
     port <= 1024 && !root()
 }
 
-pub(crate) fn cant_bind_port(e: hyper::Error, port: u16) -> Report {
-    match build_report(e, port) {
+pub(crate) fn cant_bind_port(config: &config::Config, e: hyper::Error) -> Report {
+    match build_report(&config.diagnostics, e, config.port) {
         Ok(r) => r,
         Err(r) => r.wrap_err("Could not deduce cause of error"),
     }
 }
 
-fn build_report<E>(e: E, port: u16) -> Result<Report, Report>
+fn build_report<E>(config: &Config, e: E, port: u16) -> Result<Report, Report>
 where
     E: std::error::Error + Sync + Send + 'static,
 {
@@ -108,7 +112,7 @@ where
 
         if !users.is_empty() {
             r = r.with_warning(|| format!("Users: {users:?}"));
-            r = applications::improve_report(port, r, &users)
+            r = applications::improve_report(&config, port, r, &users)
         }
 
         if !errs.resolving_name.is_empty() {

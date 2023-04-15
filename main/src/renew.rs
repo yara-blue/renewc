@@ -8,6 +8,7 @@ use tokio::time::sleep;
 use tracing::{debug, error};
 
 use crate::cert::Signed;
+use crate::config::Config;
 
 use super::server::Http01Challenge;
 use acme::{
@@ -153,18 +154,19 @@ fn prepare_sign_request(names: &[String]) -> Result<(Certificate, Vec<u8>), rcge
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn request(
-    names: Vec<String>,
-    port: u16,
-    production: bool,
-    debug: bool,
-) -> eyre::Result<Signed> {
-    let account = account(production).await?;
-    let (mut order, state) = order(&account, &names).await?;
+pub async fn request(config: &Config, debug: bool) -> eyre::Result<Signed> {
+    let Config {
+        domains: ref names,
+        production,
+        ..
+    } = config;
+
+    let account = account(*production).await?;
+    let (mut order, state) = order(&account, names).await?;
 
     let challenges = prepare_challenge(&mut order, state).await?;
 
-    let server = super::server::run(port, &challenges);
+    let server = super::server::run(config, &challenges);
     let ready = wait_for_order_rdy(&mut order, &challenges, debug);
     let state = tokio::select!(
         res = ready => res?,

@@ -1,23 +1,38 @@
 use std::collections::HashMap;
 use std::fs;
+use std::path::PathBuf;
 
 use color_eyre::eyre::{self, Context};
 use color_eyre::Report;
 use haproxy_config::config::{Frontend, Listen};
-use haproxy_config::{parse_sections, Config};
+use haproxy_config::parse_sections;
+use haproxy_config::Config as HaConfig;
 
-const CONFIG_PATH: &'static str = "/etc/haproxy/haproxy.cfg";
-
-pub fn report(bound_port: u16) -> Result<String, Report> {
-    let file = fs::read_to_string(CONFIG_PATH).wrap_err("Could not read haproxy cfg")?;
-    let sections = parse_sections(&file).wrap_err("Could not parse haproxy cfg")?;
-    let config = Config::try_from(&sections).wrap_err("Could not parse haproxy cfg")?;
-
-    let ports = forwarded_ports(config, bound_port)?;
-    Ok(format!("haproxy is forwarding {bound_port} to port(s): {ports:?}"))
+#[derive(Debug)]
+pub struct Config {
+    path: PathBuf,
 }
 
-pub fn forwarded_ports(config: Config, bound_port: u16) -> Result<Vec<u16>, Report> {
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            path: PathBuf::from("/etc/haproxy/haproxy.cfg"),
+        }
+    }
+}
+
+pub fn report(config: &super::Config, bound_port: u16) -> Result<String, Report> {
+    let file = fs::read_to_string(&config.haproxy.path).wrap_err("Could not read haproxy cfg")?;
+    let sections = parse_sections(&file).wrap_err("Could not parse haproxy cfg")?;
+    let config = HaConfig::try_from(&sections).wrap_err("Could not parse haproxy cfg")?;
+
+    let ports = forwarded_ports(config, bound_port)?;
+    Ok(format!(
+        "haproxy is forwarding {bound_port} to port(s): {ports:?}"
+    ))
+}
+
+pub fn forwarded_ports(config: HaConfig, bound_port: u16) -> Result<Vec<u16>, Report> {
     let backend_ports: HashMap<String, u16> = config
         .backends
         .into_iter()
@@ -104,10 +119,9 @@ mod tests {
     fn find_letsencrypt_forward() {
         let file = include_str!("haproxy.cfg");
         let sections = parse_sections(file).unwrap();
-        let config = Config::try_from(&sections).unwrap();
+        let config = HaConfig::try_from(&sections).unwrap();
         let ports = forwarded_ports(config, 80).unwrap();
 
         assert_eq!(ports, [34320]);
-        
     }
 }

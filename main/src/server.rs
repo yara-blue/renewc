@@ -2,8 +2,8 @@ use axum::extract::Path;
 use axum::routing::get;
 use axum::{Extension, Router};
 
-use tower_http::trace::TraceLayer;
 use tower::ServiceBuilder;
+use tower_http::trace::TraceLayer;
 
 use color_eyre::eyre;
 use tracing::error;
@@ -11,6 +11,7 @@ use tracing::error;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::config::Config;
 use crate::diagnostics;
 
 pub struct Http01Challenge {
@@ -38,7 +39,7 @@ async fn challenge(
     key_auth.clone()
 }
 
-pub async fn run(port: u16, challenges: &[Http01Challenge]) -> eyre::Result<()> {
+pub async fn run(config: &Config, challenges: &[Http01Challenge]) -> eyre::Result<()> {
     let key_auth: HashMap<_, _> = challenges
         .iter()
         .map(|c| (c.token.clone(), c.key_auth.clone()))
@@ -47,13 +48,15 @@ pub async fn run(port: u16, challenges: &[Http01Challenge]) -> eyre::Result<()> 
 
     let app = Router::new()
         .route("/.well-known/acme-challenge/:token", get(challenge))
-        .layer(ServiceBuilder::new()
-               .layer(TraceLayer::new_for_http())
-               .layer(Extension(shared_state)));
+        .layer(
+            ServiceBuilder::new()
+                .layer(TraceLayer::new_for_http())
+                .layer(Extension(shared_state)),
+        );
 
-    let addr = ([0, 0, 0, 0], port).into();
+    let addr = ([0, 0, 0, 0], config.port).into();
     axum::Server::try_bind(&addr)
-        .map_err(|e| diagnostics::cant_bind_port(e, port))?
+        .map_err(|e| diagnostics::cant_bind_port(config, e))?
         .serve(app.into_make_service())
         .await?;
 

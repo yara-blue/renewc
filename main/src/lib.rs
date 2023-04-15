@@ -51,7 +51,7 @@ pub async fn run(config: impl Into<config::Config>, debug: bool) -> eyre::Result
         }
     }
 
-    let signed = renew::request(config.domains, config.port, config.production, debug).await?;
+    let signed = renew::request(&config, debug).await?;
     cert::write_combined(config.path, signed).wrap_err("Could not write out certificates")?;
     if let Some(service) = config.reload {
         systemd::systemctl(&["reload"], &service)

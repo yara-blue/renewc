@@ -2,11 +2,16 @@ use color_eyre::{Help, Report};
 
 use super::PortUser;
 
-mod haproxy;
+pub(super) mod haproxy;
 
 struct App {
     name: &'static str,
-    reporter: &'static dyn Fn(u16) -> Result<String, Report>,
+    reporter: &'static dyn Fn(&Config, u16) -> Result<String, Report>,
+}
+
+#[derive(Default)]
+pub struct Config {
+    haproxy: haproxy::Config,
 }
 
 const APPS: [App; 1] = [App {
@@ -14,7 +19,7 @@ const APPS: [App; 1] = [App {
     reporter: &haproxy::report,
 }];
 
-pub(super) fn improve_report(port: u16, mut report: Report, users: &[PortUser]) -> Report {
+pub(super) fn improve_report(config: &Config, port: u16, mut report: Report, users: &[PortUser]) -> Report {
     if users.is_empty() {
         return report;
     }
@@ -24,7 +29,7 @@ pub(super) fn improve_report(port: u16, mut report: Report, users: &[PortUser]) 
             .iter()
             .any(|u| u.name.to_lowercase().trim() != app.name)
         {
-            match (app.reporter)(port) {
+            match (app.reporter)(config, port) {
                 Err(e) => {
                     println!("{}", e);
                 }
