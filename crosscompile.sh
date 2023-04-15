@@ -2,5 +2,5 @@
 
 cd setup_crosscompile
 cargo r
-cd ..
+cd ../main
 cargo b --target aarch64-unknown-linux-musl --release

@@ -5,6 +5,8 @@ use std::process::Command;
 use std::time::Duration;
 use std::{env, thread};
 
+use crate::config::InstallArgs;
+
 // String should be written to a .service file
 fn service_str() -> Result<String> {
     let path = env::current_exe().wrap_err(concat!(
@@ -78,7 +80,7 @@ pub fn write_service() -> Result<()> {
     Ok(())
 }
 
-pub fn write_timer(args: &crate::InstallArgs) -> Result<()> {
+pub fn write_timer(args: &InstallArgs) -> Result<()> {
     let time = super::util::try_to_time(&args.time)?;
     let timer = timer_str(time.hour(), time.minute()).wrap_err("Could not construct timer")?;
 

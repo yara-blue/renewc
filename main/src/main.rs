@@ -1,67 +1,11 @@
-use std::io::Read;
-use std::path::PathBuf;
-use time::Duration;
-
 use clap::{Parser, Subcommand};
 use color_eyre::eyre::{self, Context};
-use tracing::{info, warn};
+use tracing::warn;
 
-mod cert;
-mod renew;
-mod server;
-mod systemd;
-mod util;
-mod diagnostics;
-
-#[derive(Parser, Debug)]
-pub struct InstallArgs {
-    /// time at which refresh should run
-    #[clap(long, default_value = "04:00")]
-    time: String,
-
-    #[clap(flatten)]
-    run: RenewArgs,
-}
-
-#[derive(clap::ValueEnum, Debug, Clone)]
-pub enum Format {
-    /// a PEM file containing both the required certificates and any associated private key
-    /// compatible with HaProxy
-    SinglePem,
-}
-
-#[derive(Parser, Debug)]
-pub struct RenewArgs {
-    /// Domains
-    #[clap(long, required = true)]
-    domains: Vec<String>,
-
-    /// Contact info
-    #[clap(long)]
-    email: Vec<String>,
-
-    /// Use Let's Encrypt production environment
-    /// (see https://letsencrypt.org/docs/staging-environment/)
-    #[clap(long)]
-    production: bool,
-
-    /// External port 80 should be forwarded to this
-    /// internal port
-    #[clap(long, default_value_t = 80, value_parser = clap::value_parser!(u16).range(1..))]
-    port: u16,
-
-    /// cert path including file name, for example
-    /// /etc/ssl/certs/example.org.pem
-    #[clap(long)]
-    path: PathBuf,
-
-    /// the format to store the key in
-    #[clap(value_enum, default_value_t = Format::SinglePem)]
-    format: Format,
-
-    /// systemd service to reload after renewal
-    reload: Option<String>,
-}
+use renew_certs::{
+    config::{InstallArgs, RenewArgs},
+    run, systemd,
+};
 
 #[derive(Subcommand, Debug)]
 enum Commands {
@@ -85,51 +29,6 @@ struct Cli {
     command: Commands,
     #[clap(short, long)]
     debug: bool,
-}
-
-async fn run(args: RenewArgs, debug: bool) -> eyre::Result<()> {
-    if let Some(existing) = cert::extract_combined(&args.path)? {
-        let (expires_in, is_staging) = cert::analyze(existing)?;
-        let expires_soon = expires_in < Duration::days(10);
-        match (!args.production, is_staging, expires_soon) {
-            (true, true, _) => {
-                warn!("Requesting Staging cert, certificates will not be valid")
-            }
-            (true, false, _) => {
-                println!("Found production cert, continuing will overwrite it with a staging certificate");
-                println!("Continue? y/n");
-                let mut buf = [0u8];
-                std::io::stdin().read(&mut buf).unwrap();
-                if buf[0] as char != 'y' {
-                    info!("Quiting, user requested exit");
-                    return Ok(());
-                }
-                warn!("Requesting Staging cert, certificates will not be valid")
-            }
-            (false, true, _) => {
-                info!("Requesting production cert, existing certificate is staging")
-            }
-            (false, false, true) => {
-                info!("Renewing production cert: existing certificate expires soon: {} days, {} hours", 
-                      expires_in.whole_days(), 
-                      expires_in.whole_hours())
-            }
-            (false, false, false) => {
-                info!("Quiting: production cert not yet due for renewal, expires in: {} days, {} hours", 
-                      expires_in.whole_days(), 
-                      expires_in.whole_hours());
-                return Ok(());
-            }
-        }
-    }
-
-    let signed = renew::request(args.domains, args.port, args.production, debug).await?;
-    cert::write_combined(args.path, signed).wrap_err("Could not write out certificates")?;
-    if let Some(service) = args.reload {
-        systemd::systemctl(&["reload"], &service)
-            .wrap_err_with(|| "Could not reload ".to_owned() + &service)?;
-    }
-    Ok(())
 }
 
 #[tokio::main]
