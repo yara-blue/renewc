@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use color_eyre::{Help, Report};
 use itertools::Itertools;
 use libproc::libproc::proc_pid;
@@ -24,7 +26,14 @@ struct PortUser {
     path: String,
 }
 
+impl Display for PortUser {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("- `{}`\n\t\tpath: {}", self.name, self.path))
+    }
+}
+
 type ErrorString = String;
+#[derive(Debug)]
 struct Errors {
     resolving_name: Vec<(Pid, ErrorString)>,
     quering_socket: Vec<netstat2::error::Error>,
@@ -97,8 +106,9 @@ fn build_report<E>(config: &Config, e: E, port: u16) -> Result<Report, Report>
 where
     E: std::error::Error + Sync + Send + 'static,
 {
-    let mut r = Report::new(e).wrap_err("insufficient permission to attach to port");
+    let mut r = Report::new(e);
     if insufficent_permission(port) {
+        r = r.wrap_err("insufficient permission to attach to port");
         r = r.with_suggestion(|| {
             "Insufficient permissions to attach to port. \
             You normally need sudo to attach to ports below 1025"
@@ -108,17 +118,18 @@ where
 
     let (users, errs) = port_users(port)?;
     if !users.is_empty() || !errs.resolving_name.is_empty() {
-        r = r.suggestion("The port is already in use");
+        r = r.wrap_err("The port is already in use");
 
         if !users.is_empty() {
-            r = r.with_warning(|| format!("Users: {users:?}"));
-            r = applications::improve_report(&config, port, r, &users)
+            let list = users.iter().map(|u| u.to_string()).join(",\n\t");
+            r = r.with_note(|| format!("The port is being used by:\n\t{list}"));
+            r = applications::improve_report(&config, port, r, &users);
         }
 
         if !errs.resolving_name.is_empty() {
             r = r.with_warning(|| {
                 format!("Could not resolve name for pids: {:?}", errs.resolving_name)
-            })
+            });
         }
 
         if !errs.quering_socket.is_empty() {

@@ -25,3 +25,6 @@ hyper = "0.14.24"
 itertools = "0.10.5"
 
 haproxy-config = "0.4"
+
+[dev-dependencies]
+libc = "0.2"

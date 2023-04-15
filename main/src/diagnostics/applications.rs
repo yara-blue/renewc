@@ -14,12 +14,25 @@ pub struct Config {
     haproxy: haproxy::Config,
 }
 
+impl Config {
+    pub fn test() -> Self {
+        Self {
+            haproxy: haproxy::Config::test(),
+        }
+    }
+}
+
 const APPS: [App; 1] = [App {
     name: "haproxy",
     reporter: &haproxy::report,
 }];
 
-pub(super) fn improve_report(config: &Config, port: u16, mut report: Report, users: &[PortUser]) -> Report {
+pub(super) fn improve_report(
+    config: &Config,
+    port: u16,
+    mut report: Report,
+    users: &[PortUser],
+) -> Report {
     if users.is_empty() {
         return report;
     }
@@ -31,12 +44,13 @@ pub(super) fn improve_report(config: &Config, port: u16, mut report: Report, use
         {
             match (app.reporter)(config, port) {
                 Err(e) => {
-                    println!("{}", e);
+                    report = report
+                        .with_warning(|| format!("Error while investigating.\n\t- {e}"))
                 }
                 Ok(s) => report = report.with_note(|| s),
             }
         }
     }
 
-    todo!()
+    report
 }

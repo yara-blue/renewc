@@ -21,8 +21,21 @@ impl Default for Config {
     }
 }
 
+impl Config {
+    pub fn test() -> Self {
+        Self {
+            path: PathBuf::from("tests/haproxy.cfg"),
+        }
+    }
+}
+
 pub fn report(config: &super::Config, bound_port: u16) -> Result<String, Report> {
-    let file = fs::read_to_string(&config.haproxy.path).wrap_err("Could not read haproxy cfg")?;
+    let file = fs::read_to_string(&config.haproxy.path).wrap_err_with(|| {
+        format!(
+            "Could not read haproxy cfg at: {}",
+            config.haproxy.path.display()
+        )
+    })?;
     let sections = parse_sections(&file).wrap_err("Could not parse haproxy cfg")?;
     let config = HaConfig::try_from(&sections).wrap_err("Could not parse haproxy cfg")?;
 

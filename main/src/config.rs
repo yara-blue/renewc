@@ -4,10 +4,11 @@ use clap::Parser;
 
 use crate::diagnostics;
 
-#[derive(clap::ValueEnum, Debug, Clone)]
+#[derive(clap::ValueEnum, Debug, Clone, Default)]
 pub enum Format {
     /// a PEM file containing both the required certificates and any associated private key
     /// compatible with HaProxy
+    #[default]
     SinglePem,
 }
 
@@ -76,6 +77,21 @@ impl From<RenewArgs> for Config {
             format: args.format,
             reload: args.reload,
             diagnostics: Default::default(),
+        }
+    }
+}
+
+impl Config {
+    pub fn test(port: u16) -> Self {
+        Config {
+            domains: vec!["testdomain.org".into()],
+            email: vec!["test_email".into()],
+            production: false,
+            port,
+            path: PathBuf::from("tests/cert_path"),
+            format: Default::default(),
+            reload: None,
+            diagnostics: diagnostics::Config::test(),
         }
     }
 }

@@ -13,7 +13,9 @@ pub mod util;
 pub mod diagnostics;
 pub mod config;
 
-pub async fn run(config: impl Into<config::Config>, debug: bool) -> eyre::Result<()> {
+pub use config::Config;
+
+pub async fn run(config: impl Into<Config>, debug: bool) -> eyre::Result<()> {
     let config = config.into();
 
     if let Some(existing) = cert::extract_combined(&config.path)? {
