@@ -55,10 +55,12 @@ pub struct RenewArgs {
     reload: Option<String>,
 
     /// renew a certificate even if its not due yet
+    #[clap(long, default_value_t = false)]
     renew_early: bool,
 
     /// request a staging certificate even if that overwrites a 
     /// valid production certificate
+    #[clap(long, default_value_t = false)]
     overwrite_production: bool,
 }
 

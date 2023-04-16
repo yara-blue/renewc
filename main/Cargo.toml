@@ -2,7 +2,7 @@
 name = "renewc"
 version = "0.1.0"
 edition = "2021"
-description = "Zero runtime dependencies Http01 CertBot alternative"
+description = "Certificate renewal, with advanced diagnostics without installing anything"
 license = "Apache-2.0 OR MIT"
 
 [dependencies]
