@@ -1,3 +1,5 @@
+#![allow(clippy::missing_errors_doc)]
+
 use axum::extract::Path;
 use axum::routing::get;
 use axum::{Extension, Router};
@@ -29,12 +31,9 @@ async fn challenge(
     Extension(key_auth): Extension<Arc<HashMap<Token, KeyAuth>>>,
     Path(token): Path<String>,
 ) -> String {
-    let key_auth = match key_auth.get(&token) {
-        None => {
+    let Some(key_auth) = key_auth.get(&token) else {
             error!("we do not have a auth key for token: {token}");
             return "Error no auth key for token".to_owned();
-        }
-        Some(key_auth) => key_auth,
     };
     key_auth.clone()
 }

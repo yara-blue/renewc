@@ -14,6 +14,7 @@ fn set_process_name(name: &str) {
     }
 }
 
+#[allow(clippy::panic)]
 #[must_use] pub fn spawn_fake_haproxy() -> (JoinHandle<()>, u16) {
     let binder = TcpListener::bind("127.0.0.1:0").unwrap();
     let port = binder.local_addr().unwrap().port();

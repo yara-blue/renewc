@@ -6,6 +6,7 @@ pub(super) mod haproxy;
 
 struct App {
     name: &'static str,
+    #[allow(clippy::type_complexity)]
     reporter: &'static dyn Fn(&Config, u16) -> Result<Option<String>, Report>,
 }
 
@@ -45,7 +46,7 @@ pub(super) fn improve_report(
             match (app.reporter)(config, port) {
                 Err(e) => {
                     report = report
-                        .with_warning(|| format!("Error while investigating.\n\t- {e}"))
+                        .with_warning(|| format!("Error while investigating.\n\t- {e}"));
                 }
                 Ok(Some(s)) => report = report.with_note(|| s),
                 Ok(None) => (),

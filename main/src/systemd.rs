@@ -1,3 +1,5 @@
+#![allow(clippy::missing_errors_doc)]
+
 use color_eyre::eyre;
 use color_eyre::eyre::{Context, Result};
 use std::fs;
@@ -52,19 +54,19 @@ WantedBy=multi-user.target
 }
 
 // String should be written to a .timer file
-fn timer_str(hour: u8, minute: u8) -> Result<String> {
+fn timer_str(hour: u8, minute: u8) -> String {
     let run = format!("*-*-* {hour}:{minute}:10");
 
-    Ok(format!(
+    format!(
         "[Unit]
-Description=Renew letsencrypt certificates
-[Timer]
-OnCalendar={run}
-AccuracySec=60
-[Install]
-WantedBy=timers.target
-"
-    ))
+        Description=Renew letsencrypt certificates
+        [Timer]
+        OnCalendar={run}
+        AccuracySec=60
+        [Install]
+        WantedBy=timers.target
+        "
+    )
 }
 
 macro_rules! unit_path {
@@ -82,7 +84,7 @@ pub fn write_service() -> Result<()> {
 
 pub fn write_timer(args: &InstallArgs) -> Result<()> {
     let time = super::util::try_to_time(&args.time)?;
-    let timer = timer_str(time.hour(), time.minute()).wrap_err("Could not construct timer")?;
+    let timer = timer_str(time.hour(), time.minute());
 
     let path = unit_path!("timer");
     fs::write(path, timer).wrap_err_with(|| format!("could not write file to: {path}"))
@@ -100,12 +102,12 @@ pub(crate) fn systemctl(args: &[&'static str], service: &str) -> Result<()> {
         .output()
         .wrap_err("Could not run systemctl")?;
 
-    if !output.status.success() {
-        let reason = String::from_utf8(output.stderr).unwrap();
-        Err(eyre::eyre!("{reason}").wrap_err("Systemctl returned an error"))
-    } else {
-        Ok(())
+    if output.status.success() {
+        return Ok(());
     }
+
+    let reason = String::from_utf8(output.stderr).unwrap();
+    Err(eyre::eyre!("{reason}").wrap_err("Systemctl returned an error"))
 }
 
 fn timer() -> &'static str {
@@ -129,9 +131,10 @@ fn wait_for(service: &str, state: bool) -> Result<()> {
         }
         thread::sleep(Duration::from_millis(50));
     }
-    match state {
-        true => Err(eyre::eyre!("Time out waiting for activation")),
-        false => Err(eyre::eyre!("Time out waiting for deactivation")),
+    if let true = state {
+        Err(eyre::eyre!("Time out waiting for activation"))
+    } else {
+        Err(eyre::eyre!("Time out waiting for deactivation"))
     }
 }
 

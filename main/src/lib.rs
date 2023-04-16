@@ -1,4 +1,5 @@
-use std::io::Read;
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::missing_panics_doc)]
 
 use time::Duration;
 
@@ -19,30 +20,30 @@ pub async fn run(config: impl Into<Config>, debug: bool) -> eyre::Result<()> {
     let config = config.into();
 
     if let Some(existing) = cert::extract_combined(&config.path)? {
-        let (expires_in, is_staging) = cert::analyze(existing)?;
+        let (expires_in, is_staging) = cert::analyze(&existing)?;
         let expires_soon = expires_in < Duration::days(10);
         match (!config.production, is_staging, expires_soon) {
             (true, true, _) => {
-                warn!("Requesting Staging cert, certificates will not be valid")
+                warn!("Requesting Staging cert, certificates will not be valid");
             }
             (true, false, _) => {
                 println!("Found production cert, continuing will overwrite it with a staging certificate");
                 println!("Continue? y/n");
-                let mut buf = [0u8];
-                std::io::stdin().read(&mut buf).unwrap();
-                if buf[0] as char != 'y' {
+                let mut buf = String::new();
+                std::io::stdin().read_line(&mut buf).unwrap();
+                if let Some('y') = buf.chars().next() {
                     info!("Quiting, user requested exit");
                     return Ok(());
                 }
-                warn!("Requesting Staging cert, certificates will not be valid")
+                warn!("Requesting Staging cert, certificates will not be valid");
             }
             (false, true, _) => {
-                info!("Requesting production cert, existing certificate is staging")
+                info!("Requesting production cert, existing certificate is staging");
             }
             (false, false, true) => {
                 info!("Renewing production cert: existing certificate expires soon: {} days, {} hours", 
                       expires_in.whole_days(), 
-                      expires_in.whole_hours())
+                      expires_in.whole_hours());
             }
             (false, false, false) => {
                 info!("Quiting: production cert not yet due for renewal, expires in: {} days, {} hours", 

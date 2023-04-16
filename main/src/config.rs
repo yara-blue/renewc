@@ -76,7 +76,7 @@ impl From<RenewArgs> for Config {
             path: args.path,
             format: args.format,
             reload: args.reload,
-            diagnostics: Default::default(),
+            diagnostics: diagnostics::Config::default(),
         }
     }
 }
@@ -89,7 +89,7 @@ impl Config {
             production: false,
             port,
             path: PathBuf::from("tests/cert_path"),
-            format: Default::default(),
+            format: Format::default(),
             reload: None,
             diagnostics: diagnostics::Config::test(),
         }

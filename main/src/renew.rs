@@ -22,9 +22,10 @@ use instant_acme as acme;
 // using `Account::from_credentials()`.
 #[tracing::instrument(skip_all)]
 async fn account(production: bool) -> Result<Account, acme::Error> {
-    let url = match production {
-        true => LetsEncrypt::Production.url(),
-        false => LetsEncrypt::Staging.url(),
+    let url = if production {
+        LetsEncrypt::Production.url()
+    } else {
+        LetsEncrypt::Staging.url()
     };
     Account::create(
         &NewAccount {
@@ -58,9 +59,7 @@ async fn order(account: &Account, names: &[String]) -> Result<Order, acme::Error
 
 // Pick the desired challenge type and prepare the response.
 #[tracing::instrument(skip_all)]
-async fn prepare_challenge(
-    order: &mut Order,
-) -> eyre::Result<Vec<Http01Challenge>> {
+async fn prepare_challenge(order: &mut Order) -> eyre::Result<Vec<Http01Challenge>> {
     let authorizations = order.authorizations().await.unwrap();
     let mut challenges = Vec::with_capacity(authorizations.len());
     for authz in authorizations {
@@ -130,10 +129,10 @@ async fn wait_for_order_rdy<'a>(
         debug!("Tip: check if the uri's in the above debug traces are reachable");
         tokio::task::spawn_blocking(move || {
             println!("Press enter to continue");
-            std::io::stdin().read(&mut [0]).unwrap();
+            std::io::stdin().read_exact(&mut [0]).unwrap();
         })
         .await
-        .unwrap()
+        .unwrap();
     }
 
     state
@@ -143,7 +142,7 @@ async fn wait_for_order_rdy<'a>(
 // Use the rcgen library to create a Certificate Signing Request.
 #[tracing::instrument(skip_all)]
 fn prepare_sign_request(names: &[String]) -> Result<(Certificate, Vec<u8>), rcgen::RcgenError> {
-    let mut params = CertificateParams::new(names.clone());
+    let mut params = CertificateParams::new(names);
     params.distinguished_name = DistinguishedName::new();
     let cert = Certificate::from_params(params).unwrap();
     let csr = cert.serialize_request_der()?;

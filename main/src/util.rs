@@ -1,6 +1,8 @@
 use color_eyre::eyre::Context;
 use color_eyre::{Result, eyre};
 
+/// # Errors 
+/// returns an error if the string does not represent hours:minuts
 pub fn try_to_time(s: &str) -> Result<time::Time> {
     let (h, m) = s
         .split_once(':')

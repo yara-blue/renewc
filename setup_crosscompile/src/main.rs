@@ -18,7 +18,7 @@ fn setup_aarch_crosscomp() {
             match reqwest::blocking::get(source) {
                 Ok(bytes) => break bytes,
                 Err(_) => {
-                    println!("Error trying to download from {source:?}, trying another mirror")
+                    println!("Error trying to download from {source:?}, trying another mirror");
                 }
             }
         };

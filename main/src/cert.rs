@@ -46,7 +46,7 @@ pub fn extract_combined(path: &Path) -> eyre::Result<Option<Signed>> {
 
 /// returns number of days until the first certificate in the chain
 /// expires and whether any certificate is from STAGING
-pub fn analyze(combined: Signed) -> eyre::Result<(Duration, bool)> {
+pub fn analyze(combined: &Signed) -> eyre::Result<(Duration, bool)> {
     use x509_parser::prelude::*;
 
     let mut staging = false;
@@ -64,7 +64,7 @@ pub fn analyze(combined: Signed) -> eyre::Result<(Duration, bool)> {
             x509.validity()
                 .time_to_expiration()
                 .unwrap_or(Duration::ZERO),
-        )
+        );
     }
 
     Ok((expires_in, staging))

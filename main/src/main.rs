@@ -56,14 +56,16 @@ async fn main() -> eyre::Result<()> {
     Ok(())
 }
 
+#[allow(clippy::missing_panics_doc)]
 pub fn setup_tracing(debug: bool) {
     use tracing_subscriber::filter;
     use tracing_subscriber::fmt;
     use tracing_subscriber::prelude::*;
 
-    let filter = match debug {
-        true => "debug,tower_http=trace",
-        false => "info",
+    let filter = if debug {
+        "debug,tower_http=trace"
+    } else {
+        "info"
     };
 
     let filter = filter::EnvFilter::builder().parse(filter).unwrap();

@@ -93,14 +93,14 @@ pub fn forwarded_ports(config: HaConfig, bound_port: u16) -> Result<Vec<u16>, Re
                 "Incorrect haproxy config, a listen and frontend section bind to the same port"
             ))
         }
-        (Some(frontend), None) => frontend_ports(frontend, second_frontend, &backend_ports)?,
-        (None, Some(listen)) => listen_ports(listen, second_listen)?,
+        (Some(frontend), None) => frontend_ports(frontend, &second_frontend, &backend_ports)?,
+        (None, Some(listen)) => listen_ports(listen, &second_listen)?,
     };
 
     Ok(possible_ports)
 }
 
-fn listen_ports(listen: Listen, second: Option<Listen>) -> Result<Vec<u16>, Report> {
+fn listen_ports(listen: Listen, second: &Option<Listen>) -> Result<Vec<u16>, Report> {
     if second.is_some() {
         return Err(eyre::eyre!(
             "Incorrect haproxy, only one listen section can bind to the same port"
@@ -116,7 +116,7 @@ fn listen_ports(listen: Listen, second: Option<Listen>) -> Result<Vec<u16>, Repo
 
 fn frontend_ports(
     frontend: Frontend,
-    second: Option<Frontend>,
+    second: &Option<Frontend>,
     backend_ports: &HashMap<String, u16>,
 ) -> Result<Vec<u16>, Report> {
     if second.is_some() {
