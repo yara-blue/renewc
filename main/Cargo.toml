@@ -21,13 +21,14 @@ color-eyre = "0.6"
 time = "0.3"
 netstat2 = "0.9"
 libproc = "0.13"
-hyper = "0.14.24"
-itertools = "0.10.5"
+hyper = "0.14"
+itertools = "0.10"
 
 haproxy-config = "0.4"
 tracing-error = "0.2.0"
 atty = "0.2"
+tracing-error = "0.2"
 
 [dev-dependencies]
 libc = "0.2"
-tempfile = "3.5.0"
+tempfile = "3.5"
