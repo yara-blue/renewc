@@ -110,10 +110,9 @@ where
     if insufficent_permission(port) {
         r = r.wrap_err("insufficient permission to attach to port");
         r = r.with_suggestion(|| {
-            "Insufficient permissions to attach to port. \
-            You normally need sudo to attach to ports below 1025"
+            "You normally need sudo to attach to ports below 1025"
         });
-        r = r.with_note(|| "port: {port}");
+        r = r.with_note(|| format!("port: {port}"));
     }
 
     let (users, errs) = port_users(port)?;

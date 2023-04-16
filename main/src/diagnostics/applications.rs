@@ -6,12 +6,12 @@ pub(super) mod haproxy;
 
 struct App {
     name: &'static str,
-    reporter: &'static dyn Fn(&Config, u16) -> Result<String, Report>,
+    reporter: &'static dyn Fn(&Config, u16) -> Result<Option<String>, Report>,
 }
 
 #[derive(Default)]
 pub struct Config {
-    haproxy: haproxy::Config,
+    pub haproxy: haproxy::Config,
 }
 
 impl Config {
@@ -47,7 +47,8 @@ pub(super) fn improve_report(
                     report = report
                         .with_warning(|| format!("Error while investigating.\n\t- {e}"))
                 }
-                Ok(s) => report = report.with_note(|| s),
+                Ok(Some(s)) => report = report.with_note(|| s),
+                Ok(None) => (),
             }
         }
     }

@@ -63,7 +63,7 @@ pub struct Config {
     pub(crate) path: PathBuf,
     pub(crate) format: Format,
     pub(crate) reload: Option<String>,
-    pub(crate) diagnostics: diagnostics::Config,
+    pub diagnostics: diagnostics::Config,
 }
 
 impl From<RenewArgs> for Config {

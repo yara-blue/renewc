@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
+use std::io::ErrorKind;
 use std::path::PathBuf;
 
 use color_eyre::eyre::{self, Context};
@@ -7,10 +8,11 @@ use color_eyre::Report;
 use haproxy_config::config::{Frontend, Listen};
 use haproxy_config::parse_sections;
 use haproxy_config::Config as HaConfig;
+use tracing::{debug, instrument};
 
 #[derive(Debug)]
 pub struct Config {
-    path: PathBuf,
+    pub path: PathBuf,
 }
 
 impl Default for Config {
@@ -24,28 +26,41 @@ impl Default for Config {
 impl Config {
     pub fn test() -> Self {
         Self {
-            path: PathBuf::from("tests/haproxy.cfg"),
+            path: PathBuf::from("src/diagnostics/applications/haproxy.cfg"),
         }
     }
 }
 
-pub fn report(config: &super::Config, bound_port: u16) -> Result<String, Report> {
-    let file = fs::read_to_string(&config.haproxy.path).wrap_err_with(|| {
-        format!(
-            "Could not read haproxy cfg at: {}",
-            config.haproxy.path.display()
-        )
-    })?;
+#[instrument(level = "debug", skip(config))]
+pub fn report(config: &super::Config, bound_port: u16) -> Result<Option<String>, Report> {
+    let file = match fs::read_to_string(&config.haproxy.path) {
+        Ok(f) => f,
+        Err(e) if e.kind() == ErrorKind::NotFound => {
+            let mut path = std::env::current_dir().unwrap_or_default();
+            path.push(&config.haproxy.path);
+            return Err(e).wrap_err_with(|| format!("failed to read {}", path.display()));
+        }
+        Err(e) => return Err(e).wrap_err_with(|| format!("failed to read haproxy config")),
+    };
     let sections = parse_sections(&file).wrap_err("Could not parse haproxy cfg")?;
     let config = HaConfig::try_from(&sections).wrap_err("Could not parse haproxy cfg")?;
 
     let ports = forwarded_ports(config, bound_port)?;
-    Ok(format!(
-        "haproxy is forwarding {bound_port} to port(s): {ports:?}"
-    ))
+    if ports.is_empty() {
+        debug!("Could not find where the bound port was forwarded to");
+        return Ok(None);
+    }
+
+    Ok(Some(if ports.len() > 1 {
+        format!("haproxy is forwarding port {bound_port} to port(s): {ports:?}")
+    } else {
+        format!("haproxy is forwarding port {bound_port} to: {}", ports[0])
+    }))
 }
 
+#[instrument(level = "debug", skip(config))]
 pub fn forwarded_ports(config: HaConfig, bound_port: u16) -> Result<Vec<u16>, Report> {
+    debug!("{config:#?}");
     let backend_ports: HashMap<String, u16> = config
         .backends
         .into_iter()
@@ -70,6 +85,7 @@ pub fn forwarded_ports(config: HaConfig, bound_port: u16) -> Result<Vec<u16>, Re
     let listen = listens.next();
     let second_listen = listens.next();
 
+    debug!("frontend: {frontend:?}, listen: {listen:?}");
     let possible_ports = match (frontend, listen) {
         (None, None) => Vec::new(),
         (Some(_), Some(_)) => {
