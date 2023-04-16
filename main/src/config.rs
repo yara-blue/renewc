@@ -82,7 +82,7 @@ impl From<RenewArgs> for Config {
 }
 
 impl Config {
-    pub fn test(port: u16) -> Self {
+    #[must_use] pub fn test(port: u16) -> Self {
         Config {
             domains: vec!["testdomain.org".into()],
             email: vec!["test_email".into()],

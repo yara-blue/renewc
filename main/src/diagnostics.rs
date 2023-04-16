@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use std::string::ToString;
 
 use color_eyre::{Help, Report};
 use itertools::Itertools;
@@ -11,11 +12,7 @@ pub use applications::Config;
 use crate::config;
 
 fn root() -> bool {
-    if proc_pid::am_root() {
-        true
-    } else {
-        false
-    }
+    proc_pid::am_root()
 }
 
 #[derive(Debug)]
@@ -78,8 +75,7 @@ fn port_pids(port: u16) -> Result<(Vec<u32>, Errors), Report> {
     let pids = socks
         .into_iter()
         .filter(|sock| tcp_port(sock) == port)
-        .map(|sock| sock.associated_pids)
-        .flatten()
+        .flat_map(|sock| sock.associated_pids)
         .collect();
 
     Ok((
@@ -120,9 +116,9 @@ where
         r = r.wrap_err("The port is already in use");
 
         if !users.is_empty() {
-            let list = users.iter().map(|u| u.to_string()).join(",\n\t");
+            let list = users.iter().map(ToString::to_string).join(",\n\t");
             r = r.with_note(|| format!("The port is being used by:\n\t{list}"));
-            r = applications::improve_report(&config, port, r, &users);
+            r = applications::improve_report(config, port, r, &users);
         }
 
         if !errs.resolving_name.is_empty() {
@@ -159,7 +155,7 @@ mod tests {
 
         assert!(errs.quering_socket.is_empty(), "{:?}", errs.quering_socket);
         assert!(errs.resolving_name.is_empty(), "{:?}", errs.resolving_name);
-        assert_eq!(users.len(), 1, "{:?}", users);
+        assert_eq!(users.len(), 1, "{users:?}");
     }
 
     #[test]

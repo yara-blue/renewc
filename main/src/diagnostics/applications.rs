@@ -15,7 +15,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn test() -> Self {
+    #[must_use] pub fn test() -> Self {
         Self {
             haproxy: haproxy::Config::test(),
         }

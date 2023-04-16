@@ -40,7 +40,7 @@ pub fn report(config: &super::Config, bound_port: u16) -> Result<Option<String>,
             path.push(&config.haproxy.path);
             return Err(e).wrap_err_with(|| format!("failed to read {}", path.display()));
         }
-        Err(e) => return Err(e).wrap_err_with(|| format!("failed to read haproxy config")),
+        Err(e) => return Err(e).wrap_err_with(|| "failed to read haproxy config".to_string()),
     };
     let sections = parse_sections(&file).wrap_err("Could not parse haproxy cfg")?;
     let config = HaConfig::try_from(&sections).wrap_err("Could not parse haproxy cfg")?;

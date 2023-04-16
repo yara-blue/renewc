@@ -136,7 +136,7 @@ async fn wait_for_order_rdy<'a>(
         .unwrap()
     }
 
-    Ok(state?)
+    state
 }
 
 // If the order is ready, we can provision the certificate.

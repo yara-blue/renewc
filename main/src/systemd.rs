@@ -53,7 +53,7 @@ WantedBy=multi-user.target
 
 // String should be written to a .timer file
 fn timer_str(hour: u8, minute: u8) -> Result<String> {
-    let run = format!("*-*-* {}:{}:10", hour, minute);
+    let run = format!("*-*-* {hour}:{minute}:10");
 
     Ok(format!(
         "[Unit]

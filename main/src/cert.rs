@@ -51,7 +51,7 @@ pub fn analyze(combined: Signed) -> eyre::Result<(Duration, bool)> {
 
     let mut staging = false;
     let mut expires_in = Duration::ZERO;
-    for pem in Pem::iter_from_buffer(&combined.public_cert_chain.as_bytes()) {
+    for pem in Pem::iter_from_buffer(combined.public_cert_chain.as_bytes()) {
         let pem = pem.expect("Reading next PEM block failed");
         let x509 = pem.parse_x509().expect("X.509: decoding DER failed");
 

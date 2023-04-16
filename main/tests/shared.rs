@@ -6,15 +6,15 @@ use std::thread::{JoinHandle, self};
 fn set_process_name(name: &str) {
     use libc::{prctl, PR_SET_NAME};
     use std::ffi::CString;
-    use std::os::raw::c_char;
+    
 
     let name = CString::new(name).expect("Failed to convert name to CString");
     unsafe {
-        let _ = prctl(PR_SET_NAME, name.as_ptr() as *const c_char, 0, 0, 0);
+        let _ = prctl(PR_SET_NAME, name.as_ptr().cast::<i8>(), 0, 0, 0);
     }
 }
 
-pub fn spawn_fake_haproxy() -> (JoinHandle<()>, u16) {
+#[must_use] pub fn spawn_fake_haproxy() -> (JoinHandle<()>, u16) {
     let binder = TcpListener::bind("127.0.0.1:0").unwrap();
     let port = binder.local_addr().unwrap().port();
     let fake = thread::spawn(move || {
