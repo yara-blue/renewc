@@ -1,4 +1,4 @@
-> **Install free certificate req/renewal, with advanced diagnostics**
+> **Install free certificate renewal, with advanced diagnostics**
 
 Certificate renewal can be quite fragile. This as a renewal tool that runs without install and does not need anything installed. If anything goes south during renewal it does not just report an error. It will try and find out what is wrong and give you a detailed report.  For certificate renewal we use [instant-acme](https://crates.io/crates/instant-acme). 
 
