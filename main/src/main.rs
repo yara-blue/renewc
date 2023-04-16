@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 use color_eyre::eyre::{self, Context};
 use tracing::warn;
 
-use renew_certs::{
+use renewc::{
     config::{InstallArgs, RenewArgs},
     run, systemd,
 };

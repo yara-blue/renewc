@@ -53,6 +53,13 @@ pub struct RenewArgs {
 
     /// systemd service to reload after renewal
     reload: Option<String>,
+
+    /// renew a certificate even if its not due yet
+    renew_early: bool,
+
+    /// request a staging certificate even if that overwrites a 
+    /// valid production certificate
+    overwrite_production: bool,
 }
 
 pub struct Config {
@@ -63,6 +70,8 @@ pub struct Config {
     pub(crate) path: PathBuf,
     pub(crate) format: Format,
     pub(crate) reload: Option<String>,
+    pub(crate) renew_early: bool,
+    pub(crate) overwrite_production: bool,
     pub diagnostics: diagnostics::Config,
 }
 
@@ -76,6 +85,8 @@ impl From<RenewArgs> for Config {
             path: args.path,
             format: args.format,
             reload: args.reload,
+            renew_early: args.renew_early,
+            overwrite_production: args.overwrite_production,
             diagnostics: diagnostics::Config::default(),
         }
     }
@@ -91,6 +102,8 @@ impl Config {
             path: PathBuf::from("tests/cert_path"),
             format: Format::default(),
             reload: None,
+            renew_early: false,
+            overwrite_production: false,
             diagnostics: diagnostics::Config::test(),
         }
     }

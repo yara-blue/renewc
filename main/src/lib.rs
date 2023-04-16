@@ -26,14 +26,15 @@ pub async fn run(config: impl Into<Config>, debug: bool) -> eyre::Result<()> {
             (true, true, _) => {
                 warn!("Requesting Staging cert, certificates will not be valid");
             }
+            (true, false, _) if expires_in < Duration::seconds(0) => {
+                warn!("Requesting Staging cert. Overwriting expired production certificate. Certificate will not be valid");
+            }
             (true, false, _) => {
-                println!("Found production cert, continuing will overwrite it with a staging certificate");
-                println!("Continue? y/n");
-                let mut buf = String::new();
-                std::io::stdin().read_line(&mut buf).unwrap();
-                if let Some('y') = buf.chars().next() {
-                    info!("Quiting, user requested exit");
-                    return Ok(());
+                let question = "Found still valid production cert, continuing will overwrite it with a staging certificate";
+                if !config.overwrite_production {
+                    if exit_requested(question) {
+                        return Ok(());
+                    }
                 }
                 warn!("Requesting Staging cert, certificates will not be valid");
             }
@@ -46,10 +47,13 @@ pub async fn run(config: impl Into<Config>, debug: bool) -> eyre::Result<()> {
                       expires_in.whole_hours());
             }
             (false, false, false) => {
-                info!("Quiting: production cert not yet due for renewal, expires in: {} days, {} hours", 
+                info!("Production cert not yet due for renewal, expires in: {} days, {} hours", 
                       expires_in.whole_days(), 
                       expires_in.whole_hours());
-                return Ok(());
+                if !config.renew_early {
+                    println!("Quiting, not yet due for renewal, you can force renewal using --renew-early");
+                    return Ok(());
+                }
             }
         }
     }
@@ -61,4 +65,22 @@ pub async fn run(config: impl Into<Config>, debug: bool) -> eyre::Result<()> {
             .wrap_err_with(|| "Could not reload ".to_owned() + &service)?;
     }
     Ok(())
+}
+
+#[must_use]
+fn exit_requested(question: &str) -> bool {
+    if atty::isnt(atty::Stream::Stdin) {
+        true; // not a terminal, take the safe option
+    }
+
+    println!("{}", question);
+    println!("Continue? y/n");
+    let mut buf = String::new();
+    std::io::stdin().read_line(&mut buf).unwrap();
+    if let Some('y') = buf.chars().next() {
+        info!("Quiting, user requested exit");
+        true
+    } else {
+        false
+    }
 }

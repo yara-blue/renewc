@@ -1,5 +1,5 @@
 [package]
-name = "renew-certs"
+name = "renewc"
 version = "0.1.0"
 edition = "2021"
 description = "Zero runtime dependencies Http01 CertBot alternative"
@@ -26,6 +26,7 @@ itertools = "0.10.5"
 
 haproxy-config = "0.4"
 tracing-error = "0.2.0"
+atty = "0.2"
 
 [dev-dependencies]
 libc = "0.2"

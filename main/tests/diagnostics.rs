@@ -1,6 +1,6 @@
 use std::sync::Once;
 
-use renew_certs::{run, Config};
+use renewc::{run, Config};
 
 mod shared;
 
