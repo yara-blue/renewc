@@ -1,0 +1,106 @@
+name: Build and Release Stable
+
+on:
+  push:
+    # complemented with branch protection on main this will 
+    # run on any pull request merge
+    branches: main 
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: write
+
+jobs:
+  build_x64:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        target: x86_64-unknown-linux-musl
+        toolchain: stable
+
+    - uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-release2-${{ hashFiles('**/Cargo.lock') }}
+
+    - uses: actions-rs/cargo@v1
+      with:
+        use-cross: false
+        command: build
+        args: --release --bin renewc
+
+    - name: Upload
+      uses: actions/upload-artifact@v3
+      with: 
+        name: x64
+        path: target/release/renewc
+
+
+  build_aarch64:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        target: aarch64-unknown-linux-musl
+        toolchain: stable
+
+    - uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          setup_crosscompile
+          target/
+        key: ${{ runner.os }}-cargo-release3-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: crosscompile 
+      run: bash crosscompile.sh
+
+    - name: Upload
+      uses: actions/upload-artifact@v3
+      with: 
+        name: aarch64
+        path: target/aarch64-unknown-linux-musl/release/renewc
+
+  release:
+    runs-on: ubuntu-latest
+    needs: 
+      - build_x64
+      - build_aarch64
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Download the binaries
+      uses: actions/download-artifact@v3
+    - name: Display structure of downloaded files
+      run: ls -la x64
+    - name: find tag
+      id: tag
+      run: echo "version_tag=$(cat main/Cargo.toml | grep 'version = ' | head -n 1 | cut -d \" -f 2)" >> $GITHUB_OUTPUT
+    - name: rename x64 bin
+      run: mv x64/renewc renewc_x64
+    - name: rename aarch64 bin
+      run: mv aarch64/renewc renewc_aarch64
+    - name: Release
+      uses: "softprops/action-gh-release@v1"
+      with:
+        prerelease: false
+        name: "renewc"
+        files: |
+          renewc_aarch64
+          renewc_x64
+        tag_name: ${{steps.tag.outputs.version_tag}}

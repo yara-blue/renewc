@@ -1,6 +1,6 @@
-> **Install free certificate renewal, with advanced diagnostics**
+> **Certificate renewal, with advanced diagnostics without installing anything**
 
-Certificate renewal can be quite fragile. This as a renewal tool that runs without install and does not need anything installed. If anything goes south during renewal it does not just report an error. It will try and find out what is wrong and give you a detailed report.  For certificate renewal we use [instant-acme](https://crates.io/crates/instant-acme). 
+Certificate renewal can be quite fragile. This as a renewal tool that runs without install and does not need anything installed. If anything goes south during renewal it does not just report an error. It will try and find out what is wrong and give you a detailed report. For certificate renewal we use [instant-acme](https://crates.io/crates/instant-acme). 
 
 ## Features 
  - Request or renews a *Let's Encrypt* certificate
@@ -13,14 +13,14 @@ Certificate renewal can be quite fragile. This as a renewal tool that runs witho
  - Reload a *systemd* service once the certificate has been renewed
 
 ## Diagnostics
-Depending on the error that occurred *renewc* investigates the system and:
+Currently *renewc* can investigate and advise these situations:
 
- - A program binding to the port:
-    reports the name and the path to the program
- - HAProxy forwarding traffic from the port
-    looks at HAProxy's configs and tells you what port to use
- - Using a port below 1025 without sudo
-    advices to use sudo
+- A program binding to the port:  
+*reports the name and the path to the program so you can shut it down*
+- HAProxy forwarding traffic from the port:  
+*looks at HAProxy's configs and tells you what port to use instead*
+- Using a port below 1025 without sudo:  
+*advices to call *renewc* using sudo*
 
 We hope to expand this list in the near future.
 
@@ -31,8 +31,19 @@ Requesting a certificate on port 80 while running traffic on port 80 through a H
 ```
 Though impressive only HAProxy configs are currently analyzed in this way. I welcome PR's extending the diagnostics.
 
-## Usage
-Run `renewc run --domains example.org --path /where/to/store/cert` to request or renew a certificate for `example.org` and store it at `/where/to/store/cert`.
+## Install
+Download the binary for your platform:
+- arm based systems (raspberry pi): [aarch64][todo]
+- normal x86/x64 pc's: [x64][todo]  
+
+Currently we only target linux PR's targetting other systems are welcome.
+
+## Basic usage
+To request or renew a certificate for `example.org` and store it at `/where/to/store/cert` run: 
+```
+renewc run --domains example.org --path /where/to/store/cert
+``` 
+See `renewc help` for other options such as `install`. Call `renewc <option> --help` to see details.
 
 ## Compiling from source
 Setup the cross compiler by running `cargo r` inside `setup_crosscompile`. This takes care of downloading a statically linked musl based gcc crosscompiler. Using it static binaries for the C dependencies are created that are used while linking the Rust code. 
