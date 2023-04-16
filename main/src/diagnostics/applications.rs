@@ -41,7 +41,7 @@ pub(super) fn improve_report(
     for app in APPS {
         if users
             .iter()
-            .any(|u| u.name.to_lowercase().trim() != app.name)
+            .any(|u| u.name.to_lowercase().trim() == app.name)
         {
             match (app.reporter)(config, port) {
                 Err(e) => {

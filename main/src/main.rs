@@ -63,9 +63,9 @@ pub fn setup_tracing(debug: bool) {
     use tracing_subscriber::prelude::*;
 
     let filter = if debug {
-        "debug,tower_http=trace"
+        "renewc=debug,warn"
     } else {
-        "info"
+        "renewc=info,warn"
     };
 
     let filter = filter::EnvFilter::builder().parse(filter).unwrap();

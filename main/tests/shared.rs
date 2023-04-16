@@ -7,7 +7,6 @@ fn set_process_name(name: &str) {
     use libc::{prctl, PR_SET_NAME};
     use std::ffi::CString;
     
-
     let name = CString::new(name).expect("Failed to convert name to CString");
     unsafe {
         let _ = prctl(PR_SET_NAME, name.as_ptr().cast::<i8>(), 0, 0, 0);

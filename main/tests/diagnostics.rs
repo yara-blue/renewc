@@ -17,6 +17,7 @@ async fn haproxy_binds_port() {
 
     let (_handle, bound_port) = shared::spawn_fake_haproxy();
 
+    loop {}
     use tempfile::tempdir;
     let dir = tempdir().unwrap();
     let path = dir.path().join("haproxy.cfg");
