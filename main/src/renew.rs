@@ -41,29 +41,27 @@ async fn account(production: bool) -> Result<Account, acme::Error> {
 // Note that this only needs an `&Account`, so the library will let you
 // process multiple orders in parallel for a single account.
 #[tracing::instrument(skip_all)]
-async fn order(account: &Account, names: &[String]) -> Result<(Order, OrderState), acme::Error> {
+async fn order(account: &Account, names: &[String]) -> Result<Order, acme::Error> {
     let identifiers = names
         .iter()
         .map(|name| Identifier::Dns(name.into()))
         .collect::<Vec<_>>();
-    let (order, state) = account
+    let order = account
         .new_order(&NewOrder {
             identifiers: &identifiers,
         })
         .await
         .unwrap();
 
-    debug!("order state: {:#?}", state);
-    Ok((order, state))
+    Ok(order)
 }
 
 // Pick the desired challenge type and prepare the response.
 #[tracing::instrument(skip_all)]
 async fn prepare_challenge(
     order: &mut Order,
-    state: OrderState,
 ) -> eyre::Result<Vec<Http01Challenge>> {
-    let authorizations = order.authorizations(&state.authorizations).await.unwrap();
+    let authorizations = order.authorizations().await.unwrap();
     let mut challenges = Vec::with_capacity(authorizations.len());
     for authz in authorizations {
         match authz.status {
@@ -94,11 +92,11 @@ async fn prepare_challenge(
 
 // Exponentially back off until the order becomes ready or invalid.
 #[tracing::instrument(skip_all)]
-async fn wait_for_order_rdy(
-    order: &mut Order,
+async fn wait_for_order_rdy<'a>(
+    order: &'a mut Order,
     challenges: &[Http01Challenge],
     debug: bool,
-) -> eyre::Result<OrderState> {
+) -> eyre::Result<&'a OrderState> {
     // Let the server know we're ready to accept the challenges.
     for Http01Challenge { url, .. } in challenges {
         order.set_challenge_ready(url).await.unwrap();
@@ -111,9 +109,8 @@ async fn wait_for_order_rdy(
             break Err(eyre::eyre!("order is not ready in time"));
         }
 
-        let state = order.state().await.unwrap();
-        match &state.status {
-            OrderStatus::Ready => break Ok(state),
+        match &order.state().status {
+            OrderStatus::Ready => break Ok(order.state()),
             OrderStatus::Invalid => break Err(eyre::eyre!("order is invalid"))
                 .suggestion("sometimes this happens when the challenge server is not reachable. Try the debug flag to investigate"),
             _ => (),
@@ -121,7 +118,7 @@ async fn wait_for_order_rdy(
 
         delay *= 2;
         tries += 1;
-        debug!(?state, tries, "order is not ready, waiting {delay:?}");
+        debug!(tries, "order is not ready, waiting {delay:?}");
         sleep(delay).await;
     };
 
@@ -162,9 +159,9 @@ pub async fn request(config: &Config, debug: bool) -> eyre::Result<Signed> {
     } = config;
 
     let account = account(*production).await?;
-    let (mut order, state) = order(&account, names).await?;
+    let mut order = order(&account, names).await?;
 
-    let challenges = prepare_challenge(&mut order, state).await?;
+    let challenges = prepare_challenge(&mut order).await?;
 
     let server = super::server::run(config, &challenges);
     let ready = wait_for_order_rdy(&mut order, &challenges, debug);
@@ -184,8 +181,14 @@ pub async fn request(config: &Config, debug: bool) -> eyre::Result<Signed> {
     let names: Vec<String> = challenges.into_iter().map(|ch| ch.id).collect();
     let (cert, csr) = prepare_sign_request(&names)?;
 
-    // Finalize the order and print certificate chain, private key and account credentials.
-    let cert_chain_pem = order.finalize(&csr, &state.finalize).await.unwrap();
+    order.finalize(&csr).await.unwrap();
+    let cert_chain_pem = loop {
+        match order.certificate().await? {
+            Some(cert_chain_pem) => break cert_chain_pem,
+            None => sleep(Duration::from_secs(1)).await,
+        }
+    };
+
     Ok(Signed {
         private_key: cert.serialize_private_key_pem(),
         public_cert_chain: cert_chain_pem,
