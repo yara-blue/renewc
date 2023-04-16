@@ -10,6 +10,7 @@ instant-acme = "0.2"
 x509-parser = "0.15"
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-error = "0.2"
 clap = { version = "4", features = ["derive"] }
 axum = "0.6"
 tower = "0.4"
@@ -25,9 +26,7 @@ hyper = "0.14"
 itertools = "0.10"
 
 haproxy-config = "0.4"
-tracing-error = "0.2.0"
 atty = "0.2"
-tracing-error = "0.2"
 
 [dev-dependencies]
 libc = "0.2"
