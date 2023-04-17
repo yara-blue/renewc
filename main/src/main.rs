@@ -33,8 +33,10 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
-    color_eyre::install().unwrap();
     let cli = Cli::parse();
+    color_eyre::config::HookBuilder::default()
+        .display_env_section(cli.debug)
+        .display_location_section(cli.debug);
 
     setup_tracing(cli.debug);
 

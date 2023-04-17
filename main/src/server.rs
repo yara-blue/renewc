@@ -59,5 +59,5 @@ pub async fn run(config: &Config, challenges: &[Http01Challenge]) -> eyre::Resul
         .serve(app.into_make_service())
         .await?;
 
-    Err(eyre::eyre!("Serve returned, it should not"))
+    unreachable!("Serve returned, it should not")
 }
