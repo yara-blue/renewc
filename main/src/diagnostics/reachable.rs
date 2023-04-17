@@ -1,5 +1,7 @@
+use std::str::FromStr;
+
 use color_eyre::{eyre, Help};
-use hyper::StatusCode;
+use hyper::{body, StatusCode, Uri};
 use tracing::debug;
 
 use crate::config::Config;
@@ -10,9 +12,11 @@ const APP: &str = env!("CARGO_PKG_NAME");
 async fn check(path: &str, domain: &str, key_auth: &str) -> eyre::Result<()> {
     let url = format!("http://{domain}{path}");
     debug!("checking: {url}");
-    match reqwest::get(url).await {
+    let client = hyper::Client::new();
+    match client.get(Uri::from_str(&url).unwrap()).await {
         Ok(resp) if resp.status() == StatusCode::OK => {
-            assert_eq!(resp.text().await.unwrap(), key_auth);
+            let body_bytes = body::to_bytes(resp.into_body()).await.unwrap();
+            assert_eq!(body_bytes, key_auth.as_bytes());
             return Ok(());
         }
         Ok(resp) if resp.status() == StatusCode::SERVICE_UNAVAILABLE => {
