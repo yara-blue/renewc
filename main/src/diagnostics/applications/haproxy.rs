@@ -10,6 +10,8 @@ use haproxy_config::parse_sections;
 use haproxy_config::Config as HaConfig;
 use tracing::{debug, instrument};
 
+use super::{Feedback, Findings};
+
 #[derive(Debug)]
 pub struct Config {
     pub path: PathBuf,
@@ -32,7 +34,7 @@ impl Config {
 }
 
 #[instrument(level = "debug", skip(config))]
-pub fn report(config: &super::Config, bound_port: u16) -> Result<Option<String>, Report> {
+pub fn report(config: &super::Config, bound_port: u16) -> Result<Findings, Report> {
     let file = match fs::read_to_string(&config.haproxy.path) {
         Ok(f) => f,
         Err(e) if e.kind() == ErrorKind::NotFound => {
@@ -51,11 +53,25 @@ pub fn report(config: &super::Config, bound_port: u16) -> Result<Option<String>,
         return Ok(None);
     }
 
-    Ok(Some(if ports.len() > 1 {
-        format!("haproxy is forwarding port {bound_port} to port(s): {ports:?}")
+    Ok(if ports.len() > 1 {
+        Feedback::new(
+            format!("haproxy is forwarding port {bound_port} to port(s): {ports:?}"),
+            Some(concat!(
+                "try calling ",
+                env!("CARGO_PKG_NAME"),
+                " with `--port <port>` using one of these ports"
+            )),
+        )
     } else {
-        format!("haproxy is forwarding port {bound_port} to: {}", ports[0])
-    }))
+        Feedback::new(
+            format!("haproxy is forwarding port {bound_port} to: {}", ports[0]),
+            Some(format!(
+                "try calling {} with: `--port {}`",
+                env!("CARGO_PKG_NAME"),
+                ports[0]
+            )),
+        )
+    })
 }
 
 #[instrument(level = "debug", skip(config))]

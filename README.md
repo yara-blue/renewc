@@ -34,24 +34,22 @@ Error:
    2: error creating server listener: Address in use (os error 98)
    3: Address in use (os error 98)
 
-Location:
-   main/src/diagnostics.rs:105
-
 Note: The port is being used by:
 	- `haproxy`
 		path: /usr/sbin/haproxy
 Note: haproxy is forwarding port 80 to: 34320
+Suggestion: try calling renewc with: `--port 34320`
 ```
 
 ## Install
 Download the binary for your platform:
+- x86/x64 (normal pc's): [x64](https://github.com/dvdsk/renewc/releases/latest/download/renewc_x64)  
+```bash
+curl -L https://github.com/dvdsk/renewc/releases/latest/download/renewc_x64 -o renewc
+``` 
 - arm based systems (raspberry pi): [aarch64](https://github.com/dvdsk/renewc/releases/latest/download/renewc_aarch64)
 ```bash
 curl -L https://github.com/dvdsk/renewc/releases/latest/download/renewc_aarch64 -o renewc
-``` 
-- normal x86/x64 pc's: [x64](https://github.com/dvdsk/renewc/releases/latest/download/renewc_x64)  
-```bash
-curl -L https://github.com/dvdsk/renewc/releases/latest/download/renewc_x64 -o renewc
 ``` 
 
 Currently, we only target Linux PR's targeting other systems are welcome.
