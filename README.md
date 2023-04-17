@@ -22,22 +22,34 @@ Currently *renewc* can investigate and advise these situations:
 - Using a port below 1025 without sudo:  
 *advices to call *renewc* using sudo*
 
-We hope to expand this list in the near future.
+We hope to expand this list in the near future, PRs are welcome.
 
 ### Example
 Requesting a certificate on port 80 while running traffic on port 80 through a HAProxy. The renewal fails, however renewc investigated and found out HAProxy is forwarding traffic to a local port.
 
 ```
+Error:
+   0: Challenge server ran into problem
+   1: The port is already in use
+   2: error creating server listener: Address in use (os error 98)
+   3: Address in use (os error 98)
+
+Location:
+   main/src/diagnostics.rs:105
+
+Note: The port is being used by:
+	- `haproxy`
+		path: /usr/sbin/haproxy
+Note: haproxy is forwarding port 80 to: 34320
 ```
-Though impressive only HAProxy configs are currently analyzed in this way. I welcome PR's extending the diagnostics.
 
 ## Install
 Download the binary for your platform:
-- arm based systems (raspberry pi): [aarch64][https://github.com/dvdsk/renewc/releases/latest/download/renewc_aarch64]
+- arm based systems (raspberry pi): [aarch64](https://github.com/dvdsk/renewc/releases/latest/download/renewc_aarch64)
 ```bash
 curl -L https://github.com/dvdsk/renewc/releases/latest/download/renewc_aarch64 -o renewc
 ``` 
-- normal x86/x64 pc's: [x64][https://github.com/dvdsk/renewc/releases/latest/download/renewc_x64]  
+- normal x86/x64 pc's: [x64](https://github.com/dvdsk/renewc/releases/latest/download/renewc_x64)  
 ```bash
 curl -L https://github.com/dvdsk/renewc/releases/latest/download/renewc_x64 -o renewc
 ``` 
@@ -59,4 +71,4 @@ The resulting binary will run on **any aarch64-linux target** that is not runnin
 ## Contributions
 Did you run into a problem with your system/setup while renewing certificates? Did it take you a second to figure it out? Please make an issue, so we can see if it can be added to the diagnostics. 
 
-I welcome PR's
+I welcome PRs.
