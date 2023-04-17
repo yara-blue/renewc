@@ -15,7 +15,7 @@ Certificate renewal can be quite fragile. This as a renewal tool that runs witho
 ## Diagnostics
 Currently *renewc* can investigate and advise these situations:
 
- - HTTP traffic for the domain not routing to renewc
+ - HTTP traffic for the domain not routing to renewc  
 *advices to check if ports are forwarded correctly
  - A program binding to the port:  
 *reports the name and the path to the program so you can shut it down*
