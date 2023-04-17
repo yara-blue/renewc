@@ -4,6 +4,7 @@ use axum::extract::Path;
 use axum::routing::get;
 use axum::{Extension, Router};
 
+use tokio::task::JoinHandle;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 
@@ -16,6 +17,7 @@ use std::sync::Arc;
 use crate::config::Config;
 use crate::diagnostics;
 
+#[derive(Debug, Clone)]
 pub struct Http01Challenge {
     pub url: String,
     pub token: String,
@@ -32,13 +34,16 @@ async fn challenge(
     Path(token): Path<String>,
 ) -> String {
     let Some(key_auth) = key_auth.get(&token) else {
-            error!("we do not have a auth key for token: {token}");
-            return "Error no auth key for token".to_owned();
+        error!("we do not have a auth key for token: {token}");
+        return "Error no auth key for token".to_owned();
     };
     key_auth.clone()
 }
 
-pub async fn run(config: &Config, challenges: &[Http01Challenge]) -> eyre::Result<()> {
+pub fn run(
+    config: &Config,
+    challenges: &[Http01Challenge],
+) -> eyre::Result<JoinHandle<Result<(), hyper::Error>>> {
     let key_auth: HashMap<_, _> = challenges
         .iter()
         .map(|c| (c.token.clone(), c.key_auth.clone()))
@@ -54,10 +59,9 @@ pub async fn run(config: &Config, challenges: &[Http01Challenge]) -> eyre::Resul
         );
 
     let addr = ([0, 0, 0, 0], config.port).into();
-    axum::Server::try_bind(&addr)
-        .map_err(|e| diagnostics::cant_bind_port(config, e))?
-        .serve(app.into_make_service())
-        .await?;
+    let server = axum::Server::try_bind(&addr)
+        .map_err(|e| diagnostics::cant_bind_port(&config, e))?
+        .serve(app.into_make_service());
 
-    unreachable!("Serve returned, it should not")
+    Ok(tokio::spawn(server))
 }

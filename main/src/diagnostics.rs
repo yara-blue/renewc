@@ -1,91 +1,21 @@
-use std::fmt::Display;
 use std::string::ToString;
 
 use color_eyre::{Help, Report};
 use itertools::Itertools;
-use libproc::libproc::proc_pid;
-use netstat2::SocketInfo;
 
+mod port;
 mod applications;
+mod reachable;
 pub use applications::Config;
+pub use reachable::server_reachable;
 
 use crate::config;
 
 fn root() -> bool {
+    use libproc::libproc::proc_pid;
     proc_pid::am_root()
 }
 
-#[derive(Debug)]
-struct PortUser {
-    name: String,
-    #[allow(dead_code)]
-    /// we use it as we use the Debug impl
-    path: String,
-}
-
-impl Display for PortUser {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("- `{}`\n\t\tpath: {}", self.name, self.path))
-    }
-}
-
-type ErrorString = String;
-#[derive(Debug)]
-struct Errors {
-    resolving_name: Vec<(Pid, ErrorString)>,
-    quering_socket: Vec<netstat2::error::Error>,
-}
-
-type Pid = i32;
-
-fn port_users(port: u16) -> Result<(Vec<PortUser>, Errors), Report> {
-    let (pids, mut errors) = port_pids(port)?;
-    let (users, name_errs): (Vec<_>, Vec<_>) = pids
-        .into_iter()
-        .map(|pid| pid.try_into().unwrap())
-        .map(|pid| {
-            proc_pid::name(pid).map_err(|e| (pid, e)).and_then(|name| {
-                proc_pid::pidpath(pid)
-                    .map(|path| PortUser { name, path })
-                    .map_err(|e| (pid, e))
-            })
-        })
-        .partition_result();
-
-    errors.resolving_name = name_errs;
-    Ok((users, errors))
-}
-
-fn port_pids(port: u16) -> Result<(Vec<u32>, Errors), Report> {
-    use netstat2::{AddressFamilyFlags, ProtocolFlags, ProtocolSocketInfo};
-
-    let tcp_port = |sock: &SocketInfo| {
-        let ProtocolSocketInfo::Tcp(ref info) = sock.protocol_socket_info else {
-            panic!("should not get Upd info with protocol flags set to TCP only");
-        };
-        info.local_port
-    };
-
-    let af_flags = AddressFamilyFlags::IPV4 | AddressFamilyFlags::IPV6;
-    let proto_flags = ProtocolFlags::TCP;
-
-    let (socks, errs): (Vec<_>, Vec<_>) =
-        netstat2::iterate_sockets_info(af_flags, proto_flags)?.partition_result();
-
-    let pids = socks
-        .into_iter()
-        .filter(|sock| tcp_port(sock) == port)
-        .flat_map(|sock| sock.associated_pids)
-        .collect();
-
-    Ok((
-        pids,
-        Errors {
-            resolving_name: Vec::new(),
-            quering_socket: errs,
-        },
-    ))
-}
 
 fn insufficent_permission(port: u16) -> bool {
     port <= 1024 && !root()
@@ -105,13 +35,11 @@ where
     let mut r = Report::new(e);
     if insufficent_permission(port) {
         r = r.wrap_err("insufficient permission to attach to port");
-        r = r.with_suggestion(|| {
-            "You normally need sudo to attach to ports below 1025"
-        });
+        r = r.with_suggestion(|| "You normally need sudo to attach to ports below 1025");
         r = r.with_note(|| format!("port: {port}"));
     }
 
-    let (users, errs) = port_users(port)?;
+    let (users, errs) = port::users(port)?;
     if !users.is_empty() || !errs.resolving_name.is_empty() {
         r = r.wrap_err("The port is already in use");
 
@@ -151,7 +79,7 @@ mod tests {
         let port_binder = TcpListener::bind("127.0.0.1:0").unwrap();
         let bound_port = port_binder.local_addr().unwrap().port();
 
-        let (users, errs) = port_users(bound_port).unwrap();
+        let (users, errs) = port::users(bound_port).unwrap();
 
         assert!(errs.quering_socket.is_empty(), "{:?}", errs.quering_socket);
         assert!(errs.resolving_name.is_empty(), "{:?}", errs.resolving_name);

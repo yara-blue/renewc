@@ -1,6 +1,6 @@
 use color_eyre::{Help, Report};
 
-use super::PortUser;
+use super::port::PortUser;
 
 pub(super) mod haproxy;
 
@@ -25,7 +25,7 @@ struct App {
     reporter: &'static dyn Fn(&Config, u16) -> Result<Findings, Report>,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct Config {
     pub haproxy: haproxy::Config,
 }

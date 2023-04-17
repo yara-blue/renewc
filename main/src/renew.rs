@@ -9,6 +9,7 @@ use tracing::{debug, error};
 
 use crate::cert::Signed;
 use crate::config::Config;
+use crate::diagnostics;
 
 use super::server::Http01Challenge;
 use acme::{
@@ -162,12 +163,15 @@ pub async fn request(config: &Config, debug: bool) -> eyre::Result<Signed> {
 
     let challenges = prepare_challenge(&mut order).await?;
 
-    let server = super::server::run(config, &challenges);
+    let server = super::server::run(config, &challenges)?;
+    diagnostics::server_reachable(config, &challenges)
+        .await
+        .wrap_err("Domain does not route to this application")?;
     let ready = wait_for_order_rdy(&mut order, &challenges, debug);
     let state = tokio::select!(
         res = ready => res?,
         e = server => {
-            e.wrap_err("Challenge server ran into problem")?;
+            e.expect("server should never panic").wrap_err("Challenge server ran into problem")?;
             unreachable!("server never returns ok");
         }
     );

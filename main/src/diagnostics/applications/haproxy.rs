@@ -12,7 +12,7 @@ use tracing::{debug, instrument};
 
 use super::{Feedback, Findings};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Config {
     pub path: PathBuf,
 }

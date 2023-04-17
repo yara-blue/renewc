@@ -36,9 +36,11 @@ pub struct InstallArgs {
 
 #[derive(Parser, Debug)]
 pub struct RenewArgs {
-    /// Domains
+    /// domain(s) request certificates for multiple subdomains
+    /// by passing this argument multiple times with various domains
+    /// note the base domain must be the same in all
     #[clap(long, required = true)]
-    domains: Vec<String>,
+    domain: Vec<String>,
 
     /// Contact info
     #[clap(long)]
@@ -87,6 +89,7 @@ pub enum Format {
     SinglePem,
 }
 
+#[derive(Debug, Clone)]
 pub struct Config {
     pub(crate) domains: Vec<String>,
     pub(crate) email: Vec<String>,
@@ -103,7 +106,7 @@ pub struct Config {
 impl From<RenewArgs> for Config {
     fn from(args: RenewArgs) -> Self {
         Config {
-            domains: args.domains,
+            domains: args.domain,
             email: args.email,
             production: args.production,
             port: args.port,
