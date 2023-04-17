@@ -33,10 +33,16 @@ Though impressive only HAProxy configs are currently analyzed in this way. I wel
 
 ## Install
 Download the binary for your platform:
-- arm based systems (raspberry pi): [aarch64][todo]
-- normal x86/x64 pc's: [x64][todo]  
+- arm based systems (raspberry pi): [aarch64][https://github.com/dvdsk/renewc/releases/latest/download/renewc_aarch64]
+```bash
+curl -L https://github.com/dvdsk/renewc/releases/latest/download/renewc_aarch64 -o renewc
+``` 
+- normal x86/x64 pc's: [x64][https://github.com/dvdsk/renewc/releases/latest/download/renewc_x64]  
+```bash
+curl -L https://github.com/dvdsk/renewc/releases/latest/download/renewc_x64 -o renewc
+``` 
 
-Currently we only target linux PR's targetting other systems are welcome.
+Currently, we only target Linux PR's targeting other systems are welcome.
 
 ## Basic usage
 To request or renew a certificate for `example.org` and store it at `/where/to/store/cert` run: 
@@ -46,7 +52,7 @@ renewc run --domains example.org --path /where/to/store/cert
 See `renewc help` for other options such as `install`. Call `renewc <option> --help` to see details.
 
 ## Compiling from source
-Setup the cross compiler by running `cargo r` inside `setup_crosscompile`. This takes care of downloading a statically linked musl based gcc crosscompiler. Using it static binaries for the C dependencies are created that are used while linking the Rust code. 
+Set up the cross-compiler by running `cargo r` inside `setup_crosscompile`. This takes care of downloading a statically linked musl based GCC cross-compiler. Using it static binaries for the C dependencies are created that are used while linking the Rust code. 
 
 The resulting binary will run on **any aarch64-linux target** that is not running an ancient kernel.
 
