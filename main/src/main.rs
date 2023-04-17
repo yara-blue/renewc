@@ -1,27 +1,14 @@
-use clap::{Parser, Subcommand};
+use clap::Parser;
 use color_eyre::eyre::{self, Context};
 use tracing::warn;
 
-use renewc::{
-    config::{InstallArgs, RenewArgs},
-    run, systemd,
-};
-
-#[derive(Subcommand, Debug)]
-enum Commands {
-    /// Renew certificates now
-    Run(RenewArgs),
-    /// Create and enable renew-certs system service.
-    Install(InstallArgs),
-    /// Disable and remove renew-certs system service.
-    Uninstall,
-}
+use renewc::{config::Commands, run, systemd};
 
 #[derive(Parser, Debug)]
 #[clap(
     author,
     version,
-    about="Certificate renewal, with advanced diagnostics without installing anything",
+    about = "Certificate renewal, with advanced diagnostics without installing anything",
     long_about = "This as a renewal tool that runs without install and does not need anything installed. If anything goes south during renewal it does not just report an error. It will try and find out what is wrong and give you a detailed report."
 )]
 struct Cli {
@@ -37,12 +24,14 @@ async fn main() -> eyre::Result<()> {
     color_eyre::config::HookBuilder::default()
         .display_env_section(cli.debug)
         .display_location_section(cli.debug)
-        .install();
+        .install()
+        .unwrap();
 
-    setup_tracing(cli.debug);
+    let debug = cli.debug || cli.command.debug();
+    setup_tracing(debug);
 
     match cli.command {
-        Commands::Run(args) => run(args, cli.debug).await?,
+        Commands::Run(args) => run(args, debug).await?,
         Commands::Install(args) => {
             if !args.run.production {
                 warn!("Installing service that runs against staging-environment, certificates will not be valid");

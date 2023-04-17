@@ -1,15 +1,27 @@
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
 use crate::diagnostics;
 
-#[derive(clap::ValueEnum, Debug, Clone, Default)]
-pub enum Format {
-    /// a PEM file containing both the required certificates and any associated private key
-    /// compatible with HaProxy
-    #[default]
-    SinglePem,
+#[derive(Subcommand, Debug)]
+pub enum Commands {
+    /// Renew certificates now
+    Run(RenewArgs),
+    /// Create and enable renew-certs system service.
+    Install(InstallArgs),
+    /// Disable and remove renew-certs system service.
+    Uninstall,
+}
+
+impl Commands {
+    pub fn debug(&self) -> bool {
+        match self {
+            Commands::Run(args) => args.debug,
+            Commands::Install(args) => args.run.debug,
+            Commands::Uninstall => false,
+        }
+    }
 }
 
 #[derive(Parser, Debug)]
@@ -58,10 +70,21 @@ pub struct RenewArgs {
     #[clap(long, default_value_t = false)]
     renew_early: bool,
 
-    /// request a staging certificate even if that overwrites a 
+    /// request a staging certificate even if that overwrites a
     /// valid production certificate
     #[clap(long, default_value_t = false)]
     overwrite_production: bool,
+
+    #[clap(short, long)]
+    debug: bool,
+}
+
+#[derive(clap::ValueEnum, Debug, Clone, Default)]
+pub enum Format {
+    /// a PEM file containing both the required certificates and any associated private key
+    /// compatible with HaProxy
+    #[default]
+    SinglePem,
 }
 
 pub struct Config {
@@ -95,7 +118,8 @@ impl From<RenewArgs> for Config {
 }
 
 impl Config {
-    #[must_use] pub fn test(port: u16) -> Self {
+    #[must_use]
+    pub fn test(port: u16) -> Self {
         Config {
             domains: vec!["testdomain.org".into()],
             email: vec!["test_email".into()],
