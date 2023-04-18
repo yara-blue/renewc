@@ -15,10 +15,10 @@ Certificate renewal can be quite fragile. This as a renewal tool that runs witho
 ## Diagnostics
 Currently *renewc* can investigate and advise these situations:
 
- - HTTP traffic for the domain not routing to renewc  
-*advices to check if ports are forwarded correctly
+ - HTTP traffic for the domain not routing to *renewc*  
+*advices to check if ports are forwarded correctly*
  - A program binding to the port:  
-*reports the name and the path to the program so you can shut it down*
+*reports the name and the path to that program, so you can shut it down*
  - HAProxy forwarding traffic from the port:  
 *looks at HAProxy's configs and tells you what port to use instead*
  - Using a port below 1025 without sudo:  
