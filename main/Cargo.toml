@@ -22,7 +22,7 @@ color-eyre = "0.6"
 time = "0.3"
 netstat2 = "0.9"
 libproc = "0.13"
-hyper = "0.14"
+hyper = { version = "0.14", features = ["client"] }
 itertools = "0.10"
 
 haproxy-config = "0.4"
