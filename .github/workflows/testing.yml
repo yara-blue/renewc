@@ -10,7 +10,19 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  tests:
+  test:
+    runs-on: ubuntu-latest
+  
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+    - name: unit and integration tests
+      run: cargo test
+
+  test_cross_compilation:
     runs-on: ubuntu-latest
 
     steps:
@@ -36,5 +48,6 @@ jobs:
     - name: add aarch64 musl toolchain
       run: rustup target add aarch64-unknown-linux-musl
     - name: crosscompile
+      working-directory: ./main
       run: cargo b --target aarch64-unknown-linux-musl
       
