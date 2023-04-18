@@ -15,9 +15,9 @@ async fn haproxy_binds_port() {
     setup_color_eyre();
     shared::setup_tracing();
 
-    let (_handle, bound_port) = shared::spawn_fake_haproxy();
+    let mut port_user = shared::spawn_fake_haproxy();
+    let bound_port = port_user.port();
 
-    loop {}
     use tempfile::tempdir;
     let dir = tempdir().unwrap();
     let path = dir.path().join("haproxy.cfg");
@@ -31,7 +31,15 @@ async fn haproxy_binds_port() {
 
     let err = run(config, true).await.unwrap_err();
     let test = format!("{err:?}");
-    assert!(test.contains("haproxy is forwarding port"));
+
+    println!("{test:#?}");
+    port_user.signal_done();
+    assert!(
+        test.contains("haproxy is forwarding port"),
+        "output was: {}",
+        test
+    );
+
 }
 
 #[tokio::test]

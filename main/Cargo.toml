@@ -27,7 +27,10 @@ itertools = "0.10"
 
 haproxy-config = "0.4"
 atty = "0.2"
+shared_memory = "0.12.4"
 
 [dev-dependencies]
 libc = "0.2"
 tempfile = "3.5"
+proctitle = "0.1"
+fork = "0.1.21"

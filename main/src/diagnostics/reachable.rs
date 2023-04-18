@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use color_eyre::{eyre, Help};
-use hyper::{body, StatusCode, Uri};
+use hyper::{body, Body, Response, StatusCode, Uri};
 use tracing::debug;
 
 use crate::config::Config;
@@ -9,24 +9,30 @@ use crate::server::Http01Challenge;
 
 const APP: &str = env!("CARGO_PKG_NAME");
 
+async fn check_response(resp: Response<Body>, key_auth: &str, domain: &str) -> eyre::Result<()> {
+    match resp.status() {
+        StatusCode::OK => {
+            let body_bytes = body::to_bytes(resp.into_body()).await.unwrap();
+            assert_eq!(body_bytes, key_auth.as_bytes());
+            Ok(())
+        }
+        StatusCode::SERVICE_UNAVAILABLE | StatusCode::NOT_FOUND => {
+            Err(eyre::eyre!(
+                "Could not reach {APP} via {domain}"
+            )
+            .note("Another server is getting traffic for external port 80")
+            .suggestion(format!("Check if port 80 is forwarded to a port on this machine. If it is configure {APP} to use that port with the `--port` option. If not forward port 80 to this machine")))
+        }
+        _ => unreachable!("got incorrect status code: {resp:?}"),
+    }
+}
+
 async fn check(path: &str, domain: &str, key_auth: &str) -> eyre::Result<()> {
     let url = format!("http://{domain}{path}");
     debug!("checking: {url}");
     let client = hyper::Client::new();
     match client.get(Uri::from_str(&url).unwrap()).await {
-        Ok(resp) if resp.status() == StatusCode::OK => {
-            let body_bytes = body::to_bytes(resp.into_body()).await.unwrap();
-            assert_eq!(body_bytes, key_auth.as_bytes());
-            return Ok(());
-        }
-        Ok(resp) if resp.status() == StatusCode::SERVICE_UNAVAILABLE => {
-            return Err(eyre::eyre!(
-                "Could not reach {APP} via {domain}"
-            )
-            .note("Another server is getting traffic for external port 80")
-            .suggestion(format!("Check if port 80 is forwarded to a port on this machine. If it is configure {APP} to use that port with the `--port` option. If not forward port 80 to this machine")));
-        }
-        Ok(resp) => unreachable!("got incorrect status code: {resp:?}"),
+        Ok(resp) => check_response(resp, key_auth, domain).await,
         Err(e) if e.is_timeout() => {
             // we explicitly do not instruct the user to turn the other application off
             // in case it is a revers proxy/load balancer such as HAProxy. Another diagnostic
