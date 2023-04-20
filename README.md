@@ -1,5 +1,9 @@
 > **Certificate renewal, with advanced diagnostics without installing anything**
 
+[![Security audit](https://github.com/dvdsk/renewc/actions/workflows/schedualed-audit.yml/badge.svg)](https://github.com/dvdsk/renewc/actions/workflows/schedualed-audit.yml)
+[![Tests](https://github.com/dvdsk/renewc/actions/workflows/testing.yml/badge.svg)](https://github.com/dvdsk/renewc/actions/workflows/testing.yml)
+[![License](https://img.shields.io/badge/license-GPL3-blue?style=round-square)](LICENSE)
+
 See also:
  - [Install](#Install)
  - [Example](#Example)
