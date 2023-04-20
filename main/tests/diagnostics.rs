@@ -1,21 +1,14 @@
-use std::sync::Once;
-
 use renewc::{run, Config};
 
 mod shared;
 
-fn setup_color_eyre() {
-    static COLOR_EYRE_SETUP: Once = Once::new();
-    COLOR_EYRE_SETUP.call_once(|| color_eyre::install().unwrap())
-}
-
 #[cfg(target_os = "linux")]
 #[tokio::test]
 async fn haproxy_binds_port() {
-    setup_color_eyre();
+    shared::setup_color_eyre();
     shared::setup_tracing();
 
-    let mut port_user = shared::spawn_fake_haproxy();
+    let mut port_user = shared::port_binder::spawn("haproxy");
     let bound_port = port_user.port();
 
     use tempfile::tempdir;
@@ -44,7 +37,7 @@ async fn haproxy_binds_port() {
 
 #[tokio::test]
 async fn insufficent_permissions() {
-    setup_color_eyre();
+    shared::setup_color_eyre();
     shared::setup_tracing();
 
     let config = Config::test(42);

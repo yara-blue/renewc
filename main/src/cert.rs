@@ -19,6 +19,7 @@ pub fn write_combined(path: PathBuf, signed: Signed) -> eyre::Result<()> {
     Ok(())
 }
 
+/// extract public cert and private key from a PEM encoded cert
 pub fn extract_combined(path: &Path) -> eyre::Result<Option<Signed>> {
     let combined = match fs::read_to_string(path) {
         Err(e) if e.kind() == ErrorKind::NotFound => return Ok(None),

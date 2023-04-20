@@ -1,5 +1,6 @@
 use shared_memory::*;
 use std::net::TcpListener;
+use std::sync::Once;
 use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::thread;
 use std::time::Duration;
@@ -81,7 +82,7 @@ impl PortUser {
 
 #[allow(clippy::panic)]
 #[must_use]
-pub fn spawn_fake_haproxy() -> PortUser {
+pub fn spawn(name: &str) -> PortUser {
     use fork::{fork, Fork};
     let mut ipc = Ipc::new();
     match fork().unwrap() {
@@ -90,7 +91,7 @@ pub fn spawn_fake_haproxy() -> PortUser {
             return PortUser::from(ipc);
         }
         Fork::Child => {
-            proctitle::set_title("haproxy");
+            proctitle::set_title(name);
             let binder = TcpListener::bind("127.0.0.1:0").unwrap();
             let port = binder.local_addr().unwrap().port();
             ipc.set_port(port);
@@ -98,26 +99,4 @@ pub fn spawn_fake_haproxy() -> PortUser {
             std::process::exit(0)
         }
     }
-}
-
-pub fn setup_tracing() {
-    use tracing_error::ErrorLayer;
-    use tracing_subscriber::filter;
-    use tracing_subscriber::fmt;
-    use tracing_subscriber::prelude::*;
-
-    let filter = filter::EnvFilter::builder()
-        .parse("renew_certs=debug,info")
-        .unwrap();
-
-    let fmt = fmt::layer()
-        .pretty()
-        .with_line_number(true)
-        .with_test_writer();
-
-    let _ignore_err = tracing_subscriber::registry()
-        .with(filter)
-        .with(fmt)
-        .with(ErrorLayer::default())
-        .try_init();
 }
