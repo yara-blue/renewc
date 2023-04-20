@@ -19,7 +19,7 @@ tokio = { version = "1", features = ["time", "macros", "rt-multi-thread"] }
 rcgen = "0.10"
 log = "0.4"
 color-eyre = "0.6"
-time = "0.3"
+time = { version = "0.3", features = ["rand"] }
 netstat2 = "0.9"
 libproc = "0.13"
 hyper = { version = "0.14", features = ["client"] }
@@ -28,6 +28,7 @@ itertools = "0.10"
 haproxy-config = "0.4"
 is-terminal = "0.4"
 shared_memory = "0.12.4"
+rand = "0.8.5"
 
 [dev-dependencies]
 libc = "0.2"

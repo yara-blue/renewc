@@ -20,13 +20,12 @@ pub async fn run(config: impl Into<Config>, debug: bool) -> eyre::Result<()> {
     let config = config.into();
 
     if let Some(existing) = cert::extract_combined(&config.path)? {
-        let (expires_in, is_staging) = cert::analyze(&existing)?;
-        let expires_soon = expires_in < Duration::days(10);
-        match (!config.production, is_staging, expires_soon) {
+        let cert = cert::analyze(&existing)?;
+        match (!config.production, cert.staging, cert.should_renew()) {
             (true, true, _) => {
                 warn!("Requesting Staging cert, certificates will not be valid");
             }
-            (true, false, _) if expires_in < Duration::seconds(0) => {
+            (true, false, _) if cert.expires_in < Duration::seconds(0) => {
                 warn!("Requesting Staging cert. Overwriting expired production certificate. Certificate will not be valid");
             }
             (true, false, _) => {
@@ -43,13 +42,13 @@ pub async fn run(config: impl Into<Config>, debug: bool) -> eyre::Result<()> {
             }
             (false, false, true) => {
                 info!("Renewing production cert: existing certificate expires soon: {} days, {} hours", 
-                      expires_in.whole_days(), 
-                      expires_in.whole_hours());
+                      cert.expires_in.whole_days(), 
+                      cert.expires_in.whole_hours());
             }
             (false, false, false) => {
                 info!("Production cert not yet due for renewal, expires in: {} days, {} hours", 
-                      expires_in.whole_days(), 
-                      expires_in.whole_hours());
+                      cert.expires_in.whole_days(), 
+                      cert.expires_in.whole_hours());
                 if !config.renew_early {
                     println!("Quiting, not yet due for renewal, you can force renewal using --renew-early");
                     return Ok(());
