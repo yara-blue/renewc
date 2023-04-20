@@ -31,7 +31,7 @@ pub async fn run(config: impl Into<Config>, debug: bool) -> eyre::Result<()> {
             (true, false, _) => {
                 let question = "Found still valid production cert, continuing will overwrite it with a staging certificate";
                 if !config.overwrite_production {
-                    if exit_requested(question) {
+                    if exit_requested(&config, question) {
                         return Ok(());
                     }
                 }
@@ -67,10 +67,10 @@ pub async fn run(config: impl Into<Config>, debug: bool) -> eyre::Result<()> {
 }
 
 #[must_use]
-fn exit_requested(question: &str) -> bool {
+fn exit_requested(config: &Config, question: &str) -> bool {
     use is_terminal::IsTerminal;
-    if !std::io::stdin().is_terminal() {
-        true; // not a terminal, take the safe option
+    if config.non_interactive || !std::io::stdin().is_terminal() {
+        return true; // user cant confirm 
     }
 
     println!("{}", question);

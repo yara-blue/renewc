@@ -84,7 +84,7 @@ pub struct RenewArgs {
 #[derive(clap::ValueEnum, Debug, Clone, Default)]
 pub enum Format {
     /// a PEM file containing both the required certificates and any associated private key
-    /// compatible with HaProxy
+    /// compatible with HaProxy. PEM is a human readable serialization of keys.
     #[default]
     SinglePem,
 }
@@ -95,11 +95,13 @@ pub struct Config {
     pub(crate) email: Vec<String>,
     pub(crate) production: bool,
     pub(crate) port: u16,
-    pub(crate) path: PathBuf,
+    pub path: PathBuf,
     pub(crate) format: Format,
     pub(crate) reload: Option<String>,
     pub(crate) renew_early: bool,
     pub(crate) overwrite_production: bool,
+    /// do not ask questions
+    pub non_interactive: bool,
     pub diagnostics: diagnostics::Config,
 }
 
@@ -115,6 +117,7 @@ impl From<RenewArgs> for Config {
             reload: args.reload,
             renew_early: args.renew_early,
             overwrite_production: args.overwrite_production,
+            non_interactive: false,
             diagnostics: diagnostics::Config::default(),
         }
     }
@@ -133,6 +136,7 @@ impl Config {
             reload: None,
             renew_early: false,
             overwrite_production: false,
+            non_interactive: true,
             diagnostics: diagnostics::Config::test(),
         }
     }
