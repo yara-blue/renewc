@@ -1,6 +1,6 @@
 [package]
 name = "renewc"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Certificate renewal, with advanced diagnostics without installing anything"
 license = "Apache-2.0 OR MIT"
@@ -26,7 +26,7 @@ hyper = { version = "0.14", features = ["client"] }
 itertools = "0.10"
 
 haproxy-config = "0.4"
-atty = "0.2"
+is-terminal = "0.4"
 shared_memory = "0.12.4"
 
 [dev-dependencies]
