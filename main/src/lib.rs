@@ -69,7 +69,8 @@ pub async fn run(config: impl Into<Config>, debug: bool) -> eyre::Result<()> {
 
 #[must_use]
 fn exit_requested(question: &str) -> bool {
-    if atty::isnt(atty::Stream::Stdin) {
+    use is_terminal::IsTerminal;
+    if !std::io::stdin().is_terminal() {
         true; // not a terminal, take the safe option
     }
 

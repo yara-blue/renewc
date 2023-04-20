@@ -1,5 +1,10 @@
 > **Certificate renewal, with advanced diagnostics without installing anything**
 
+See also:
+ - [Install](#Install)
+ - [Example](#Example)
+ - [Changelog](CHANGELOG.md)
+
 Certificate renewal can be quite fragile. This as a renewal tool that runs without install and does not need anything installed. If anything goes south during renewal it does not just report an error. It will try and find out what is wrong and give you a detailed report. For certificate renewal we use [instant-acme](https://crates.io/crates/instant-acme). 
 
 ## Features 
