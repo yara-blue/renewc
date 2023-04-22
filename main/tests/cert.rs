@@ -58,7 +58,7 @@ async fn still_valid() {
     shared::setup_color_eyre();
     shared::setup_tracing();
 
-    let dir = TempDir::new().unwrap();
+    let dir = tempfile::tempdir().unwrap();
 
     let valid_till = year2500();
     let cert = generate_cert_with_chain(valid_till);
@@ -82,7 +82,7 @@ async fn dont_overwrite_production() {
     shared::setup_color_eyre();
     shared::setup_tracing();
 
-    let dir = TempDir::new().unwrap();
+    let dir = tempfile::tempdir().unwrap();
 
     let valid_till = year2500();
     let cert = generate_cert_with_chain(valid_till);
@@ -113,7 +113,7 @@ async fn detect_renew_expired() {
     shared::setup_color_eyre();
     shared::setup_tracing();
 
-    let dir = TempDir::new().unwrap();
+    let dir = tempfile::tempdir().unwrap();
 
     let valid_till = OffsetDateTime::now_utc();
     let cert = generate_cert_with_chain(valid_till);

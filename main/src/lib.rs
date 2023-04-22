@@ -4,8 +4,8 @@
 use std::io::Write;
 
 use color_eyre::owo_colors::OwoColorize;
+// use owo_colors::Stream;
 
-use owo_colors::Stream;
 use color_eyre::eyre::{self, Context};
 
 pub mod cert;
@@ -20,13 +20,15 @@ pub use config::Config;
 
 macro_rules! warn {
     ($stream:expr, $($arg:tt)*) => { 
-        writeln!($stream, "{}", format_args!($($arg)*).if_supports_color(Stream::Stdout, |text| text.red())).unwrap()    
+        // writeln!($stream, "{}", format_args!($($arg)*).if_supports_color(Stream::Stdout, |text| text.red())).unwrap()    
+        writeln!($stream, "{}", format_args!($($arg)*).red()).unwrap()    
     };
 }
 
 macro_rules! info {
     ($stream:expr, $($arg:tt)*) => { 
-        writeln!($stream, "{}", format_args!($($arg)*).if_supports_color(Stream::Stdout, |text| text.green())).unwrap()
+        // writeln!($stream, "{}", format_args!($($arg)*).if_supports_color(Stream::Stdout, |text| text.green())).unwrap()
+        writeln!($stream, "{}", format_args!($($arg)*).green()).unwrap()
     };
 }
 
