@@ -27,11 +27,18 @@ itertools = "0.10"
 
 haproxy-config = "0.4"
 is-terminal = "0.4"
-shared_memory = "0.12.4"
-rand = "0.8.5"
+shared_memory = "0.12"
+rand = "0.8"
+# supports-color feature ends up enabling atty which has a RUSTSEC 
+# advisory against it. For now colors will ben enabled always.
+# owo-colors = { version = "3.5", features = ["supports-colors"] }
+owo-colors = { version = "3.5" }
 
 [dev-dependencies]
 libc = "0.2"
-tempfile = "3.5"
 proctitle = "0.1"
-fork = "0.1.21"
+fork = "0.1"
+rcgen = "0.10"
+os_pipe = "1.1"
+nix = { version = "0.26", features = ["fs"] }
+tempfile = "3"

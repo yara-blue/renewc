@@ -1,4 +1,4 @@
-use shared_memory::*;
+use shared_memory::{Shmem, ShmemConf, ShmemError};
 use std::net::TcpListener;
 use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::thread;
@@ -12,7 +12,7 @@ struct Ipc {
 }
 
 impl Ipc {
-    pub fn port(&self) -> u16 {
+    fn port(&self) -> u16 {
         let mut port;
         loop {
             port = self.port.load(Ordering::Relaxed);
@@ -26,7 +26,7 @@ impl Ipc {
         self.port.store(port, Ordering::Relaxed);
     }
 
-    pub fn wait_till_done(&self) {
+    fn wait_till_done(&self) {
         while !self.done.load(Ordering::SeqCst) {
             thread::sleep(Duration::from_millis(100));
         }
@@ -71,17 +71,20 @@ impl PortUser {
     fn from(inner: Ipc) -> Self {
         Self { inner }
     }
+    #[allow(dead_code)]
     pub fn port(&self) -> u16 {
         self.inner.port()
     }
+    #[allow(dead_code)]
     pub fn signal_done(&mut self) {
         self.inner.done()
     }
 }
 
 #[allow(clippy::panic)]
+#[allow(dead_code)]
 #[must_use]
-pub fn spawn_fake_haproxy() -> PortUser {
+pub fn spawn(name: &str) -> PortUser {
     use fork::{fork, Fork};
     let mut ipc = Ipc::new();
     match fork().unwrap() {
@@ -90,7 +93,7 @@ pub fn spawn_fake_haproxy() -> PortUser {
             return PortUser::from(ipc);
         }
         Fork::Child => {
-            proctitle::set_title("haproxy");
+            proctitle::set_title(name);
             let binder = TcpListener::bind("127.0.0.1:0").unwrap();
             let port = binder.local_addr().unwrap().port();
             ipc.set_port(port);
@@ -98,26 +101,4 @@ pub fn spawn_fake_haproxy() -> PortUser {
             std::process::exit(0)
         }
     }
-}
-
-pub fn setup_tracing() {
-    use tracing_error::ErrorLayer;
-    use tracing_subscriber::filter;
-    use tracing_subscriber::fmt;
-    use tracing_subscriber::prelude::*;
-
-    let filter = filter::EnvFilter::builder()
-        .parse("renew_certs=debug,info")
-        .unwrap();
-
-    let fmt = fmt::layer()
-        .pretty()
-        .with_line_number(true)
-        .with_test_writer();
-
-    let _ignore_err = tracing_subscriber::registry()
-        .with(filter)
-        .with(fmt)
-        .with(ErrorLayer::default())
-        .try_init();
 }

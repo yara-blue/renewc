@@ -1,21 +1,14 @@
-use std::sync::Once;
-
 use renewc::{run, Config};
 
 mod shared;
 
-fn setup_color_eyre() {
-    static COLOR_EYRE_SETUP: Once = Once::new();
-    COLOR_EYRE_SETUP.call_once(|| color_eyre::install().unwrap())
-}
-
 #[cfg(target_os = "linux")]
 #[tokio::test]
 async fn haproxy_binds_port() {
-    setup_color_eyre();
+    shared::setup_color_eyre();
     shared::setup_tracing();
 
-    let mut port_user = shared::spawn_fake_haproxy();
+    let mut port_user = shared::port_binder::spawn("haproxy");
     let bound_port = port_user.port();
 
     use tempfile::tempdir;
@@ -29,27 +22,26 @@ async fn haproxy_binds_port() {
     let mut config = Config::test(bound_port);
     config.diagnostics.haproxy.path = path;
 
-    let err = run(config, true).await.unwrap_err();
+    let err = run(&mut std::io::stdout(), config, true).await.unwrap_err();
     let test = format!("{err:?}");
 
     println!("{test:#?}");
     port_user.signal_done();
     assert!(
         test.contains("haproxy is forwarding port"),
-        "output was: {}",
+        "error was: {}",
         test
     );
-
 }
 
 #[tokio::test]
 async fn insufficent_permissions() {
-    setup_color_eyre();
+    shared::setup_color_eyre();
     shared::setup_tracing();
 
     let config = Config::test(42);
 
-    let err = run(config, true).await.unwrap_err();
+    let err = run(&mut std::io::stdout(), config, true).await.unwrap_err();
     let test = format!("{err:?}");
 
     assert!(test.contains("You normally need sudo to attach to ports below 1025"));
