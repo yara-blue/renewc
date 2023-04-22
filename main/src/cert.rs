@@ -1,8 +1,9 @@
 use rand::{Rng, SeedableRng};
 use std::fs;
 use std::io::ErrorKind;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use time::Duration;
+use tracing::instrument;
 
 use color_eyre::eyre::{self, Context};
 use color_eyre::Help;
@@ -13,7 +14,7 @@ pub struct Signed {
     pub public_cert_chain: String,
 }
 
-pub fn write_combined(path: PathBuf, signed: Signed) -> eyre::Result<()> {
+pub fn write_combined(path: &Path, signed: Signed) -> eyre::Result<()> {
     let combined = signed.public_cert_chain + "\n" + &signed.private_key;
     fs::write(path, combined)?;
     Ok(())
@@ -22,7 +23,10 @@ pub fn write_combined(path: PathBuf, signed: Signed) -> eyre::Result<()> {
 /// extract public cert and private key from a PEM encoded cert
 pub fn extract_combined(path: &Path) -> eyre::Result<Option<Signed>> {
     let combined = match fs::read_to_string(path) {
-        Err(e) if e.kind() == ErrorKind::NotFound => return Ok(None),
+        Err(e) if e.kind() == ErrorKind::NotFound => {
+            tracing::debug!("No certificate already at {}", path.display());
+            return Ok(None);
+        }
         Err(e) => {
             return Err(e)
                 .wrap_err("Could not check for existing certificate")
@@ -56,14 +60,27 @@ pub struct CertInfo {
     seed: u64,
 }
 impl CertInfo {
-    pub(crate) fn should_renew(&self) -> bool {
+    #[instrument(ret, skip(self))]
+    pub fn renew_period(&self) -> Duration {
         let mut rng = rand::rngs::StdRng::seed_from_u64(self.seed);
         let range = Duration::days(8)..Duration::days(10);
         let range = range.start.whole_seconds()..range.end.whole_seconds();
         let renew_period = rng.gen_range(range);
-        let renew_period = Duration::seconds(renew_period);
+        Duration::seconds(renew_period)
+    }
 
-        self.expires_in < renew_period
+    pub(crate) fn since_expired(&self) -> Duration {
+        self.expires_in.abs()
+    }
+
+    #[instrument(ret, skip(self))]
+    pub(crate) fn should_renew(&self) -> bool {
+        self.expires_in < self.renew_period()
+    }
+
+    #[instrument(ret, skip(self))]
+    pub fn is_expired(&self) -> bool {
+        self.expires_in <= Duration::seconds(0)
     }
 }
 

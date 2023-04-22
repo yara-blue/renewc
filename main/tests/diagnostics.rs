@@ -22,17 +22,16 @@ async fn haproxy_binds_port() {
     let mut config = Config::test(bound_port);
     config.diagnostics.haproxy.path = path;
 
-    let err = run(config, true).await.unwrap_err();
+    let err = run(&mut std::io::stdout(), config, true).await.unwrap_err();
     let test = format!("{err:?}");
 
     println!("{test:#?}");
     port_user.signal_done();
     assert!(
         test.contains("haproxy is forwarding port"),
-        "output was: {}",
+        "error was: {}",
         test
     );
-
 }
 
 #[tokio::test]
@@ -42,7 +41,7 @@ async fn insufficent_permissions() {
 
     let config = Config::test(42);
 
-    let err = run(config, true).await.unwrap_err();
+    let err = run(&mut std::io::stdout(), config, true).await.unwrap_err();
     let test = format!("{err:?}");
 
     assert!(test.contains("You normally need sudo to attach to ports below 1025"));

@@ -1,6 +1,5 @@
-use shared_memory::*;
+use shared_memory::{Shmem, ShmemConf, ShmemError};
 use std::net::TcpListener;
-use std::sync::Once;
 use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::thread;
 use std::time::Duration;
@@ -13,7 +12,7 @@ struct Ipc {
 }
 
 impl Ipc {
-    pub fn port(&self) -> u16 {
+    fn port(&self) -> u16 {
         let mut port;
         loop {
             port = self.port.load(Ordering::Relaxed);
@@ -27,7 +26,7 @@ impl Ipc {
         self.port.store(port, Ordering::Relaxed);
     }
 
-    pub fn wait_till_done(&self) {
+    fn wait_till_done(&self) {
         while !self.done.load(Ordering::SeqCst) {
             thread::sleep(Duration::from_millis(100));
         }
@@ -72,15 +71,18 @@ impl PortUser {
     fn from(inner: Ipc) -> Self {
         Self { inner }
     }
+    #[allow(dead_code)]
     pub fn port(&self) -> u16 {
         self.inner.port()
     }
+    #[allow(dead_code)]
     pub fn signal_done(&mut self) {
         self.inner.done()
     }
 }
 
 #[allow(clippy::panic)]
+#[allow(dead_code)]
 #[must_use]
 pub fn spawn(name: &str) -> PortUser {
     use fork::{fork, Fork};

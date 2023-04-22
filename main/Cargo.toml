@@ -29,9 +29,14 @@ haproxy-config = "0.4"
 is-terminal = "0.4"
 shared_memory = "0.12.4"
 rand = "0.8.5"
+owo-colors = { version = "3.5.0", features = ["supports-colors"] }
 
 [dev-dependencies]
 libc = "0.2"
 tempfile = "3.5"
 proctitle = "0.1"
 fork = "0.1.21"
+rcgen = "0.10"
+tempdir = "0.3.7"
+os_pipe = "1.1.3"
+nix = { version = "0.26.2", features = ["fs"] }

@@ -1,8 +1,7 @@
-use std::sync::Once;
-
 pub mod port_binder;
 
 pub fn setup_color_eyre() {
+    use std::sync::Once;
     static COLOR_EYRE_SETUP: Once = Once::new();
     COLOR_EYRE_SETUP.call_once(|| color_eyre::install().unwrap())
 }
@@ -14,7 +13,7 @@ pub fn setup_tracing() {
     use tracing_subscriber::prelude::*;
 
     let filter = filter::EnvFilter::builder()
-        .parse("renew_certs=debug,info")
+        .parse("renewc=debug,info")
         .unwrap();
 
     let fmt = fmt::layer()

@@ -93,7 +93,7 @@ pub enum Format {
 pub struct Config {
     pub(crate) domains: Vec<String>,
     pub(crate) email: Vec<String>,
-    pub(crate) production: bool,
+    pub production: bool,
     pub(crate) port: u16,
     pub path: PathBuf,
     pub(crate) format: Format,

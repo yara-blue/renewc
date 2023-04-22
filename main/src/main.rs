@@ -30,8 +30,9 @@ async fn main() -> eyre::Result<()> {
     let debug = cli.debug || cli.command.debug();
     setup_tracing(debug);
 
+    let mut stdout = std::io::stdout();
     match cli.command {
-        Commands::Run(args) => run(args, debug).await?,
+        Commands::Run(args) => run(&mut stdout, args, debug).await?,
         Commands::Install(args) => {
             if !args.run.production {
                 warn!("Installing service that runs against staging-environment, certificates will not be valid");
