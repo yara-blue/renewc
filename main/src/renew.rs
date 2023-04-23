@@ -39,9 +39,6 @@ async fn account(production: bool) -> Result<Account, acme::Error> {
     .await
 }
 
-// Create the ACME order based on the given domain names.
-// Note that this only needs an `&Account`, so the library will let you
-// process multiple orders in parallel for a single account.
 #[tracing::instrument(skip_all)]
 async fn order(account: &Account, names: &[String]) -> Result<Order, acme::Error> {
     let identifiers = names
@@ -52,8 +49,7 @@ async fn order(account: &Account, names: &[String]) -> Result<Order, acme::Error
         .new_order(&NewOrder {
             identifiers: &identifiers,
         })
-        .await
-        .unwrap();
+        .await?;
 
     Ok(order)
 }
@@ -67,7 +63,7 @@ async fn prepare_challenge(order: &mut Order) -> eyre::Result<Vec<Http01Challeng
         match authz.status {
             AuthorizationStatus::Pending => {}
             AuthorizationStatus::Valid => continue,
-            _ => todo!(),
+            _ => unreachable!("got unexpected status, authorization: {authz:?}"),
         }
 
         // We'll use the DNS challenges for this example, but you could
@@ -159,7 +155,10 @@ pub async fn request(config: &Config, debug: bool) -> eyre::Result<Signed> {
     } = config;
 
     let account = account(*production).await?;
-    let mut order = order(&account, names).await?;
+    let mut order = order(&account, names)
+        .await
+        .wrap_err("Certificate authority can not issue a certificate")
+        .with_note(|| format!("names: {names:?}"))?;
 
     let challenges = prepare_challenge(&mut order).await?;
 
