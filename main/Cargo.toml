@@ -6,8 +6,7 @@ description = "Certificate renewal, with advanced diagnostics without installing
 license = "Apache-2.0 OR MIT"
 
 [dependencies]
-# instant-acme = "0.2"
-instant-acme = {path = "../../instant-acme"}
+instant-acme = "0.2"
 x509-parser = "0.15"
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
