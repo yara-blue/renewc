@@ -3,7 +3,7 @@ pub mod port_binder;
 pub fn setup_color_eyre() {
     use std::sync::Once;
     static COLOR_EYRE_SETUP: Once = Once::new();
-    COLOR_EYRE_SETUP.call_once(|| color_eyre::install().unwrap())
+    COLOR_EYRE_SETUP.call_once(|| color_eyre::install().unwrap());
 }
 
 pub fn setup_tracing() {

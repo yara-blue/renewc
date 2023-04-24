@@ -15,7 +15,7 @@ pub enum Commands {
 }
 
 impl Commands {
-    pub fn debug(&self) -> bool {
+    #[must_use] pub fn debug(&self) -> bool {
         match self {
             Commands::Run(args) => args.debug,
             Commands::Install(args) => args.run.debug,
@@ -34,6 +34,7 @@ pub struct InstallArgs {
     pub run: RenewArgs,
 }
 
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Parser, Debug)]
 pub struct RenewArgs {
     /// domain(s) request certificates for multiple subdomains
@@ -89,6 +90,7 @@ pub enum Format {
     SinglePem,
 }
 
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct Config {
     pub(crate) domains: Vec<String>,

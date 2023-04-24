@@ -5,7 +5,7 @@ use std::path::Path;
 use time::Duration;
 use tracing::instrument;
 use x509_parser::nom::Parser;
-use x509_parser::prelude::{PEMError, Pem, X509Certificate, X509CertificateParser, X509Error};
+use x509_parser::prelude::{PEMError, Pem, X509Certificate, X509CertificateParser};
 
 use color_eyre::eyre::{self, Context};
 use color_eyre::Help;
@@ -26,19 +26,17 @@ fn read_in(path: &Path) -> eyre::Result<Option<Vec<u8>>> {
     match fs::read(path) {
         Err(e) if e.kind() == ErrorKind::NotFound => {
             tracing::debug!("No certificate already at {}", path.display());
-            return Ok(None);
+            Ok(None)
         }
-        Err(e) => {
-            return Err(e)
-                .wrap_err("Could not check for existing certificate")
-                .suggestion("Check if the path is correct")
-                .with_note(|| format!("path: {path:?}"));
-        }
+        Err(e) => Err(e)
+            .wrap_err("Could not check for existing certificate")
+            .suggestion("Check if the path is correct")
+            .with_note(|| format!("path: {path:?}")),
         Ok(bytes) => Ok(Some(bytes)),
     }
 }
 
-fn parse_and_analyze(bytes: &[u8]) -> eyre::Result<CertInfo> {
+fn parse_and_analyze(bytes: &[u8]) -> eyre::Result<Info> {
     // try parse bytes as pem certificate chain, if its not a pem return an
     // empty vec
     if let Some(cert_info) = analyze_pem(bytes)? {
@@ -48,11 +46,11 @@ fn parse_and_analyze(bytes: &[u8]) -> eyre::Result<CertInfo> {
     analyze_der(bytes)
 }
 
-fn analyze_der(bytes: &[u8]) -> Result<CertInfo, color_eyre::Report> {
+fn analyze_der(bytes: &[u8]) -> Result<Info, color_eyre::Report> {
     let mut parser = X509CertificateParser::new();
     let mut certs = Vec::new();
     loop {
-        let (rest, cert) = parser.parse(&bytes).unwrap();
+        let (rest, cert) = parser.parse(bytes).unwrap();
         certs.push(cert);
         if rest.is_empty() {
             break;
@@ -61,7 +59,7 @@ fn analyze_der(bytes: &[u8]) -> Result<CertInfo, color_eyre::Report> {
     analyze(&certs)
 }
 
-fn analyze_pem(bytes: &[u8]) -> Result<Option<CertInfo>, color_eyre::Report> {
+fn analyze_pem(bytes: &[u8]) -> Result<Option<Info>, color_eyre::Report> {
     let mut pems = Vec::new();
     for (i, pem) in Pem::iter_from_buffer(bytes).enumerate() {
         match pem {
@@ -77,10 +75,7 @@ fn analyze_pem(bytes: &[u8]) -> Result<Option<CertInfo>, color_eyre::Report> {
                 // not a pem file
                 return Ok(None);
             }
-            Err(e) => {
-                dbg!(&e);
-                Err(e).wrap_err("Could not parse pem")?
-            }
+            Err(e) => Err(e).wrap_err("Could not parse pem")?,
         };
     }
 
@@ -92,7 +87,7 @@ fn analyze_pem(bytes: &[u8]) -> Result<Option<CertInfo>, color_eyre::Report> {
 }
 
 /// extract public cert and private key from a PEM encoded cert
-pub fn get_certinfo(path: &Path) -> eyre::Result<Option<CertInfo>> {
+pub fn get_info(path: &Path) -> eyre::Result<Option<Info>> {
     let Some(bytes) = read_in(path)? else {
         return Ok(None);
     };
@@ -102,7 +97,7 @@ pub fn get_certinfo(path: &Path) -> eyre::Result<Option<CertInfo>> {
 }
 
 #[derive(Debug)]
-pub struct CertInfo {
+pub struct Info {
     pub staging: bool,
     pub expires_in: Duration,
     // unix timestamp of expiration time
@@ -110,7 +105,7 @@ pub struct CertInfo {
     // only changes with a renewed certificate
     seed: u64,
 }
-impl CertInfo {
+impl Info {
     #[instrument(ret, skip(self))]
     pub fn renew_period(&self) -> Duration {
         let mut rng = rand::rngs::StdRng::seed_from_u64(self.seed);
@@ -137,7 +132,7 @@ impl CertInfo {
 
 /// returns number of days until the first certificate in the chain
 /// expires and whether any certificate is from STAGING
-pub fn analyze(certs: &[X509Certificate]) -> eyre::Result<CertInfo> {
+pub fn analyze(certs: &[X509Certificate]) -> eyre::Result<Info> {
     let mut staging = false;
     let mut expires_in = Duration::MAX;
     let mut expires_at = u64::MAX;
@@ -159,10 +154,10 @@ pub fn analyze(certs: &[X509Certificate]) -> eyre::Result<CertInfo> {
                 .timestamp()
                 .try_into()
                 .expect("got negative timestamp from x509 certificate, this is a bug"),
-        )
+        );
     }
 
-    Ok(CertInfo {
+    Ok(Info {
         staging,
         expires_in,
         seed: expires_at,

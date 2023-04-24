@@ -50,7 +50,7 @@ fn write_cert(dir: &TempDir, cert: String) -> PathBuf {
 }
 
 fn year2500() -> OffsetDateTime {
-    OffsetDateTime::from_unix_timestamp(16734790789).unwrap()
+    OffsetDateTime::from_unix_timestamp(16_734_790_789).unwrap()
 }
 
 #[tokio::test]

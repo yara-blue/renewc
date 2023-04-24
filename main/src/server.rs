@@ -60,7 +60,7 @@ pub fn run(
 
     let addr = ([0, 0, 0, 0], config.port).into();
     let server = axum::Server::try_bind(&addr)
-        .map_err(|e| diagnostics::cant_bind_port(&config, e))?
+        .map_err(|e| diagnostics::cant_bind_port(config, e))?
         .serve(app.into_make_service());
 
     Ok(tokio::spawn(server))

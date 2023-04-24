@@ -54,23 +54,23 @@ pub fn report(config: &super::Config, bound_port: u16) -> Result<Findings, Repor
     }
 
     Ok(if ports.len() > 1 {
-        Feedback::new(
+        Some(Feedback::new(
             format!("haproxy is forwarding port {bound_port} to port(s): {ports:?}"),
             Some(concat!(
                 "try calling ",
                 env!("CARGO_PKG_NAME"),
                 " with `--port <port>` using one of these ports"
             )),
-        )
+        ))
     } else {
-        Feedback::new(
+        Some(Feedback::new(
             format!("haproxy is forwarding port {bound_port} to: {}", ports[0]),
             Some(format!(
                 "try calling {} with: `--port {}`",
                 env!("CARGO_PKG_NAME"),
                 ports[0]
             )),
-        )
+        ))
     })
 }
 

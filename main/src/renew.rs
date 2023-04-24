@@ -163,7 +163,7 @@ pub async fn request(config: &Config, debug: bool) -> eyre::Result<Signed> {
     let challenges = prepare_challenge(&mut order).await?;
 
     let server = super::server::run(config, &challenges)?;
-    diagnostics::server_reachable(config, &challenges)
+    diagnostics::reachable::server(config, &challenges)
         .await
         .wrap_err("Domain does not route to this application")?;
     let ready = wait_for_order_rdy(&mut order, &challenges, debug);

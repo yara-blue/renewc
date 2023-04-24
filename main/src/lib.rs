@@ -35,7 +35,7 @@ macro_rules! info {
 pub async fn run(stdout: &mut impl Write, config: impl Into<Config>, debug: bool) -> eyre::Result<()> {
     let config = config.into();
 
-    if let Some(cert) = cert::get_certinfo(&config.path)? {
+    if let Some(cert) = cert::get_info(&config.path)? {
         match (config.production, cert.staging, cert.should_renew()) {
             (false, true, _) => {
                 warn!(stdout, "Requesting Staging cert, certificates will not be valid");
@@ -45,10 +45,8 @@ pub async fn run(stdout: &mut impl Write, config: impl Into<Config>, debug: bool
             }
             (false, false, _) => {
                 let question = "Found still valid production cert, continuing will overwrite it with a staging certificate";
-                if !config.overwrite_production {
-                    if exit_requested(stdout, &config, question) {
-                        return Ok(());
-                    }
+                if !config.overwrite_production && exit_requested(stdout, &config, question) {
+                    return Ok(());
                 }
                 warn!(stdout, "Requesting Staging cert, certificates will not be valid");
             }
@@ -57,7 +55,7 @@ pub async fn run(stdout: &mut impl Write, config: impl Into<Config>, debug: bool
             }
             (true, false, true) => {
                 if cert.is_expired() {
-                warn!(stdout, "Renewing production cert: existing certificate expired {} days, {} hours ago", cert.since_expired().whole_days(), cert.since_expired().whole_hours())
+                warn!(stdout, "Renewing production cert: existing certificate expired {} days, {} hours ago", cert.since_expired().whole_days(), cert.since_expired().whole_hours());
                 } else {
                 warn!(stdout, "Renewing production cert: existing certificate expires soon: {} days, {} hours", 
                       cert.expires_in.whole_days(), 

@@ -47,10 +47,13 @@ impl Ipc {
         let port: &mut AtomicU16;
         let done: &mut AtomicBool;
 
+        #[allow(clippy::cast_ptr_alignment)] // manually checked
         unsafe {
-            port = &mut *(raw_ptr as *mut u16 as *mut AtomicU16);
+            port = &mut *raw_ptr.cast::<u16>().cast::<std::sync::atomic::AtomicU16>();
             raw_ptr = raw_ptr.add(16);
-            done = &mut *(raw_ptr as *mut bool as *mut AtomicBool);
+            done = &mut *raw_ptr
+                .cast::<bool>()
+                .cast::<std::sync::atomic::AtomicBool>();
         }
 
         if mem.is_owner() {
@@ -77,7 +80,7 @@ impl PortUser {
     }
     #[allow(dead_code)]
     pub fn signal_done(&mut self) {
-        self.inner.done()
+        self.inner.done();
     }
 }
 
@@ -89,8 +92,8 @@ pub fn spawn(name: &str) -> PortUser {
     let mut ipc = Ipc::new();
     match fork().unwrap() {
         Fork::Parent(child) => {
-            println!("Continuing in parent, child pid: {}", child);
-            return PortUser::from(ipc);
+            println!("Continuing in parent, child pid: {child}");
+            PortUser::from(ipc)
         }
         Fork::Child => {
             proctitle::set_title(name);

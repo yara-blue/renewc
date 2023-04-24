@@ -5,13 +5,14 @@ mod shared;
 #[cfg(target_os = "linux")]
 #[tokio::test]
 async fn haproxy_binds_port() {
+    use tempfile::tempdir;
+
     shared::setup_color_eyre();
     shared::setup_tracing();
 
     let mut port_user = shared::port_binder::spawn("haproxy");
     let bound_port = port_user.port();
 
-    use tempfile::tempdir;
     let dir = tempdir().unwrap();
     let path = dir.path().join("haproxy.cfg");
 
@@ -29,8 +30,7 @@ async fn haproxy_binds_port() {
     port_user.signal_done();
     assert!(
         test.contains("haproxy is forwarding port"),
-        "error was: {}",
-        test
+        "error was: {test}"
     );
 }
 

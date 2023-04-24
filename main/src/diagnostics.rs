@@ -5,9 +5,8 @@ use itertools::Itertools;
 
 mod port;
 mod applications;
-mod reachable;
+pub mod reachable;
 pub use applications::Config;
-pub use reachable::server_reachable;
 
 use crate::config;
 
