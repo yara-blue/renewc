@@ -35,8 +35,7 @@ macro_rules! info {
 pub async fn run(stdout: &mut impl Write, config: impl Into<Config>, debug: bool) -> eyre::Result<()> {
     let config = config.into();
 
-    if let Some(existing) = cert::extract_combined(&config.path)? {
-        let cert = cert::analyze(&existing)?;
+    if let Some(cert) = cert::get_certinfo(&config.path)? {
         match (config.production, cert.staging, cert.should_renew()) {
             (false, true, _) => {
                 warn!(stdout, "Requesting Staging cert, certificates will not be valid");

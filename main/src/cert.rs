@@ -4,6 +4,8 @@ use std::io::ErrorKind;
 use std::path::Path;
 use time::Duration;
 use tracing::instrument;
+use x509_parser::nom::Parser;
+use x509_parser::prelude::{PEMError, Pem, X509Certificate, X509CertificateParser, X509Error};
 
 use color_eyre::eyre::{self, Context};
 use color_eyre::Help;
@@ -20,9 +22,8 @@ pub fn write_combined(path: &Path, signed: Signed) -> eyre::Result<()> {
     Ok(())
 }
 
-/// extract public cert and private key from a PEM encoded cert
-pub fn extract_combined(path: &Path) -> eyre::Result<Option<Signed>> {
-    let combined = match fs::read_to_string(path) {
+fn read_in(path: &Path) -> eyre::Result<Option<Vec<u8>>> {
+    match fs::read(path) {
         Err(e) if e.kind() == ErrorKind::NotFound => {
             tracing::debug!("No certificate already at {}", path.display());
             return Ok(None);
@@ -33,21 +34,71 @@ pub fn extract_combined(path: &Path) -> eyre::Result<Option<Signed>> {
                 .suggestion("Check if the path is correct")
                 .with_note(|| format!("path: {path:?}"));
         }
-        Ok(combined) => combined,
+        Ok(bytes) => Ok(Some(bytes)),
+    }
+}
+
+fn parse_and_analyze(bytes: &[u8]) -> eyre::Result<CertInfo> {
+    // try parse bytes as pem certificate chain, if its not a pem return an
+    // empty vec
+    if let Some(cert_info) = analyze_pem(bytes)? {
+        return Ok(cert_info);
+    }
+
+    analyze_der(bytes)
+}
+
+fn analyze_der(bytes: &[u8]) -> Result<CertInfo, color_eyre::Report> {
+    let mut parser = X509CertificateParser::new();
+    let mut certs = Vec::new();
+    loop {
+        let (rest, cert) = parser.parse(&bytes).unwrap();
+        certs.push(cert);
+        if rest.is_empty() {
+            break;
+        }
+    }
+    analyze(&certs)
+}
+
+fn analyze_pem(bytes: &[u8]) -> Result<Option<CertInfo>, color_eyre::Report> {
+    let mut pems = Vec::new();
+    for (i, pem) in Pem::iter_from_buffer(bytes).enumerate() {
+        match pem {
+            // we need this dance around with a pem
+            // vector as x509 cert borrows pem.
+            // thus we cant simple parse the x509 in the loop
+            Ok(pem) => pems.push(pem),
+            Err(PEMError::InvalidHeader) if i == 0 => {
+                // not a pem file
+                return Ok(None);
+            }
+            Err(PEMError::IOError(e)) if i == 0 && e.kind() == ErrorKind::InvalidData => {
+                // not a pem file
+                return Ok(None);
+            }
+            Err(e) => {
+                dbg!(&e);
+                Err(e).wrap_err("Could not parse pem")?
+            }
+        };
+    }
+
+    let certs: Vec<_> = pems.iter().map(Pem::parse_x509).collect::<Result<_, _>>()?;
+    if certs.is_empty() {
+        return Ok(None);
+    }
+    analyze(&certs).map(Option::Some)
+}
+
+/// extract public cert and private key from a PEM encoded cert
+pub fn get_certinfo(path: &Path) -> eyre::Result<Option<CertInfo>> {
+    let Some(bytes) = read_in(path)? else {
+        return Ok(None);
     };
 
-    let mut lines = combined.lines();
-    Ok(Some(Signed {
-        public_cert_chain: lines
-            .by_ref()
-            .take_while(|l| !l.contains("PRIVATE KEY"))
-            .map(|l| l.to_owned() + "\n")
-            .collect(),
-        private_key: std::iter::once("-----BEGIN PRIVATE KEY-----")
-            .chain(lines)
-            .map(|l| l.to_owned() + "\n")
-            .collect(),
-    }))
+    let info = parse_and_analyze(&bytes)?;
+    Ok(Some(info))
 }
 
 #[derive(Debug)]
@@ -86,29 +137,24 @@ impl CertInfo {
 
 /// returns number of days until the first certificate in the chain
 /// expires and whether any certificate is from STAGING
-pub fn analyze(combined: &Signed) -> eyre::Result<CertInfo> {
-    use x509_parser::prelude::*;
-
+pub fn analyze(certs: &[X509Certificate]) -> eyre::Result<CertInfo> {
     let mut staging = false;
     let mut expires_in = Duration::MAX;
     let mut expires_at = u64::MAX;
 
-    for pem in Pem::iter_from_buffer(combined.public_cert_chain.as_bytes()) {
-        let pem = pem.expect("Reading next PEM block failed");
-        let x509 = pem.parse_x509().expect("X.509: decoding DER failed");
-
-        staging |= x509
+    for cert in certs {
+        staging |= cert
             .issuer()
             .iter_organization()
             .map(|o| o.as_str().unwrap())
             .any(|s| s.contains("STAGING"));
         expires_in = expires_in.min(
-            x509.validity()
+            cert.validity()
                 .time_to_expiration()
                 .unwrap_or(Duration::ZERO),
         );
         expires_at = expires_at.min(
-            x509.validity()
+            cert.validity()
                 .not_after
                 .timestamp()
                 .try_into()
@@ -121,4 +167,25 @@ pub fn analyze(combined: &Signed) -> eyre::Result<CertInfo> {
         expires_in,
         seed: expires_at,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_der() {
+        let cert = rcgen::generate_simple_self_signed(["example.org".into()]).unwrap();
+        let der = cert.serialize_der().unwrap();
+
+        parse_and_analyze(&der).unwrap();
+    }
+
+    #[test]
+    fn parse_pem() {
+        let cert = rcgen::generate_simple_self_signed(["example.org".into()]).unwrap();
+        let pem = cert.serialize_pem().unwrap();
+
+        parse_and_analyze(pem.as_bytes()).unwrap();
+    }
 }
