@@ -1,3 +1,4 @@
+use renewc::renew::InstantAcme;
 use renewc::{run, Config};
 
 mod shared;
@@ -23,7 +24,7 @@ async fn haproxy_binds_port() {
     let mut config = Config::test(bound_port);
     config.diagnostics.haproxy.path = path;
 
-    let err = run(&mut std::io::stdout(), config, true).await.unwrap_err();
+    let err = run(InstantAcme{}, &mut std::io::stdout(), &config, true).await.unwrap_err();
     let test = format!("{err:?}");
 
     println!("{test:#?}");
@@ -41,7 +42,7 @@ async fn insufficent_permissions() {
 
     let config = Config::test(42);
 
-    let err = run(&mut std::io::stdout(), config, true).await.unwrap_err();
+    let err = run(InstantAcme{}, &mut std::io::stdout(), &config, true).await.unwrap_err();
     let test = format!("{err:?}");
 
     assert!(test.contains("You normally need sudo to attach to ports below 1025"));

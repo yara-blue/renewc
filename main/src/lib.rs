@@ -10,13 +10,13 @@ use color_eyre::eyre::{self, Context};
 
 pub mod cert;
 pub mod renew;
-pub mod server;
 pub mod systemd;
 pub mod util;
 pub mod diagnostics;
 pub mod config;
 
 pub use config::Config;
+use config::Format;
 
 macro_rules! warn {
     ($stream:expr, $($arg:tt)*) => { 
@@ -32,8 +32,14 @@ macro_rules! info {
     };
 }
 
-pub async fn run(stdout: &mut impl Write, config: impl Into<Config>, debug: bool) -> eyre::Result<()> {
-    let config = config.into();
+/// during integration testing we do not want to hit lets encrypts backend 
+/// by passing the ACME implentation we can test other functionality. 
+#[async_trait::async_trait]
+pub trait ACME {
+    async fn renew(&self, config: &Config, debug: bool) -> eyre::Result<cert::Signed>;
+}
+
+pub async fn run(acme_impl: impl ACME, stdout: &mut impl Write, config: &Config, debug: bool) -> eyre::Result<Option<Vec<u8>>> {
 
     if let Some(cert) = cert::get_info(&config.path)? {
         match (config.production, cert.staging, cert.should_renew()) {
@@ -46,7 +52,7 @@ pub async fn run(stdout: &mut impl Write, config: impl Into<Config>, debug: bool
             (false, false, _) => {
                 let question = "Found still valid production cert, continuing will overwrite it with a staging certificate";
                 if !config.overwrite_production && exit_requested(stdout, &config, question) {
-                    return Ok(());
+                    return Ok(None);
                 }
                 warn!(stdout, "Requesting Staging cert, certificates will not be valid");
             }
@@ -63,25 +69,23 @@ pub async fn run(stdout: &mut impl Write, config: impl Into<Config>, debug: bool
                 }
             }
             (true, false, false) => {
-                dbg!();
                 info!(stdout, "Production cert not yet due for renewal, expires in: {} days, {} hours", 
                       cert.expires_in.whole_days(), 
                       cert.expires_in.whole_hours());
                 if !config.renew_early {
                     info!(stdout, "Quiting, you can force renewal using --renew-early");
-                    return Ok(());
+                    return Ok(None);
                 }
             }
         }
     }
 
-    let signed = renew::request(&config, debug).await?;
-    cert::write_combined(&config.path, signed).wrap_err("Could not write out certificates")?;
-    if let Some(service) = config.reload {
-        systemd::systemctl(&["reload"], &service)
-            .wrap_err_with(|| "Could not reload ".to_owned() + &service)?;
-    }
-    Ok(())
+    let signed = acme_impl.renew(&config, debug).await?;
+    let encoded = match config.format {
+        Format::PemChain => signed.pem().wrap_err("PEM encoding failed")?,
+        Format::DerChain => signed.der().wrap_err("DER encoding failed")?,
+    };
+    Ok(Some(encoded))
 }
 
 #[must_use]

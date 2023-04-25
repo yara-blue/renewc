@@ -10,16 +10,12 @@ use x509_parser::prelude::{PEMError, Pem, X509Certificate, X509CertificateParser
 use color_eyre::eyre::{self, Context};
 use color_eyre::Help;
 
+mod write;
+
 #[derive(Debug)]
 pub struct Signed {
     pub private_key: String,
-    pub public_cert_chain: String,
-}
-
-pub fn write_combined(path: &Path, signed: Signed) -> eyre::Result<()> {
-    let combined = signed.public_cert_chain + "\n" + &signed.private_key;
-    fs::write(path, combined)?;
-    Ok(())
+    pub cert_chain: String,
 }
 
 fn read_in(path: &Path) -> eyre::Result<Option<Vec<u8>>> {
@@ -46,7 +42,7 @@ fn parse_and_analyze(bytes: &[u8]) -> eyre::Result<Info> {
     analyze_der(bytes)
 }
 
-fn analyze_der(bytes: &[u8]) -> Result<Info, color_eyre::Report> {
+pub fn analyze_der(bytes: &[u8]) -> Result<Info, color_eyre::Report> {
     let mut parser = X509CertificateParser::new();
     let mut certs = Vec::new();
     loop {
@@ -59,7 +55,7 @@ fn analyze_der(bytes: &[u8]) -> Result<Info, color_eyre::Report> {
     analyze(&certs)
 }
 
-fn analyze_pem(bytes: &[u8]) -> Result<Option<Info>, color_eyre::Report> {
+pub fn analyze_pem(bytes: &[u8]) -> Result<Option<Info>, color_eyre::Report> {
     let mut pems = Vec::new();
     for (i, pem) in Pem::iter_from_buffer(bytes).enumerate() {
         match pem {
@@ -96,7 +92,7 @@ pub fn get_info(path: &Path) -> eyre::Result<Option<Info>> {
     Ok(Some(info))
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Info {
     pub staging: bool,
     pub expires_in: Duration,

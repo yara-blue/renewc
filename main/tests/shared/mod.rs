@@ -1,4 +1,20 @@
+use color_eyre::eyre;
+use renewc::cert::Signed;
+
+use self::gen_cert::{generate_cert_with_chain, year2500};
+
+pub mod gen_cert;
 pub mod port_binder;
+
+pub struct TestAcme {}
+
+#[async_trait::async_trait]
+impl renewc::ACME for TestAcme {
+    async fn renew(&self, config: &renewc::Config, _debug: bool) -> eyre::Result<Signed> {
+        let combined = generate_cert_with_chain(year2500(), !config.production);
+        Ok(combined)
+    }
+}
 
 pub fn setup_color_eyre() {
     use std::sync::Once;
@@ -26,4 +42,28 @@ pub fn setup_tracing() {
         .with(fmt)
         .with(ErrorLayer::default())
         .try_init();
+}
+
+#[cfg(test)]
+mod tests {
+    use renewc::{Config, ACME};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn acme_test_impl_pem_has_private_key() {
+        let cert = TestAcme {}.renew(&Config::test(42), true).await.unwrap();
+
+        dbg!(&cert.private_key);
+        assert!(!cert.private_key.is_empty());
+        assert!(cert.private_key.contains("END PRIVATE KEY"));
+        assert!(
+            cert.private_key
+                .trim_start_matches("-----BEGIN PRIVATE KEY -----")
+                .trim_end_matches("-----END PRIVATE KEY-----")
+                .chars()
+                .count()
+                > 100
+        );
+    }
 }

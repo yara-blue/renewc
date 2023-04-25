@@ -11,12 +11,13 @@ use crate::cert::Signed;
 use crate::config::Config;
 use crate::diagnostics;
 
-use super::server::Http01Challenge;
+pub mod server;
 use acme::{
     Account, AuthorizationStatus, ChallengeType, Identifier, LetsEncrypt, NewAccount, NewOrder,
     Order, OrderState, OrderStatus,
 };
 use instant_acme as acme;
+use server::Http01Challenge;
 
 // Create a new account. This will generate a fresh ECDSA key for you.
 // Alternatively, restore an account from serialized credentials by
@@ -162,7 +163,7 @@ pub async fn request(config: &Config, debug: bool) -> eyre::Result<Signed> {
 
     let challenges = prepare_challenge(&mut order).await?;
 
-    let server = super::server::run(config, &challenges)?;
+    let server = server::run(config, &challenges)?;
     diagnostics::reachable::server(config, &challenges)
         .await
         .wrap_err("Domain does not route to this application")?;
@@ -193,6 +194,15 @@ pub async fn request(config: &Config, debug: bool) -> eyre::Result<Signed> {
 
     Ok(Signed {
         private_key: cert.serialize_private_key_pem(),
-        public_cert_chain: cert_chain_pem,
+        cert_chain: cert_chain_pem,
     })
+}
+
+pub struct InstantAcme;
+
+#[async_trait::async_trait]
+impl super::ACME for InstantAcme {
+    async fn renew(&self, config: &Config, debug: bool) -> eyre::Result<Signed> {
+        request(config, debug).await
+    }
 }

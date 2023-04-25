@@ -5,7 +5,7 @@ use hyper::{body, Body, Response, StatusCode, Uri};
 use tracing::debug;
 
 use crate::config::Config;
-use crate::server::Http01Challenge;
+use crate::renew::server::Http01Challenge;
 
 const APP: &str = env!("CARGO_PKG_NAME");
 

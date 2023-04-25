@@ -95,7 +95,7 @@ pub fn remove_units() -> Result<()> {
     fs::remove_file(unit_path!("service")).wrap_err("Error removing service")
 }
 
-pub(crate) fn systemctl(args: &[&'static str], service: &str) -> Result<()> {
+pub fn systemctl(args: &[&'static str], service: &str) -> Result<()> {
     let output = Command::new("systemctl")
         .args(args)
         .arg(service)

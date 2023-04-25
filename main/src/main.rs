@@ -1,7 +1,9 @@
 use clap::Parser;
 use color_eyre::eyre::{self, Context};
+use renewc::Config;
 use tracing::warn;
 
+use renewc::renew::InstantAcme;
 use renewc::{config::Commands, run, systemd};
 
 #[derive(Parser, Debug)]
@@ -32,7 +34,17 @@ async fn main() -> eyre::Result<()> {
 
     let mut stdout = std::io::stdout();
     match cli.command {
-        Commands::Run(args) => run(&mut stdout, args, debug).await?,
+        Commands::Run(args) => {
+            let config = Config::from(args);
+            let Some(certs) = run(InstantAcme {}, &mut stdout, &config, debug).await? else {
+                return Ok(());
+            };
+            std::fs::write(&config.path, certs).wrap_err("Could not write out certificates")?;
+            if let Some(service) = &config.reload {
+                systemd::systemctl(&["reload"], service)
+                    .wrap_err_with(|| "Could not reload ".to_owned() + service)?;
+            }
+        }
         Commands::Install(args) => {
             if !args.run.production {
                 warn!("Installing service that runs against staging-environment, certificates will not be valid");
