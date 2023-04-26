@@ -75,7 +75,7 @@ fn load_seperate_chain(config: &Config) -> eyre::Result<Option<String>> {
     } = &config.output;
     let encoding = Encoding::from(output);
     let path = derive_path(
-        &certificate_path,
+        certificate_path,
         &name(&config.domains)?,
         "chain",
         encoding.extension(),

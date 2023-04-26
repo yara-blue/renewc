@@ -44,7 +44,7 @@ pub async fn run(
     config: &Config,
     debug: bool,
 ) -> eyre::Result<Option<cert::Signed>> {
-    if let Some(cert) = cert::get_info(&config)? {
+    if let Some(cert) = cert::get_info(config)? {
         match (config.production, cert.staging, cert.should_renew()) {
             (false, true, _) => {
                 warn!(
@@ -57,7 +57,7 @@ pub async fn run(
             }
             (false, false, _) => {
                 let question = "Found still valid production cert, continuing will overwrite it with a staging certificate";
-                if !config.overwrite_production && exit_requested(stdout, &config, question) {
+                if !config.overwrite_production && exit_requested(stdout, config, question) {
                     return Ok(None);
                 }
                 warn!(
@@ -95,7 +95,7 @@ pub async fn run(
         }
     }
 
-    let signed = acme_impl.renew(&config, debug).await?;
+    let signed = acme_impl.renew(config, debug).await?;
     Ok(Some(signed))
 }
 
