@@ -42,12 +42,12 @@ pub fn generate_cert_with_chain(valid_till: OffsetDateTime, is_staging: bool) ->
         .unwrap();
     let client_key = client.serialize_private_key_pem();
 
-    let mut chain = client_cert;
-    chain.push_str(&intermediate_ca);
+    let mut chain = intermediate_ca;
     chain.push_str(&root_ca);
     Signed {
+        certificate: client_cert,
         private_key: client_key,
-        cert_chain: chain,
+        chain,
     }
 }
 

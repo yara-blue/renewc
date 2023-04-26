@@ -1,73 +1,52 @@
 use std::path::PathBuf;
-
-use color_eyre::eyre::bail;
+use std::str::FromStr;
 
 use crate::diagnostics;
 
 use self::args::RenewArgs;
 
 mod args;
+pub use args::{InstallArgs, OutputConfig, Commands};
 
-#[derive(Debug, Clone)]
-pub enum Format {
-    Pem {
-        chain: PathBuf,
-    },
-    PemSeperateKey {
-        dir: PathBuf,
-    },
-    PemSeperateChain {
-        dir: PathBuf,
-    },
-    PemAllSeperate {
-        dir: PathBuf,
-    },
+#[derive(clap::ValueEnum, Debug, Clone, Default)]
+/// How to store the output.
+///
+/// After a certificate has been issued we have three outputs. Our signed
+/// certificate. A certificate chain, it contains all the certificates
+/// a client needs to check if our signed certificate is authentic. Our
+/// certificates private key.
+pub enum Output {
+    /// Use PEM encoding. Store the chain, the signed certificate and the private
+    /// key in the same file.
+    ///
+    /// Amongst others needed by: Haproxy
+    Pem,
 
-    Der {
-        dir: PathBuf,
-    },
+    /// Use PEM encoding. Store the certificate chain and signed certificate in the
+    /// same file. Keep the private key in another.
+    ///
+    /// Amongst others needed by: Nginx and Apache
+    #[default]
+    PemSeperateKey,
+    /// Use PEM encoding. Store the signed certificate and private key in the
+    /// same file and the chain in another.
+    PemSeperateChain,
+    /// Use PEM encoding. Store the signed certificate, private key and chain
+    /// all in their own file.
+    PemAllSeperate,
+
+    /// Use DER encoding. Store each certificate of the chain, the signed certificate
+    /// and its private key in their own file.
+    Der,
 
     #[cfg(feature = "derchain")]
-    PKCS12 {
-        chain: PathBuf,
-    },
+    PKCS12,
     #[cfg(feature = "derchain")]
-    PKCS12SeperateKey {
-        dir: PathBuf,
-    },
+    PKCS12SeperateKey,
     #[cfg(feature = "derchain")]
-    PKCS12SeperateChain {
-        dir: PathBuf,
-    },
+    PKCS12SeperateChain,
     #[cfg(feature = "derchain")]
-    PKCS12AllSeperate {
-        dir: PathBuf,
-    },
-}
-
-impl TryFrom<&RenewArgs> for Format {
-    type Error = color_eyre::Report;
-
-    fn try_from(args: &RenewArgs) -> Result<Self, Self::Error> {
-        let RenewArgs {
-            format,
-            include_key,
-            seperate_chain,
-            ..
-        } = args;
-        match (format, include_key, seperate_chain) {
-            (args::Format::PEM, true, true) => Ok(Format::PemSeperateChain { dir: todo!() }),
-            (args::Format::PEM, true, false) => Ok(Format::Pem { chain: todo!() }),
-            (args::Format::PEM, false, true) => Ok(Format::PemAllSeperate { dir: todo!() }),
-            (args::Format::PEM, false, false) => Ok(Format::PemSeperateKey { dir: todo!() }),
-            (args::Format::DER, true, _) => {
-                bail!("can not include key, der can only encode a single certs or a single key")
-            }
-            (args::Format::DER, _, false) => {
-                bail!("must seperate certs, der can only encode a single certs or a single key")
-            }
-        }
-    }
+    PKCS12AllSeperate,
 }
 
 #[allow(clippy::struct_excessive_bools)]
@@ -77,7 +56,7 @@ pub struct Config {
     pub(crate) email: Vec<String>,
     pub production: bool,
     pub(crate) port: u16,
-    pub format: Format,
+    pub output: args::OutputConfig,
     pub reload: Option<String>,
     pub(crate) renew_early: bool,
     pub(crate) overwrite_production: bool,
@@ -93,13 +72,23 @@ impl From<RenewArgs> for Config {
             email: args.email,
             production: args.production,
             port: args.port,
-            path: args.path,
-            format: args.format,
+            output: args.output,
             reload: args.reload,
             renew_early: args.renew_early,
             overwrite_production: args.overwrite_production,
             non_interactive: false,
             diagnostics: diagnostics::Config::default(),
+        }
+    }
+}
+
+impl args::OutputConfig {
+    fn test() -> Self {
+        Self {
+            output: Output::default(),
+            certificate_path: PathBuf::from_str("test").unwrap(),
+            key_path: None,
+            chain_path: None,
         }
     }
 }
@@ -112,8 +101,7 @@ impl Config {
             email: vec!["test_email".into()],
             production: false,
             port,
-            path: PathBuf::from("tests/cert_path"),
-            format: Format::default(),
+            output: args::OutputConfig::test(),
             reload: None,
             renew_early: false,
             overwrite_production: false,

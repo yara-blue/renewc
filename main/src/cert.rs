@@ -10,85 +10,68 @@ use x509_parser::prelude::{PEMError, Pem, X509Certificate, X509CertificateParser
 use color_eyre::eyre::{self, Context};
 use color_eyre::Help;
 
-mod write;
+use crate::config;
+
+pub mod load;
+
+#[derive(Debug)]
+pub struct MaybeSigned {
+    // PEM encoded
+    pub certificate: String,
+    // PEM encoded
+    pub private_key: Option<String>,
+    // PEM encoded
+    pub chain: Option<String>,
+}
 
 #[derive(Debug)]
 pub struct Signed {
+    // PEM encoded
+    pub certificate: String,
+    // PEM encoded
     pub private_key: String,
-    pub cert_chain: String,
+    // PEM encoded
+    pub chain: String,
 }
 
-fn read_in(path: &Path) -> eyre::Result<Option<Vec<u8>>> {
-    match fs::read(path) {
-        Err(e) if e.kind() == ErrorKind::NotFound => {
-            tracing::debug!("No certificate already at {}", path.display());
-            Ok(None)
-        }
-        Err(e) => Err(e)
-            .wrap_err("Could not check for existing certificate")
-            .suggestion("Check if the path is correct")
-            .with_note(|| format!("path: {path:?}")),
-        Ok(bytes) => Ok(Some(bytes)),
+impl TryFrom<MaybeSigned> for Signed {
+    type Error = &'static str;
+
+    fn try_from(signed: MaybeSigned) -> Result<Self, Self::Error> {
+        Ok(Self {
+            certificate: signed.certificate,
+            private_key: signed.private_key.ok_or("missing private key")?,
+            chain: signed.chain.ok_or("missing chain")?,
+        })
     }
 }
 
-fn parse_and_analyze(bytes: &[u8]) -> eyre::Result<Info> {
-    // try parse bytes as pem certificate chain, if its not a pem return an
-    // empty vec
-    if let Some(cert_info) = analyze_pem(bytes)? {
-        return Ok(cert_info);
-    }
+impl Signed {
+    /// last certificate in full chain must be the domains certificate
+    pub fn from_key_and_fullchain(
+        private_key: String,
+        mut full_chain: String,
+    ) -> eyre::Result<Self> {
+        let start_cert = full_chain
+            .rfind("-----BEGIN CERTIFICATE-----")
+            .ok_or_else(|| eyre::eyre!("No certificates in full chain!"))?;
+        let certificate = full_chain.split_off(start_cert);
+        let chain = full_chain;
 
-    analyze_der(bytes)
-}
-
-pub fn analyze_der(bytes: &[u8]) -> Result<Info, color_eyre::Report> {
-    let mut parser = X509CertificateParser::new();
-    let mut certs = Vec::new();
-    loop {
-        let (rest, cert) = parser.parse(bytes).unwrap();
-        certs.push(cert);
-        if rest.is_empty() {
-            break;
-        }
+        Ok(Self {
+            private_key,
+            certificate,
+            chain,
+        })
     }
-    analyze(&certs)
-}
-
-pub fn analyze_pem(bytes: &[u8]) -> Result<Option<Info>, color_eyre::Report> {
-    let mut pems = Vec::new();
-    for (i, pem) in Pem::iter_from_buffer(bytes).enumerate() {
-        match pem {
-            // we need this dance around with a pem
-            // vector as x509 cert borrows pem.
-            // thus we cant simple parse the x509 in the loop
-            Ok(pem) => pems.push(pem),
-            Err(PEMError::InvalidHeader) if i == 0 => {
-                // not a pem file
-                return Ok(None);
-            }
-            Err(PEMError::IOError(e)) if i == 0 && e.kind() == ErrorKind::InvalidData => {
-                // not a pem file
-                return Ok(None);
-            }
-            Err(e) => Err(e).wrap_err("Could not parse pem")?,
-        };
-    }
-
-    let certs: Vec<_> = pems.iter().map(Pem::parse_x509).collect::<Result<_, _>>()?;
-    if certs.is_empty() {
-        return Ok(None);
-    }
-    analyze(&certs).map(Option::Some)
 }
 
 /// extract public cert and private key from a PEM encoded cert
-pub fn get_info(path: &Path) -> eyre::Result<Option<Info>> {
-    let Some(bytes) = read_in(path)? else {
+pub fn get_info(config: &config::Config) -> eyre::Result<Option<Info>> {
+    let Some(signed) = load::from_disk(config)? else {
         return Ok(None);
     };
-
-    let info = parse_and_analyze(&bytes)?;
+    let info = analyze(signed)?;
     Ok(Some(info))
 }
 
@@ -128,30 +111,32 @@ impl Info {
 
 /// returns number of days until the first certificate in the chain
 /// expires and whether any certificate is from STAGING
-pub fn analyze(certs: &[X509Certificate]) -> eyre::Result<Info> {
+pub fn analyze(signed: Signed) -> eyre::Result<Info> {
     let mut staging = false;
     let mut expires_in = Duration::MAX;
     let mut expires_at = u64::MAX;
 
-    for cert in certs {
-        staging |= cert
-            .issuer()
-            .iter_organization()
-            .map(|o| o.as_str().unwrap())
-            .any(|s| s.contains("STAGING"));
-        expires_in = expires_in.min(
-            cert.validity()
-                .time_to_expiration()
-                .unwrap_or(Duration::ZERO),
-        );
-        expires_at = expires_at.min(
-            cert.validity()
-                .not_after
-                .timestamp()
-                .try_into()
-                .expect("got negative timestamp from x509 certificate, this is a bug"),
-        );
-    }
+    let cert = signed.certificate.as_bytes();
+    let cert = Pem::iter_from_buffer(cert).next().unwrap()?;
+    let cert = Pem::parse_x509(&cert)?;
+
+    staging |= cert
+        .issuer()
+        .iter_organization()
+        .map(|o| o.as_str().unwrap())
+        .any(|s| s.contains("STAGING"));
+    expires_in = expires_in.min(
+        cert.validity()
+            .time_to_expiration()
+            .unwrap_or(Duration::ZERO),
+    );
+    expires_at = expires_at.min(
+        cert.validity()
+            .not_after
+            .timestamp()
+            .try_into()
+            .expect("got negative timestamp from x509 certificate, this is a bug"),
+    );
 
     Ok(Info {
         staging,
@@ -166,17 +151,19 @@ mod tests {
 
     #[test]
     fn parse_der() {
-        let cert = rcgen::generate_simple_self_signed(["example.org".into()]).unwrap();
-        let der = cert.serialize_der().unwrap();
-
-        parse_and_analyze(&der).unwrap();
+        // let cert = rcgen::generate_simple_self_signed(["example.org".into()]).unwrap();
+        // let der = cert.serialize_der().unwrap();
+        //
+        // parse_and_analyze(&der).unwrap();
+        panic!("test disabled");
     }
 
     #[test]
     fn parse_pem() {
-        let cert = rcgen::generate_simple_self_signed(["example.org".into()]).unwrap();
-        let pem = cert.serialize_pem().unwrap();
-
-        parse_and_analyze(pem.as_bytes()).unwrap();
+        // let cert = rcgen::generate_simple_self_signed(["example.org".into()]).unwrap();
+        // let pem = cert.serialize_pem().unwrap();
+        //
+        // parse_and_analyze(pem.as_bytes()).unwrap();
+        panic!("test disabled");
     }
 }

@@ -185,17 +185,14 @@ pub async fn request(config: &Config, debug: bool) -> eyre::Result<Signed> {
     let (cert, csr) = prepare_sign_request(&names)?;
 
     order.finalize(&csr).await.unwrap();
-    let cert_chain_pem = loop {
+    let full_chain_pem = loop {
         match order.certificate().await? {
             Some(cert_chain_pem) => break cert_chain_pem,
             None => sleep(Duration::from_secs(1)).await,
         }
     };
 
-    Ok(Signed {
-        private_key: cert.serialize_private_key_pem(),
-        cert_chain: cert_chain_pem,
-    })
+    Signed::from_key_and_fullchain(cert.serialize_private_key_pem(), full_chain_pem)
 }
 
 pub struct InstantAcme;

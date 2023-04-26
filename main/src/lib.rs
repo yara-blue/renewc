@@ -16,7 +16,6 @@ pub mod diagnostics;
 pub mod config;
 
 pub use config::Config;
-use config::Format;
 
 macro_rules! warn {
     ($stream:expr, $($arg:tt)*) => { 
@@ -39,9 +38,9 @@ pub trait ACME {
     async fn renew(&self, config: &Config, debug: bool) -> eyre::Result<cert::Signed>;
 }
 
-pub async fn run(acme_impl: impl ACME, stdout: &mut impl Write, config: &Config, debug: bool) -> eyre::Result<Option<Vec<u8>>> {
+pub async fn run(acme_impl: impl ACME, stdout: &mut impl Write, config: &Config, debug: bool) -> eyre::Result<Option<cert::Signed>> {
 
-    if let Some(cert) = cert::get_info(&config.path)? {
+    if let Some(cert) = cert::get_info(&config)? {
         match (config.production, cert.staging, cert.should_renew()) {
             (false, true, _) => {
                 warn!(stdout, "Requesting Staging cert, certificates will not be valid");
@@ -81,11 +80,7 @@ pub async fn run(acme_impl: impl ACME, stdout: &mut impl Write, config: &Config,
     }
 
     let signed = acme_impl.renew(&config, debug).await?;
-    let encoded = match config.format {
-        Format::PemChain => signed.pem().wrap_err("PEM encoding failed")?,
-        Format::DerChain => signed.der().wrap_err("DER encoding failed")?,
-    };
-    Ok(Some(encoded))
+    Ok(Some(signed))
 }
 
 #[must_use]

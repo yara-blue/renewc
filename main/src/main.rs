@@ -3,8 +3,9 @@ use color_eyre::eyre::{self, Context};
 use renewc::Config;
 use tracing::warn;
 
+use renewc::config::Commands;
 use renewc::renew::InstantAcme;
-use renewc::{config::Commands, run, systemd};
+use renewc::{run, systemd, cert};
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -39,7 +40,7 @@ async fn main() -> eyre::Result<()> {
             let Some(certs) = run(InstantAcme {}, &mut stdout, &config, debug).await? else {
                 return Ok(());
             };
-            std::fs::write(&config.path, certs).wrap_err("Could not write out certificates")?;
+            cert::load::store(&config, certs).wrap_err("Could not write out certificates")?;
             if let Some(service) = &config.reload {
                 systemd::systemctl(&["reload"], service)
                     .wrap_err_with(|| "Could not reload ".to_owned() + service)?;
