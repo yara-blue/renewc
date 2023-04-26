@@ -1,16 +1,11 @@
-use std::fs;
-use std::io::ErrorKind;
-use std::path::{Path, PathBuf};
-
 use crate::config::{Output, OutputConfig};
 use crate::Config;
-use color_eyre::eyre::{self, Context};
-use color_eyre::Help;
+use color_eyre::eyre::{self};
 
 use super::{MaybeSigned, Signed};
 
-mod io;
 mod der;
+mod io;
 mod pem;
 
 use io::{derive_path, name, read_any_file};
@@ -44,7 +39,6 @@ impl From<&Output> for Encoding {
         }
     }
 }
-
 
 pub(super) fn from_disk(config: &Config) -> eyre::Result<Option<Signed>> {
     let Some(MaybeSigned { certificate, private_key, chain }) = load_certificate(config)? else {
@@ -145,8 +139,6 @@ fn load_certificate(config: &Config) -> eyre::Result<Option<MaybeSigned>> {
     }
 }
 
-
-
-pub fn store(config: &Config, certs: Signed) -> eyre::Result<()> {
+pub fn store(_config: &Config, _certs: Signed) -> eyre::Result<()> {
     todo!()
 }

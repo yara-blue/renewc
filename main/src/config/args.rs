@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use clap::{Parser, Subcommand};
+use std::path::PathBuf;
 
 use super::Output;
 
@@ -83,20 +83,20 @@ pub struct OutputConfig {
     #[clap(value_enum, default_value_t = Output::PemSeperateKey)]
     pub output: Output,
 
-    /// Path including file name where to output the signed 
+    /// Path including file name where to output the signed
     /// certificate possibly with its private key and/or chain
     /// (depending on the selected Output option).
     #[clap(long)]
     pub certificate_path: PathBuf,
 
-    /// Path including file name where to output the certificates 
-    /// private key. Used when it is stored seperate from the other 
+    /// Path including file name where to output the certificates
+    /// private key. Used when it is stored seperate from the other
     /// output. If left unspecified it is deduced from the certificate-path.
     #[clap(long)]
     pub key_path: Option<PathBuf>,
 
-    /// Path including file name where to output the certificates chain. 
-    /// Used when it is stored seperate from the other output. If left 
+    /// Path including file name where to output the certificates chain.
+    /// Used when it is stored seperate from the other output. If left
     /// unspecified it is deduced from the certificate-path.
     ///
     /// Note: can not be used when the format is set to Der.

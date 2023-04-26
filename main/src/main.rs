@@ -5,7 +5,7 @@ use tracing::warn;
 
 use renewc::config::Commands;
 use renewc::renew::InstantAcme;
-use renewc::{run, systemd, cert};
+use renewc::{cert, run, systemd};
 
 #[derive(Parser, Debug)]
 #[clap(

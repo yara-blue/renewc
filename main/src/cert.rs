@@ -1,14 +1,10 @@
 use rand::{Rng, SeedableRng};
-use std::fs;
-use std::io::ErrorKind;
-use std::path::Path;
+
 use time::Duration;
 use tracing::instrument;
-use x509_parser::nom::Parser;
-use x509_parser::prelude::{PEMError, Pem, X509Certificate, X509CertificateParser};
+use x509_parser::prelude::Pem;
 
-use color_eyre::eyre::{self, Context};
-use color_eyre::Help;
+use color_eyre::eyre;
 
 use crate::config;
 

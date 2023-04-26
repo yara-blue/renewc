@@ -77,4 +77,3 @@ fn port_pids(port: u16) -> Result<(Vec<u32>, Errors), Report> {
         },
     ))
 }
-

@@ -6,7 +6,7 @@ use crate::diagnostics;
 use self::args::RenewArgs;
 
 mod args;
-pub use args::{InstallArgs, OutputConfig, Commands};
+pub use args::{Commands, InstallArgs, OutputConfig};
 
 #[derive(clap::ValueEnum, Debug, Clone, Default)]
 /// How to store the output.

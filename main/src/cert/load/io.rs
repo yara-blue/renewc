@@ -2,8 +2,6 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
-use crate::config::{Output, OutputConfig};
-use crate::Config;
 use color_eyre::eyre::{self, Context};
 use color_eyre::Help;
 
@@ -25,7 +23,6 @@ fn dir(cert_path: &Path) -> PathBuf {
 
     dir.to_path_buf()
 }
-
 
 pub(super) fn read_any_file(path: &Path) -> eyre::Result<Option<Vec<u8>>> {
     match fs::read(path) {
