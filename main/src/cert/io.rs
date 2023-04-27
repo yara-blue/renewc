@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use color_eyre::eyre::{self, Context};
 use color_eyre::Help;
 
-pub(super) fn derive_path(cert_path: &Path, name: &str, ty: &str, extension: &str) -> PathBuf {
+pub(crate) fn derive_path(cert_path: &Path, name: &str, ty: &str, extension: &str) -> PathBuf {
     let mut path = dir(cert_path);
     path.push(format!("{name}_{ty}"));
     path.push(extension);

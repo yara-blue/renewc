@@ -1,14 +1,13 @@
 use crate::config::{Output, OutputConfig};
 use crate::Config;
-use color_eyre::eyre::{self};
+use color_eyre::eyre;
 
 use super::{MaybeSigned, Signed};
 
 mod der;
-mod io;
 mod pem;
 
-use io::{derive_path, name, read_any_file};
+use super::io::{derive_path, name, read_any_file};
 
 pub enum Encoding {
     PEM,
@@ -18,7 +17,7 @@ pub enum Encoding {
 }
 
 impl Encoding {
-    fn extension(&self) -> &'static str {
+    pub(crate) fn extension(&self) -> &'static str {
         match self {
             Encoding::PEM => "pem",
             Encoding::DER => "der",
@@ -41,7 +40,7 @@ impl From<&Output> for Encoding {
 }
 
 pub(super) fn from_disk(config: &Config) -> eyre::Result<Option<Signed>> {
-    let Some(MaybeSigned { certificate, private_key, chain }) = load_certificate(config)? else {
+    let Some(MaybeSigned { certificate, private_key, mut chain }) = load_certificate(config)? else {
         return Ok(None);
     };
 
@@ -52,13 +51,13 @@ pub(super) fn from_disk(config: &Config) -> eyre::Result<Option<Signed>> {
             None => return Ok(None),
         },
     };
-    let chain = match chain {
-        Some(chain) => chain,
-        None => match load_seperate_chain(config)? {
-            Some(chain) => chain,
-            None => return Ok(None),
-        },
-    };
+    if chain.is_empty() {
+        chain = load_seperate_chain(config)?;
+    }
+
+    if chain.is_empty() {
+        return Ok(None);
+    }
 
     Ok(Some(Signed {
         certificate,
@@ -67,26 +66,30 @@ pub(super) fn from_disk(config: &Config) -> eyre::Result<Option<Signed>> {
     }))
 }
 
-fn load_seperate_chain(config: &Config) -> eyre::Result<Option<String>> {
+fn load_seperate_chain(config: &Config) -> eyre::Result<Vec<String>> {
     let OutputConfig {
         output,
         certificate_path,
+        chain_path,
         ..
     } = &config.output;
     let encoding = Encoding::from(output);
-    let path = derive_path(
-        certificate_path,
-        &name(&config.domains)?,
-        "chain",
-        encoding.extension(),
-    );
+    let path = match chain_path {
+        None => derive_path(
+            certificate_path,
+            &name(&config.domains)?,
+            "chain",
+            encoding.extension(),
+        ),
+        Some(path) => path.clone(),
+    };
 
     let Some(bytes) = read_any_file(&path)? else {
-        return Ok(None);
+        return Ok(Vec::new());
     };
 
     match encoding {
-        Encoding::PEM => pem::certificate(bytes),
+        Encoding::PEM => pem::chain_from_bytes(bytes),
         Encoding::DER => todo!(),
     }
 }
@@ -95,15 +98,20 @@ fn load_seperate_private_key(config: &Config) -> eyre::Result<Option<String>> {
     let OutputConfig {
         output,
         certificate_path,
+        key_path,
         ..
     } = &config.output;
     let encoding = Encoding::from(output);
-    let path = derive_path(
-        certificate_path,
-        &name(&config.domains)?,
-        "key",
-        encoding.extension(),
-    );
+
+    let path = match key_path {
+        None => derive_path(
+            certificate_path,
+            &name(&config.domains)?,
+            "key",
+            encoding.extension(),
+        ),
+        Some(path) => path.clone(),
+    };
 
     let Some(bytes) = read_any_file(&path)? else {
         return Ok(None);
@@ -122,12 +130,16 @@ fn load_certificate(config: &Config) -> eyre::Result<Option<MaybeSigned>> {
         ..
     } = &config.output;
     let encoding = Encoding::from(output);
-    let path = derive_path(
-        certificate_path,
-        &name(&config.domains)?,
-        "cert",
-        encoding.extension(),
-    );
+    let path = if certificate_path.is_dir() {
+        derive_path(
+            &certificate_path,
+            &name(&config.domains)?,
+            "cert",
+            encoding.extension(),
+        )
+    } else {
+        certificate_path.clone()
+    };
 
     let Some(bytes) = read_any_file(&path)? else {
         return Ok(None);
@@ -137,8 +149,4 @@ fn load_certificate(config: &Config) -> eyre::Result<Option<MaybeSigned>> {
         Encoding::PEM => MaybeSigned::from_pem(bytes).map(Option::Some),
         Encoding::DER => MaybeSigned::from_der(bytes).map(Option::Some),
     }
-}
-
-pub fn store(_config: &Config, _certs: Signed) -> eyre::Result<()> {
-    todo!()
 }

@@ -4,11 +4,13 @@ use time::Duration;
 use tracing::instrument;
 use x509_parser::prelude::Pem;
 
-use color_eyre::eyre;
+use color_eyre::eyre::{self, bail};
 
 use crate::config;
 
 pub mod load;
+pub mod store;
+pub mod io;
 
 #[derive(Debug)]
 pub struct MaybeSigned {
@@ -17,7 +19,7 @@ pub struct MaybeSigned {
     // PEM encoded
     pub private_key: Option<String>,
     // PEM encoded
-    pub chain: Option<String>,
+    pub chain: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -26,18 +28,24 @@ pub struct Signed {
     pub certificate: String,
     // PEM encoded
     pub private_key: String,
-    // PEM encoded
-    pub chain: String,
+    // List of PEM encoded
+    pub chain: Vec<String>,
 }
 
 impl TryFrom<MaybeSigned> for Signed {
-    type Error = &'static str;
+    type Error = eyre::Report;
 
     fn try_from(signed: MaybeSigned) -> Result<Self, Self::Error> {
+        if signed.chain.is_empty() {
+            bail!("missing chain")
+        }
+
         Ok(Self {
             certificate: signed.certificate,
-            private_key: signed.private_key.ok_or("missing private key")?,
-            chain: signed.chain.ok_or("missing chain")?,
+            private_key: signed
+                .private_key
+                .ok_or_else(|| eyre::eyre!("missing private key"))?,
+            chain: signed.chain,
         })
     }
 }
@@ -52,7 +60,15 @@ impl Signed {
             .rfind("-----BEGIN CERTIFICATE-----")
             .ok_or_else(|| eyre::eyre!("No certificates in full chain!"))?;
         let certificate = full_chain.split_off(start_cert);
-        let chain = full_chain;
+
+        let mut chain = Vec::new();
+        while let Some(begin_cert) = full_chain.rfind("-----BEGIN CERTIFICATE-----") {
+            chain.push(full_chain.split_off(begin_cert));
+        }
+
+        if chain.is_empty() {
+            bail!("No chain certificates in full chain")
+        }
 
         Ok(Self {
             private_key,

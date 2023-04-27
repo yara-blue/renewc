@@ -40,7 +40,7 @@ async fn main() -> eyre::Result<()> {
             let Some(certs) = run(InstantAcme {}, &mut stdout, &config, debug).await? else {
                 return Ok(());
             };
-            cert::load::store(&config, certs).wrap_err("Could not write out certificates")?;
+            cert::store::on_disk(&config, &certs).wrap_err("Could not write out certificates")?;
             if let Some(service) = &config.reload {
                 systemd::systemctl(&["reload"], service)
                     .wrap_err_with(|| "Could not reload ".to_owned() + service)?;
