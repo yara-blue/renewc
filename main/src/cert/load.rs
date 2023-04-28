@@ -9,6 +9,7 @@ mod pem;
 
 use super::io::{derive_path, name, read_any_file};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Encoding {
     PEM,
     DER,
