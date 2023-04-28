@@ -1,3 +1,6 @@
+use der::{DecodePem, EncodeValue};
+use x509_cert::Certificate;
+
 use crate::cert::load::Encoding;
 
 pub(super) trait Encode {
@@ -8,7 +11,14 @@ impl Encode for String {
     fn encode(self, encoding: Encoding) -> Vec<u8> {
         match encoding {
             Encoding::PEM => self.into_bytes(),
-            Encoding::DER => todo!(),
+            Encoding::DER => {
+                let cert = Certificate::from_pem(dbg!(self).as_bytes())
+                    .expect("ACME client should return valid PEM");
+                let mut writer = Vec::new();
+                cert.encode_value(&mut writer)
+                    .expect("Encoding certificate to a vec never gives IO issues");
+                writer
+            }
         }
     }
 }
