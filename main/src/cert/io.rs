@@ -12,7 +12,7 @@ pub(crate) fn derive_path(cert_path: &Path, name: &str, ty: &str, extension: &st
     path
 }
 
-fn dir(cert_path: &Path) -> PathBuf {
+pub(super) fn dir(cert_path: &Path) -> PathBuf {
     let dir = if cert_path.is_file() {
         cert_path
             .parent()

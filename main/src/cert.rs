@@ -8,28 +8,33 @@ use color_eyre::eyre::{self, bail};
 
 use crate::config;
 
+use format::PemItem;
+
+use self::format::Label;
+
+pub mod format;
+pub mod io;
 pub mod load;
 pub mod store;
-pub mod io;
 
 #[derive(Debug)]
 pub struct MaybeSigned {
     // PEM encoded
-    pub certificate: String,
+    pub(crate) certificate: PemItem,
     // PEM encoded
-    pub private_key: Option<String>,
+    pub(crate) private_key: Option<PemItem>,
     // PEM encoded
-    pub chain: Vec<String>,
+    pub(crate) chain: Vec<PemItem>,
 }
 
 #[derive(Debug)]
 pub struct Signed {
     // PEM encoded
-    pub certificate: String,
+    pub(crate) certificate: PemItem,
     // PEM encoded
-    pub private_key: String,
+    pub(crate) private_key: PemItem,
     // List of PEM encoded
-    pub chain: Vec<String>,
+    pub(crate) chain: Vec<PemItem>,
 }
 
 impl TryFrom<MaybeSigned> for Signed {
@@ -59,20 +64,50 @@ impl Signed {
         let start_cert = full_chain
             .rfind("-----BEGIN CERTIFICATE-----")
             .ok_or_else(|| eyre::eyre!("No certificates in full chain!"))?;
-        let certificate = full_chain.split_off(start_cert);
+        let certificate = PemItem::from_pem(full_chain.split_off(start_cert), Label::Certificate)?;
 
         let mut chain = Vec::new();
         while let Some(begin_cert) = full_chain.rfind("-----BEGIN CERTIFICATE-----") {
-            chain.push(full_chain.split_off(begin_cert));
+            chain.push(PemItem::from_pem(
+                full_chain.split_off(begin_cert),
+                Label::Certificate,
+            )?);
         }
 
         if chain.is_empty() {
             bail!("No chain certificates in full chain")
         }
 
+        let private_key = PemItem::from_pem(private_key, Label::PrivateKey)?;
+
         Ok(Self {
             private_key,
             certificate,
+            chain,
+        })
+    }
+}
+
+impl MaybeSigned {
+    pub(super) fn from_pem(bytes: Vec<u8>) -> eyre::Result<Self> {
+        let mut pem = String::from_utf8(bytes)?;
+        let start_key = pem.rfind("-----BEGIN PRIVATE KEY-----");
+        let private_key = start_key
+            .map(|i| pem.split_off(i))
+            .map(|p| PemItem::from_pem(p, Label::PrivateKey))
+            .transpose()?;
+
+        let start_cert = pem.rfind("-----BEGIN CERTIFICATE-----");
+        let certificate = start_cert
+            .map(|i| pem.split_off(i))
+            .ok_or(eyre::eyre!("Can no find a certificate"))?;
+        let certificate = PemItem::from_pem(certificate, Label::Certificate)?;
+
+        let chain = PemItem::chain(pem)?;
+
+        Ok(MaybeSigned {
+            certificate,
+            private_key,
             chain,
         })
     }

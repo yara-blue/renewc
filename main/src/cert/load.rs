@@ -2,10 +2,8 @@ use crate::config::{Output, OutputConfig};
 use crate::Config;
 use color_eyre::eyre;
 
+use super::format::{Der, Label, PemItem};
 use super::{MaybeSigned, Signed};
-
-mod der;
-mod pem;
 
 use super::io::{derive_path, name, read_any_file};
 
@@ -67,7 +65,7 @@ pub(super) fn from_disk(config: &Config) -> eyre::Result<Option<Signed>> {
     }))
 }
 
-fn load_seperate_chain(config: &Config) -> eyre::Result<Vec<String>> {
+fn load_seperate_chain(config: &Config) -> eyre::Result<Vec<PemItem>> {
     let OutputConfig {
         output,
         certificate_path,
@@ -85,17 +83,29 @@ fn load_seperate_chain(config: &Config) -> eyre::Result<Vec<String>> {
         Some(path) => path.clone(),
     };
 
-    let Some(bytes) = read_any_file(&path)? else {
-        return Ok(Vec::new());
-    };
-
     match encoding {
-        Encoding::PEM => pem::chain_from_bytes(bytes),
-        Encoding::DER => todo!(),
+        Encoding::DER => {
+            let chain: Vec<_> = (0..)
+                .into_iter()
+                .map(|i| path.with_file_name(format!("{i}_chain.der")))
+                .map(std::fs::read)
+                .filter_map(Result::ok)
+                .map(Der::from_bytes)
+                .map(|d| d.to_pem(Label::Certificate))
+                .collect();
+            Ok(chain)
+        }
+
+        Encoding::PEM => {
+            let Some(bytes) = read_any_file(&path)? else {
+                return Ok(Vec::new());
+            };
+            PemItem::chain_from_bytes(bytes)
+        }
     }
 }
 
-fn load_seperate_private_key(config: &Config) -> eyre::Result<Option<String>> {
+fn load_seperate_private_key(config: &Config) -> eyre::Result<Option<PemItem>> {
     let OutputConfig {
         output,
         certificate_path,
@@ -118,10 +128,10 @@ fn load_seperate_private_key(config: &Config) -> eyre::Result<Option<String>> {
         return Ok(None);
     };
 
-    match encoding {
-        Encoding::PEM => pem::private_key(bytes),
-        Encoding::DER => todo!(),
-    }
+    Ok(Some(match encoding {
+        Encoding::PEM => PemItem::from_bytes(bytes, Label::PrivateKey)?,
+        Encoding::DER => Der::from_bytes(bytes).to_pem(Label::PrivateKey),
+    }))
 }
 
 fn load_certificate(config: &Config) -> eyre::Result<Option<MaybeSigned>> {
@@ -148,6 +158,10 @@ fn load_certificate(config: &Config) -> eyre::Result<Option<MaybeSigned>> {
 
     match encoding {
         Encoding::PEM => MaybeSigned::from_pem(bytes).map(Option::Some),
-        Encoding::DER => MaybeSigned::from_der(bytes).map(Option::Some),
+        Encoding::DER => Ok(Some(MaybeSigned {
+            certificate: Der::from_bytes(bytes).to_pem(Label::Certificate),
+            private_key: None,
+            chain: Vec::new(),
+        })),
     }
 }
