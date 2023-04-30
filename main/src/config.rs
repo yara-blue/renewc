@@ -8,7 +8,7 @@ use self::args::RenewArgs;
 mod args;
 pub use args::{Commands, InstallArgs, OutputConfig};
 
-#[derive(clap::ValueEnum, Debug, Clone, Default)]
+#[derive(clap::ValueEnum, Debug, Clone, Default, PartialEq, Eq)]
 /// How to store the output.
 ///
 /// After a certificate has been issued we have three outputs. Our signed

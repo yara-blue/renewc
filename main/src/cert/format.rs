@@ -3,8 +3,8 @@ use data_encoding::BASE64;
 
 /// a single pem encoded item. Has one header and footer at
 /// the start and end respectively
-#[derive(Debug, Clone)]
-pub(crate) struct PemItem(String);
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PemItem(String);
 
 #[derive(Debug)]
 pub enum Label {
@@ -35,6 +35,10 @@ impl PemItem {
 
     pub fn into_bytes(self) -> Vec<u8> {
         self.0.into_bytes()
+    }
+
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
     }
 
     pub fn from_bytes(bytes: Vec<u8>, label: Label) -> eyre::Result<Self> {
@@ -103,5 +107,21 @@ impl Der {
 
     fn base64(&self) -> String {
         BASE64.encode(&self.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reject_invalid_pem() {
+        let input = todo!();
+    }
+
+    #[test]
+    fn reversible() {
+        let input = todo!();
+        
     }
 }

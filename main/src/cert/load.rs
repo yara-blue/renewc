@@ -38,7 +38,7 @@ impl From<&Output> for Encoding {
     }
 }
 
-pub(super) fn from_disk(config: &Config) -> eyre::Result<Option<Signed>> {
+pub fn from_disk(config: &Config) -> eyre::Result<Option<Signed>> {
     let Some(MaybeSigned { certificate, private_key, mut chain }) = load_certificate(config)? else {
         return Ok(None);
     };

@@ -55,10 +55,11 @@ mod tests {
         let cert = TestAcme {}.renew(&Config::test(42), true).await.unwrap();
 
         dbg!(&cert.private_key);
-        assert!(!cert.private_key.is_empty());
-        assert!(cert.private_key.contains("END PRIVATE KEY"));
+        assert!(!cert.private_key.as_str().is_empty());
+        assert!(cert.private_key.as_str().contains("END PRIVATE KEY"));
         assert!(
             cert.private_key
+                .as_str()
                 .trim_start_matches("-----BEGIN PRIVATE KEY -----")
                 .trim_end_matches("-----END PRIVATE KEY-----")
                 .chars()

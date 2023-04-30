@@ -3,6 +3,7 @@
 
 use std::io::Write;
 
+use cert::info::Info;
 use color_eyre::owo_colors::OwoColorize;
 // use owo_colors::Stream;
 
@@ -44,7 +45,7 @@ pub async fn run(
     config: &Config,
     debug: bool,
 ) -> eyre::Result<Option<cert::Signed>> {
-    if let Some(cert) = cert::get_info(config)? {
+    if let Some(cert) = Info::from_disk(config)? {
         match (config.production, cert.staging, cert.should_renew()) {
             (false, true, _) => {
                 warn!(
