@@ -15,7 +15,7 @@ use crate::Config;
 fn write_cert(encoding: Encoding, certificate: PemItem, operation: Operation) -> eyre::Result<()> {
     let bytes = match encoding {
         Encoding::PEM => certificate.into_bytes(),
-        Encoding::DER => certificate.der(),
+        Encoding::DER => certificate.der().into_bytes(),
     };
     match operation {
         Operation::Append(path) => {
@@ -35,7 +35,7 @@ fn write_cert(encoding: Encoding, certificate: PemItem, operation: Operation) ->
 fn write_key(encoding: Encoding, private_key: PemItem, operation: Operation) -> eyre::Result<()> {
     let bytes = match encoding {
         Encoding::PEM => private_key.into_bytes(),
-        Encoding::DER => private_key.der(),
+        Encoding::DER => private_key.der().into_bytes(),
     };
 
     match operation {
@@ -56,7 +56,7 @@ fn write_key(encoding: Encoding, private_key: PemItem, operation: Operation) -> 
 fn write_chain(encoding: Encoding, chain: Vec<PemItem>, path: &Path) -> eyre::Result<()> {
     if encoding == Encoding::DER {
         for (i, cert) in chain.into_iter().enumerate() {
-            let bytes = cert.der();
+            let bytes = cert.der().into_bytes();
             let path = path.with_file_name(format!("{i}_chain.der"));
 
             let mut file = fs::File::create(path)?;

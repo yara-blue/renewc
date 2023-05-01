@@ -61,11 +61,13 @@ pub fn generate_cert_with_chain(valid_till: OffsetDateTime, is_staging: bool) ->
 #[allow(dead_code)]
 pub fn write_single_chain(dir: &TempDir, signed: Signed) -> PathBuf {
     let path = dir.path().join("cert.pem");
-    let bytes: Vec<u8> =
-        Itertools::intersperse(signed.chain.iter().map(PemItem::as_bytes), "\n".as_bytes())
-            .flatten()
-            .copied()
-            .collect();
+    let bytes: Vec<u8> = Itertools::intersperse(
+        signed.chain.iter().map(PemItem::as_bytes),
+        "\r\n".as_bytes(),
+    )
+    .flatten()
+    .copied()
+    .collect();
     fs::write(&path, bytes).unwrap();
     path
 }

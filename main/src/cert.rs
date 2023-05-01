@@ -52,7 +52,7 @@ impl Signed {
         mut full_chain: String,
     ) -> eyre::Result<Self> {
         let start_cert = full_chain
-            .rfind("-----BEGIN CERTIFICATE-----")
+            .rfind(Label::Certificate.footer())
             .ok_or_else(|| eyre::eyre!("No certificates in full chain!"))?;
         let certificate = PemItem::from_pem(full_chain.split_off(start_cert), Label::Certificate)?;
 
