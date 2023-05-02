@@ -38,7 +38,7 @@ impl From<&Output> for Encoding {
     }
 }
 
-pub fn from_disk(config: &Config) -> eyre::Result<Option<Signed>> {
+pub fn from_disk<P: PemItem>(config: &Config) -> eyre::Result<Option<Signed<P>>> {
     let Some(MaybeSigned { certificate, private_key, mut chain }) = load_certificate(config)? else {
         return Ok(None);
     };
@@ -65,7 +65,7 @@ pub fn from_disk(config: &Config) -> eyre::Result<Option<Signed>> {
     }))
 }
 
-fn load_seperate_chain(config: &Config) -> eyre::Result<Vec<PemItem>> {
+fn load_seperate_chain<P: PemItem>(config: &Config) -> eyre::Result<Vec<P>> {
     let OutputConfig {
         output,
         certificate_path,
@@ -105,7 +105,7 @@ fn load_seperate_chain(config: &Config) -> eyre::Result<Vec<PemItem>> {
     }
 }
 
-fn load_seperate_private_key(config: &Config) -> eyre::Result<Option<PemItem>> {
+fn load_seperate_private_key<P: PemItem>(config: &Config) -> eyre::Result<Option<P>> {
     let OutputConfig {
         output,
         certificate_path,
@@ -129,12 +129,12 @@ fn load_seperate_private_key(config: &Config) -> eyre::Result<Option<PemItem>> {
     };
 
     Ok(Some(match encoding {
-        Encoding::PEM => PemItem::from_bytes(bytes, Label::PrivateKey)?,
+        Encoding::PEM => P::from_pem(bytes, Label::PrivateKey)?,
         Encoding::DER => Der::from_bytes(bytes).to_pem(Label::PrivateKey),
     }))
 }
 
-fn load_certificate(config: &Config) -> eyre::Result<Option<MaybeSigned>> {
+fn load_certificate<P: PemItem>(config: &Config) -> eyre::Result<Option<MaybeSigned<P>>> {
     let OutputConfig {
         output,
         certificate_path,
@@ -158,7 +158,7 @@ fn load_certificate(config: &Config) -> eyre::Result<Option<MaybeSigned>> {
 
     match encoding {
         Encoding::PEM => MaybeSigned::from_pem(bytes).map(Option::Some),
-        Encoding::DER => Ok(Some(MaybeSigned {
+        Encoding::DER => Ok(Some(MaybeSigned::<P> {
             certificate: Der::from_bytes(bytes).to_pem(Label::Certificate),
             private_key: None,
             chain: Vec::new(),

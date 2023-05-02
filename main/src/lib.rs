@@ -3,11 +3,11 @@
 
 use std::io::Write;
 
+use cert::format::PemItem;
 use cert::info::Info;
 use color_eyre::owo_colors::OwoColorize;
-// use owo_colors::Stream;
 
-use color_eyre::eyre::{self};
+use color_eyre::eyre;
 
 pub mod cert;
 pub mod config;
@@ -36,15 +36,19 @@ macro_rules! info {
 /// by passing the ACME implentation we can test other functionality.
 #[async_trait::async_trait]
 pub trait ACME {
-    async fn renew(&self, config: &Config, debug: bool) -> eyre::Result<cert::Signed>;
+    async fn renew<P: PemItem>(
+        &self,
+        config: &Config,
+        debug: bool,
+    ) -> eyre::Result<cert::Signed<P>>;
 }
 
-pub async fn run(
+pub async fn run<P: PemItem>(
     acme_impl: impl ACME,
     stdout: &mut impl Write,
     config: &Config,
     debug: bool,
-) -> eyre::Result<Option<cert::Signed>> {
+) -> eyre::Result<Option<cert::Signed<P>>> {
     if let Some(cert) = Info::from_disk(config)? {
         match (config.production, cert.staging, cert.should_renew()) {
             (false, true, _) => {

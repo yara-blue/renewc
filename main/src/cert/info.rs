@@ -1,3 +1,4 @@
+use super::format::PemItem;
 use super::{load, Signed};
 use crate::config;
 
@@ -19,7 +20,7 @@ pub struct Info {
 
 impl Info {
     pub fn from_disk(config: &config::Config) -> eyre::Result<Option<Self>> {
-        let Some(signed) = load::from_disk(config)? else {
+        let Some(signed) = load::from_disk::<pem::Pem>(config)? else {
             return Ok(None);
         };
         let info = analyze(signed)?;
@@ -52,13 +53,13 @@ impl Info {
 
 /// returns number of days until the first certificate in the chain
 /// expires and whether any certificate is from STAGING
-pub fn analyze(signed: Signed) -> eyre::Result<Info> {
+pub fn analyze(signed: Signed<impl PemItem>) -> eyre::Result<Info> {
     let mut staging = false;
     let mut expires_in = Duration::MAX;
     let mut expires_at = u64::MAX;
 
-    let cert = signed.certificate.as_bytes();
-    let cert = Pem::iter_from_buffer(cert).next().unwrap()?;
+    let cert = signed.certificate.into_bytes();
+    let cert = Pem::iter_from_buffer(&cert).next().unwrap()?;
     let cert = Pem::parse_x509(&cert)?;
 
     staging |= cert

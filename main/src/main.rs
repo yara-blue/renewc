@@ -37,7 +37,7 @@ async fn main() -> eyre::Result<()> {
     match cli.command {
         Commands::Run(args) => {
             let config = Config::from(args);
-            let Some(certs) = run(InstantAcme {}, &mut stdout, &config, debug).await? else {
+            let Some(certs) = run::<pem::Pem>(InstantAcme {}, &mut stdout, &config, debug).await? else {
                 return Ok(());
             };
             cert::store::on_disk(&config, certs).wrap_err("Could not write out certificates")?;

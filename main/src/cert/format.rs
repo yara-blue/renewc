@@ -1,12 +1,50 @@
-use color_eyre::eyre::{self, bail};
-use data_encoding::BASE64;
+use color_eyre::eyre::{self, bail, Context};
 
-/// a single pem encoded item. Has one header and footer at
-/// the start and end respectively
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PemItem {
-    content: String,
-    label: Label,
+use pem::Pem;
+
+impl PemItem for Pem {
+    fn into_bytes(self) -> Vec<u8> {
+        pem::encode(&self).into_bytes()
+    }
+
+    fn from_pem(pem_encoded: impl AsRef<[u8]>, label: Label) -> eyre::Result<Self> {
+        let pem = pem::parse(pem_encoded).wrap_err("Not valid pem")?;
+        let mut headers = pem.headers().iter();
+        let start = headers
+            .next()
+            .ok_or_else(|| eyre::eyre!("Pem must have start header"))?;
+        let end = headers
+            .next()
+            .ok_or_else(|| eyre::eyre!("Pem must have end header"))?;
+
+        if start.0 != "BEGIN" {
+            bail!("wrong start header");
+        }
+        if start.1 != label.header() {
+            bail!("wrong start label");
+        }
+
+        if end.0 != "END" {
+            bail!("wrong end header");
+        }
+        if end.1 != label.footer() {
+            bail!("wrond end label");
+        }
+
+        Ok(pem)
+    }
+
+    fn from_der(der: Der, label: Label) -> Self {
+        Pem::new(label.header(), der.into_bytes())
+    }
+
+    fn der(self) -> Der {
+        Der(self.into_contents())
+    }
+
+    fn chain_from_bytes(bytes: Vec<u8>) -> eyre::Result<Vec<Self>> {
+        Ok(pem::parse_many(bytes)?)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -31,102 +69,27 @@ impl Label {
     }
 }
 
-impl PemItem {
+pub trait PemItem: Sized {
     #[must_use]
-    pub fn as_bytes(&self) -> &[u8] {
-        self.content.as_bytes()
-    }
+    fn into_bytes(self) -> Vec<u8>;
 
-    #[must_use]
-    pub fn into_bytes(self) -> Vec<u8> {
-        self.content.into_bytes()
-    }
+    fn from_pem(encoded: impl AsRef<[u8]>, label: Label) -> eyre::Result<Self>
+    where
+        Self: Sized;
 
     #[must_use]
-    pub fn as_str(&self) -> &str {
-        self.content.as_str()
-    }
-
-    pub fn from_bytes(bytes: Vec<u8>, label: Label) -> eyre::Result<Self> {
-        let pem = String::from_utf8(bytes)?;
-        Self::from_pem(pem, label)
-    }
-
-    pub fn from_pem(pem: String, label: Label) -> eyre::Result<Self> {
-        if !pem.starts_with(label.header()) {
-            bail!("pem did not start with header for: {label:?}");
-        }
-
-        if !pem.ends_with(label.footer()) {
-            bail!("pem did not end with footer for: {label:?}");
-        }
-
-        Ok(Self {
-            content: pem,
-            label,
-        })
-    }
+    fn from_der(der: Der, label: Label) -> Self;
 
     #[must_use]
-    fn from_der(der: Der, label: Label) -> PemItem {
-        use itertools::Itertools;
+    fn der(self) -> Der;
 
-        const PEM_LINE_WIDTH: usize = 64;
-        let base64 = BASE64.encode(&der.into_bytes());
-        let base64_lines: Vec<u8> =
-            Itertools::intersperse(base64.as_bytes().chunks(PEM_LINE_WIDTH), "\r\n".as_bytes())
-                .flatten()
-                .copied()
-                .collect();
-        let base64_lines = String::from_utf8(base64_lines).unwrap();
-        PemItem {
-            content: label.header().to_owned() + &base64_lines + label.footer(),
-            label,
-        }
-    }
-
-    #[must_use]
-    pub(super) fn der(&self) -> Der {
-        let base64_lines = self
-            .content
-            .strip_prefix(self.label.header())
-            .expect("content should contain header")
-            .strip_suffix(self.label.footer())
-            .expect("content should contain footer");
-
-        let base64: Vec<u8> = base64_lines
-            .lines()
-            .flat_map(str::as_bytes)
-            .copied()
-            .collect();
-
-        let binary = BASE64
-            .decode(&base64)
-            .expect("pemitem content should be base64 encoded");
-        Der::from_bytes(binary)
-    }
-
-    pub(super) fn chain_from_bytes(bytes: Vec<u8>) -> eyre::Result<Vec<Self>> {
-        let pem = String::from_utf8(bytes)?;
-        Self::chain(pem)
-    }
-
-    pub(super) fn chain(mut pem: String) -> eyre::Result<Vec<Self>> {
-        let mut chain = Vec::new();
-        dbg!(&pem);
-        while let Some(begin_cert) = pem.rfind("-----BEGIN CERTIFICATE-----") {
-            let cert = pem.split_off(begin_cert);
-            let cert = PemItem::from_pem(cert, Label::Certificate)?;
-
-            chain.push(cert);
-        }
-
-        Ok(chain)
-    }
+    fn chain_from_bytes(bytes: Vec<u8>) -> eyre::Result<Vec<Self>>
+    where
+        Self: Sized;
 }
 
 #[derive(Debug, Clone)]
-pub(super) struct Der(Vec<u8>);
+pub struct Der(Vec<u8>);
 
 impl Der {
     /// bytes must  be valid der
@@ -136,8 +99,8 @@ impl Der {
     }
 
     #[must_use]
-    pub fn to_pem(self, label: Label) -> PemItem {
-        PemItem::from_der(self, label)
+    pub fn to_pem<P: PemItem>(self, label: Label) -> P {
+        P::from_der(self, label)
     }
 
     #[must_use]
@@ -174,7 +137,5 @@ mod tests {
     }
 
     #[test]
-    fn parse_chain() {
-
-    }
+    fn parse_chain() {}
 }

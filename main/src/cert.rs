@@ -2,35 +2,35 @@ use color_eyre::eyre::{self, bail};
 use format::{Label, PemItem};
 
 pub mod format;
+pub mod info;
 pub mod io;
 pub mod load;
 pub mod store;
-pub mod info;
 
 #[derive(Debug)]
-pub struct MaybeSigned {
+pub struct MaybeSigned<P: PemItem> {
     // PEM encoded
-    pub(crate) certificate: PemItem,
+    pub(crate) certificate: P,
     // PEM encoded
-    pub(crate) private_key: Option<PemItem>,
+    pub(crate) private_key: Option<P>,
     // PEM encoded
-    pub(crate) chain: Vec<PemItem>,
+    pub(crate) chain: Vec<P>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Signed {
+pub struct Signed<P: PemItem> {
     // PEM encoded
-    pub certificate: PemItem,
+    pub certificate: P,
     // PEM encoded
-    pub private_key: PemItem,
+    pub private_key: P,
     // List of PEM encoded
-    pub chain: Vec<PemItem>,
+    pub chain: Vec<P>,
 }
 
-impl TryFrom<MaybeSigned> for Signed {
+impl<P: PemItem> TryFrom<MaybeSigned<P>> for Signed<P> {
     type Error = eyre::Report;
 
-    fn try_from(signed: MaybeSigned) -> Result<Self, Self::Error> {
+    fn try_from(signed: MaybeSigned<P>) -> Result<Self, Self::Error> {
         if signed.chain.is_empty() {
             bail!("missing chain")
         }
@@ -45,7 +45,7 @@ impl TryFrom<MaybeSigned> for Signed {
     }
 }
 
-impl Signed {
+impl<P: PemItem> Signed<P> {
     /// last certificate in full chain must be the domains certificate
     pub fn from_key_and_fullchain(
         private_key: String,
@@ -78,7 +78,7 @@ impl Signed {
     }
 }
 
-impl MaybeSigned {
+impl<P: PemItem> MaybeSigned<P> {
     pub(super) fn from_pem(bytes: Vec<u8>) -> eyre::Result<Self> {
         let mut pem = String::from_utf8(bytes)?;
         let start_key = pem.rfind("-----BEGIN PRIVATE KEY-----");
@@ -93,7 +93,7 @@ impl MaybeSigned {
             .ok_or(eyre::eyre!("Can no find a certificate"))?;
         let certificate = PemItem::from_pem(certificate, Label::Certificate)?;
 
-        let chain = PemItem::chain(pem)?;
+        let chain = P::chain_from_bytes(pem.into_bytes())?;
 
         Ok(MaybeSigned {
             certificate,

@@ -7,6 +7,7 @@ use rcgen::{Certificate, CertificateParams, DistinguishedName};
 use tokio::time::sleep;
 use tracing::{debug, error};
 
+use crate::cert::format::PemItem;
 use crate::cert::Signed;
 use crate::config::Config;
 use crate::diagnostics;
@@ -148,7 +149,7 @@ fn prepare_sign_request(names: &[String]) -> Result<(Certificate, Vec<u8>), rcge
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn request(config: &Config, debug: bool) -> eyre::Result<Signed> {
+pub async fn request<P: PemItem>(config: &Config, debug: bool) -> eyre::Result<Signed<P>> {
     let Config {
         domains: ref names,
         production,
@@ -199,7 +200,7 @@ pub struct InstantAcme;
 
 #[async_trait::async_trait]
 impl super::ACME for InstantAcme {
-    async fn renew(&self, config: &Config, debug: bool) -> eyre::Result<Signed> {
+    async fn renew<P: PemItem>(&self, config: &Config, debug: bool) -> eyre::Result<Signed<P>> {
         request(config, debug).await
     }
 }

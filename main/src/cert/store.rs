@@ -12,7 +12,11 @@ use itertools::Itertools;
 use crate::config::{Output, OutputConfig};
 use crate::Config;
 
-fn write_cert(encoding: Encoding, certificate: PemItem, operation: Operation) -> eyre::Result<()> {
+fn write_cert(
+    encoding: Encoding,
+    certificate: impl PemItem,
+    operation: Operation,
+) -> eyre::Result<()> {
     let bytes = match encoding {
         Encoding::PEM => certificate.into_bytes(),
         Encoding::DER => certificate.der().into_bytes(),
@@ -32,7 +36,11 @@ fn write_cert(encoding: Encoding, certificate: PemItem, operation: Operation) ->
     }
 }
 
-fn write_key(encoding: Encoding, private_key: PemItem, operation: Operation) -> eyre::Result<()> {
+fn write_key(
+    encoding: Encoding,
+    private_key: impl PemItem,
+    operation: Operation,
+) -> eyre::Result<()> {
     let bytes = match encoding {
         Encoding::PEM => private_key.into_bytes(),
         Encoding::DER => private_key.der().into_bytes(),
@@ -53,7 +61,7 @@ fn write_key(encoding: Encoding, private_key: PemItem, operation: Operation) -> 
     }
 }
 
-fn write_chain(encoding: Encoding, chain: Vec<PemItem>, path: &Path) -> eyre::Result<()> {
+fn write_chain<P: PemItem>(encoding: Encoding, chain: Vec<P>, path: &Path) -> eyre::Result<()> {
     if encoding == Encoding::DER {
         for (i, cert) in chain.into_iter().enumerate() {
             let bytes = cert.der().into_bytes();
@@ -66,11 +74,12 @@ fn write_chain(encoding: Encoding, chain: Vec<PemItem>, path: &Path) -> eyre::Re
         return Ok(());
     }
 
-    let bytes: Vec<u8> =
-        Itertools::intersperse(chain.iter().map(PemItem::as_bytes), "\n".as_bytes())
-            .flatten()
-            .copied()
-            .collect();
+    let bytes: Vec<u8> = Itertools::intersperse(
+        chain.into_iter().map(P::into_bytes),
+        "\n".as_bytes().to_vec(),
+    )
+    .flatten()
+    .collect();
     let mut file = fs::File::create(path)?;
     file.write_all(&bytes)
         .wrap_err("could not create certificate chain file")
@@ -81,7 +90,7 @@ enum Operation<'a> {
     Create(&'a Path),
 }
 
-pub fn on_disk(config: &Config, signed: Signed) -> eyre::Result<()> {
+pub fn on_disk<P: PemItem>(config: &Config, signed: Signed<P>) -> eyre::Result<()> {
     use Operation::*;
     let cert_path = cert_path(config)?;
     let key_path = key_path(config)?;

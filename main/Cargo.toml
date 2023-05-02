@@ -38,6 +38,7 @@ yasna = "0.5"
 der = "0.7"
 async-trait = "0.1.68"
 data-encoding = "2.3.3"
+pem = "2.0.1"
 
 [dev-dependencies]
 libc = "0.2"
