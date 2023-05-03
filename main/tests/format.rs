@@ -1,4 +1,5 @@
-use renewc::cert::{load, store};
+use pem::Pem;
+use renewc::cert::{load, store, Signed};
 use renewc::Config;
 
 mod shared;
@@ -15,7 +16,7 @@ async fn der_and_pem_equal() {
     let path = dir.path().join("cert.pem");
 
     let valid_till = OffsetDateTime::now_utc();
-    let original = gen_cert::generate_cert_with_chain(valid_till, false);
+    let original: Signed<Pem> = gen_cert::generate_cert_with_chain(valid_till, false);
 
     let mut config = Config::test(42);
     config.production = false;
@@ -30,7 +31,7 @@ async fn der_and_pem_equal() {
     ]
     .into_iter()
     {
-        config.output.output = format.clone();
+        config.output.output = dbg!(&format).clone();
         store::on_disk(&config, original.clone()).unwrap();
         let loaded = load::from_disk(&config).unwrap().unwrap();
 

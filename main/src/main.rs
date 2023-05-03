@@ -1,5 +1,6 @@
 use clap::Parser;
 use color_eyre::eyre::{self, Context};
+use renewc::cert::Signed;
 use renewc::Config;
 use tracing::warn;
 
@@ -37,7 +38,7 @@ async fn main() -> eyre::Result<()> {
     match cli.command {
         Commands::Run(args) => {
             let config = Config::from(args);
-            let Some(certs) = run::<pem::Pem>(InstantAcme {}, &mut stdout, &config, debug).await? else {
+            let Some(certs): Option<Signed<pem::Pem>> = run(&mut InstantAcme {}, &mut stdout, &config, debug).await? else {
                 return Ok(());
             };
             cert::store::on_disk(&config, certs).wrap_err("Could not write out certificates")?;

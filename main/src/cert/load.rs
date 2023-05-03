@@ -1,6 +1,10 @@
+use std::io::ErrorKind;
+
 use crate::config::{Output, OutputConfig};
 use crate::Config;
-use color_eyre::eyre;
+use color_eyre::eyre::{self, Context};
+use color_eyre::Help;
+use tracing::instrument;
 
 use super::format::{Der, Label, PemItem};
 use super::{MaybeSigned, Signed};
@@ -38,6 +42,7 @@ impl From<&Output> for Encoding {
     }
 }
 
+#[instrument(level = "debug", skip(config), ret)]
 pub fn from_disk<P: PemItem>(config: &Config) -> eyre::Result<Option<Signed<P>>> {
     let Some(MaybeSigned { certificate, private_key, mut chain }) = load_certificate(config)? else {
         return Ok(None);
@@ -55,6 +60,7 @@ pub fn from_disk<P: PemItem>(config: &Config) -> eyre::Result<Option<Signed<P>>>
     }
 
     if chain.is_empty() {
+        tracing::info!("Certificate chain from disk is empty");
         return Ok(None);
     }
 
@@ -65,6 +71,7 @@ pub fn from_disk<P: PemItem>(config: &Config) -> eyre::Result<Option<Signed<P>>>
     }))
 }
 
+#[instrument(level = "debug", skip(config), err)]
 fn load_seperate_chain<P: PemItem>(config: &Config) -> eyre::Result<Vec<P>> {
     let OutputConfig {
         output,
@@ -85,14 +92,19 @@ fn load_seperate_chain<P: PemItem>(config: &Config) -> eyre::Result<Vec<P>> {
 
     match encoding {
         Encoding::DER => {
-            let chain: Vec<_> = (0..)
-                .into_iter()
-                .map(|i| path.with_file_name(format!("{i}_chain.der")))
-                .map(std::fs::read)
-                .filter_map(Result::ok)
-                .map(Der::from_bytes)
-                .map(|d| d.to_pem(Label::Certificate))
-                .collect();
+            let mut chain = Vec::new();
+            for i in 0.. {
+                let path = path.with_file_name(format!("{i}_chain.der"));
+                let bytes = match std::fs::read(&path) {
+                    Ok(bytes) => bytes,
+                    Err(e) if e.kind() == ErrorKind::NotFound => break,
+                    Err(e) => Err(e)
+                        .wrap_err("Could not read certificate chain file")
+                        .with_note(|| format!("path: {path:?}"))?,
+                };
+                let der = Der::from_bytes(bytes);
+                chain.push(der.to_pem(Label::Certificate));
+            }
             Ok(chain)
         }
 
@@ -100,11 +112,12 @@ fn load_seperate_chain<P: PemItem>(config: &Config) -> eyre::Result<Vec<P>> {
             let Some(bytes) = read_any_file(&path)? else {
                 return Ok(Vec::new());
             };
-            PemItem::chain_from_bytes(bytes)
+            P::chain_from_pem(bytes)
         }
     }
 }
 
+#[instrument(level = "debug", skip(config), err)]
 fn load_seperate_private_key<P: PemItem>(config: &Config) -> eyre::Result<Option<P>> {
     let OutputConfig {
         output,
@@ -134,6 +147,7 @@ fn load_seperate_private_key<P: PemItem>(config: &Config) -> eyre::Result<Option
     }))
 }
 
+#[instrument(level = "debug", skip(config), ret)]
 fn load_certificate<P: PemItem>(config: &Config) -> eyre::Result<Option<MaybeSigned<P>>> {
     let OutputConfig {
         output,

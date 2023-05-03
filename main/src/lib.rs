@@ -44,7 +44,7 @@ pub trait ACME {
 }
 
 pub async fn run<P: PemItem>(
-    acme_impl: impl ACME,
+    acme_impl: &mut impl ACME,
     stdout: &mut impl Write,
     config: &Config,
     debug: bool,

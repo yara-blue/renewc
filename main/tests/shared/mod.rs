@@ -1,17 +1,31 @@
 use color_eyre::eyre;
+use renewc::cert::format::PemItem;
 use renewc::cert::Signed;
+use time::OffsetDateTime;
 
-use self::gen_cert::{generate_cert_with_chain, year2500};
+use self::gen_cert::{generate_cert_with_chain, valid};
 
 pub mod gen_cert;
 pub mod port_binder;
 
-pub struct TestAcme {}
+pub struct TestAcme {
+    cert_expires: OffsetDateTime,
+}
+
+impl TestAcme {
+    pub fn new(cert_expires: OffsetDateTime) -> Self {
+        Self { cert_expires }
+    }
+}
 
 #[async_trait::async_trait]
 impl renewc::ACME for TestAcme {
-    async fn renew(&self, config: &renewc::Config, _debug: bool) -> eyre::Result<Signed> {
-        let combined = generate_cert_with_chain(year2500(), !config.production);
+    async fn renew<P: PemItem>(
+        &self,
+        config: &renewc::Config,
+        _debug: bool,
+    ) -> eyre::Result<Signed<P>> {
+        let combined = generate_cert_with_chain(self.cert_expires, !config.production);
         Ok(combined)
     }
 }
@@ -46,19 +60,22 @@ pub fn setup_tracing() {
 
 #[cfg(test)]
 mod tests {
+    use pem::Pem;
     use renewc::{Config, ACME};
 
     use super::*;
 
     #[tokio::test]
     async fn acme_test_impl_pem_has_private_key() {
-        let cert = TestAcme {}.renew(&Config::test(42), true).await.unwrap();
+        let acme = TestAcme::new(valid());
+        let cert: Signed<Pem> = acme.renew(&Config::test(42), true).await.unwrap();
 
         dbg!(&cert.private_key);
-        assert!(!cert.private_key.as_str().is_empty());
-        assert!(cert.private_key.as_str().contains("END PRIVATE KEY"));
+        let private_key = String::from_utf8(cert.private_key.into_bytes()).unwrap();
+        assert!(!private_key.is_empty());
+        assert!(private_key.contains("END PRIVATE KEY"));
         assert!(
-            cert.private_key
+            private_key
                 .as_str()
                 .trim_start_matches("-----BEGIN PRIVATE KEY -----")
                 .trim_end_matches("-----END PRIVATE KEY-----")

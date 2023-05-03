@@ -1,7 +1,8 @@
 use owo_colors::OwoColorize;
+use pem::Pem;
+use renewc::cert;
 use renewc::config::Output;
 use renewc::{run, Config};
-use time::OffsetDateTime;
 
 mod shared;
 use shared::gen_cert;
@@ -12,19 +13,28 @@ async fn production_does_not_overwrite_valid_production() {
     shared::setup_color_eyre();
     shared::setup_tracing();
 
+    let mut acme = TestAcme::new(gen_cert::valid());
     let dir = tempfile::tempdir().unwrap();
 
-    let valid_till = gen_cert::year2500();
-    let cert = gen_cert::generate_cert_with_chain(valid_till, false);
-    let path = gen_cert::write_single_chain(&dir, cert);
-
     let mut config = Config::test(42);
-    config.output.certificate_path = path;
+    config.output.certificate_path = dir.path().join("cert.pem");
     config.output.output = Output::Pem;
     config.production = true;
 
+    // run to place still valid cert
+    let mut stdout = std::io::stdout();
+    let certs = run::<Pem>(&mut acme, &mut stdout, &config, true)
+        .await
+        .unwrap()
+        .unwrap();
+    cert::store::on_disk(&config, certs).unwrap();
+
+    // second run encounters the still valid cert and errors out
+    config.production = true;
     let mut output = Vec::new();
-    run(TestAcme {}, &mut output, &config, true).await.unwrap();
+    run::<Pem>(&mut acme, &mut output, &config, true)
+        .await
+        .unwrap();
 
     let output = String::from_utf8(output).unwrap();
     let text = format!("{}", "Production cert not yet due for renewal".green());
@@ -37,31 +47,46 @@ async fn staging_does_not_overwrite_production() {
     shared::setup_color_eyre();
     shared::setup_tracing();
 
+    let mut acme = TestAcme::new(gen_cert::valid());
     let dir = tempfile::tempdir().unwrap();
 
-    let valid_till = gen_cert::year2500();
-    let cert = gen_cert::generate_cert_with_chain(valid_till, false);
-    let path = gen_cert::write_single_chain(&dir, cert);
-
     let mut config = Config::test(42);
-    config.output.certificate_path = path;
+    config.output.certificate_path = dir.path().join("cert.pem");
     config.output.output = Output::Pem;
-    config.production = false;
+    config.production = true;
 
+    // run to place still valid cert
+    let mut stdout = std::io::stdout();
+    let certs = run::<Pem>(&mut acme, &mut stdout, &config, true)
+        .await
+        .unwrap()
+        .unwrap();
+    cert::store::on_disk(&config, certs).unwrap();
+
+    // second run encounters the still valid cert and errors out
+    config.production = false;
     let mut output = Vec::new();
-    run(TestAcme {}, &mut output, &config, true).await.unwrap();
+    run::<Pem>(&mut acme, &mut output, &config, true)
+        .await
+        .unwrap();
 
     let output = String::from_utf8(output).unwrap();
     let text = format!("{}", "Found still valid production cert".green());
     let start = &text[..text.len() - 5]; // remove color end char
-    assert!(output.starts_with(start), "stdout was: {output}");
+    assert!(
+        output.starts_with(start),
+        "stdout did not start with: {text:#?}, instead it was: {output:#?}"
+    );
 
     let text = format!(
         "{}",
         "Need user confirmation however no user input possible".red()
     );
     let end = &text[5..]; // remove color start char
-    assert!(output.trim_end().ends_with(end), "stdout was: {output:?}");
+    assert!(
+        output.trim_end().ends_with(end),
+        "stdout did not end with: {text:#?}, instead it was: {output:#?}"
+    )
 }
 
 #[tokio::test]
@@ -70,18 +95,27 @@ async fn staging_overwrites_expired_production() {
     shared::setup_tracing();
 
     let dir = tempfile::tempdir().unwrap();
-
-    let valid_till = OffsetDateTime::now_utc();
-    let cert = gen_cert::generate_cert_with_chain(valid_till, false);
-    let path = gen_cert::write_single_chain(&dir, cert);
+    let mut acme = TestAcme::new(gen_cert::expired());
 
     let mut config = Config::test(42);
-    config.output.certificate_path = path;
+    config.output.certificate_path = dir.path().join("cert.pem");
     config.output.output = Output::Pem;
-    config.production = false;
+    config.production = true;
 
+    // run to place still valid cert
+    let mut stdout = std::io::stdout();
+    let certs = run::<Pem>(&mut acme, &mut stdout, &config, true)
+        .await
+        .unwrap()
+        .unwrap();
+    cert::store::on_disk(&config, certs).unwrap();
+
+    let mut acme = TestAcme::new(gen_cert::valid());
+    config.production = false;
     let mut output = Vec::new();
-    let _cert = run(TestAcme {}, &mut output, &config, true).await.unwrap();
+    let _cert = run::<Pem>(&mut acme, &mut output, &config, true)
+        .await
+        .unwrap();
 
     let output = String::from_utf8(output).unwrap();
     let text = format!(
@@ -89,5 +123,8 @@ async fn staging_overwrites_expired_production() {
         "Requesting Staging cert. Overwriting expired production certificate. Certificate will not be valid".red()
     );
     let start = &text[..text.len() - 5]; // remove color end char
-    assert!(output.starts_with(start), "stdout was: {output}");
+    assert!(
+        output.starts_with(start),
+        "stdout did not start with: {text:#?}, instead it was: {output:#?}"
+    );
 }

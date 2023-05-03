@@ -4,11 +4,13 @@ use std::path::{Path, PathBuf};
 
 use color_eyre::eyre::{self, Context};
 use color_eyre::Help;
+use tracing::instrument;
 
+#[instrument(level = "debug", ret)]
 pub(crate) fn derive_path(cert_path: &Path, name: &str, ty: &str, extension: &str) -> PathBuf {
     let mut path = dir(cert_path);
-    path.push(format!("{name}_{ty}"));
-    path.push(extension);
+    path.set_file_name(format!("{name}_{ty}"));
+    path.set_extension(extension);
     path
 }
 

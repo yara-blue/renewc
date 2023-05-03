@@ -7,11 +7,14 @@ use super::io::{derive_path, name};
 use super::load::Encoding;
 use super::Signed;
 use color_eyre::eyre::{self, Context};
+use color_eyre::Help;
 use itertools::Itertools;
+use tracing::instrument;
 
 use crate::config::{Output, OutputConfig};
 use crate::Config;
 
+#[instrument(level = "debug", skip(certificate))]
 fn write_cert(
     encoding: Encoding,
     certificate: impl PemItem,
@@ -36,6 +39,7 @@ fn write_cert(
     }
 }
 
+#[instrument(level = "debug", skip(private_key))]
 fn write_key(
     encoding: Encoding,
     private_key: impl PemItem,
@@ -54,13 +58,17 @@ fn write_key(
                 .wrap_err("Could not append private key to pem file");
         }
         Operation::Create(path) => {
-            let mut file = fs::File::create(path)?;
-            file.write_all(&bytes)
+            let mut file = fs::File::create(path)
                 .wrap_err("could not create private key file")
+                .with_note(|| format!("path: {path:?}"))?;
+            file.write_all(&bytes)
+                .wrap_err("could not write to private key file")
+                .with_note(|| format!("path: {path:?}"))
         }
     }
 }
 
+#[instrument(level = "debug", skip(chain))]
 fn write_chain<P: PemItem>(encoding: Encoding, chain: Vec<P>, path: &Path) -> eyre::Result<()> {
     if encoding == Encoding::DER {
         for (i, cert) in chain.into_iter().enumerate() {
@@ -85,11 +93,13 @@ fn write_chain<P: PemItem>(encoding: Encoding, chain: Vec<P>, path: &Path) -> ey
         .wrap_err("could not create certificate chain file")
 }
 
+#[derive(Debug)]
 enum Operation<'a> {
     Append(&'a Path),
     Create(&'a Path),
 }
 
+#[instrument(level = "debug", skip(config, signed), ret)]
 pub fn on_disk<P: PemItem>(config: &Config, signed: Signed<P>) -> eyre::Result<()> {
     use Operation::*;
     let cert_path = cert_path(config)?;
@@ -129,6 +139,7 @@ pub fn on_disk<P: PemItem>(config: &Config, signed: Signed<P>) -> eyre::Result<(
     Ok(())
 }
 
+#[instrument(level = "debug", ret, skip(config))]
 fn cert_path(config: &Config) -> eyre::Result<PathBuf> {
     let OutputConfig {
         output,
@@ -150,6 +161,7 @@ fn cert_path(config: &Config) -> eyre::Result<PathBuf> {
     })
 }
 
+#[instrument(level = "debug", ret, skip(config))]
 fn chain_path(config: &Config) -> eyre::Result<PathBuf> {
     let OutputConfig {
         output,
@@ -170,6 +182,7 @@ fn chain_path(config: &Config) -> eyre::Result<PathBuf> {
     })
 }
 
+#[instrument(level = "debug", ret, skip(config))]
 fn key_path(config: &Config) -> eyre::Result<PathBuf> {
     let OutputConfig {
         output,
@@ -188,4 +201,18 @@ fn key_path(config: &Config) -> eyre::Result<PathBuf> {
         ),
         Some(path) => path.clone(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod path_is_file {
+        use super::*;
+
+        #[test]
+        fn test_name() {
+            
+        }
+    }
 }

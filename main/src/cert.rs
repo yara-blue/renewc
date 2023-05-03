@@ -7,7 +7,6 @@ pub mod io;
 pub mod load;
 pub mod store;
 
-#[derive(Debug)]
 pub struct MaybeSigned<P: PemItem> {
     // PEM encoded
     pub(crate) certificate: P,
@@ -17,7 +16,27 @@ pub struct MaybeSigned<P: PemItem> {
     pub(crate) chain: Vec<P>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+impl<P: PemItem> std::fmt::Debug for MaybeSigned<P> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MaybeSigned")
+            .field("certificate", &"censored for security")
+            .field(
+                "private_key",
+                &self.private_key.as_ref().map(|_| "censored for security"),
+            )
+            .field(
+                "chain",
+                &self
+                    .chain
+                    .iter()
+                    .map(|_| "censored for security")
+                    .collect::<Vec<_>>(),
+            )
+            .finish()
+    }
+}
+
+#[derive(Clone, PartialEq, Eq)]
 pub struct Signed<P: PemItem> {
     // PEM encoded
     pub certificate: P,
@@ -25,6 +44,23 @@ pub struct Signed<P: PemItem> {
     pub private_key: P,
     // List of PEM encoded
     pub chain: Vec<P>,
+}
+
+impl<P: PemItem> std::fmt::Debug for Signed<P> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Signed")
+            .field("certificate", &"censored for security")
+            .field("private_key", &"censored for security")
+            .field(
+                "chain",
+                &self
+                    .chain
+                    .iter()
+                    .map(|_| "censored for security")
+                    .collect::<Vec<_>>(),
+            )
+            .finish()
+    }
 }
 
 impl<P: PemItem> TryFrom<MaybeSigned<P>> for Signed<P> {
@@ -52,7 +88,7 @@ impl<P: PemItem> Signed<P> {
         mut full_chain: String,
     ) -> eyre::Result<Self> {
         let start_cert = full_chain
-            .rfind(Label::Certificate.footer())
+            .rfind("-----BEGIN CERTIFICATE-----")
             .ok_or_else(|| eyre::eyre!("No certificates in full chain!"))?;
         let certificate = PemItem::from_pem(full_chain.split_off(start_cert), Label::Certificate)?;
 
@@ -78,7 +114,10 @@ impl<P: PemItem> Signed<P> {
     }
 }
 
-impl<P: PemItem> MaybeSigned<P> {
+impl<P> MaybeSigned<P>
+where
+    P: PemItem,
+{
     pub(super) fn from_pem(bytes: Vec<u8>) -> eyre::Result<Self> {
         let mut pem = String::from_utf8(bytes)?;
         let start_key = pem.rfind("-----BEGIN PRIVATE KEY-----");
@@ -93,7 +132,7 @@ impl<P: PemItem> MaybeSigned<P> {
             .ok_or(eyre::eyre!("Can no find a certificate"))?;
         let certificate = PemItem::from_pem(certificate, Label::Certificate)?;
 
-        let chain = P::chain_from_bytes(pem.into_bytes())?;
+        let chain = P::chain_from_pem(pem.into_bytes())?;
 
         Ok(MaybeSigned {
             certificate,

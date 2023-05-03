@@ -1,5 +1,6 @@
 use renewc::renew::InstantAcme;
 use renewc::{run, Config};
+use pem::Pem;
 
 mod shared;
 
@@ -24,7 +25,7 @@ async fn haproxy_binds_port() {
     let mut config = Config::test(bound_port);
     config.diagnostics.haproxy.path = path;
 
-    let err = run(InstantAcme {}, &mut std::io::stdout(), &config, true)
+    let err = run::<Pem>(&mut InstantAcme {}, &mut std::io::stdout(), &config, true)
         .await
         .unwrap_err();
     let test = format!("{err:?}");
@@ -44,7 +45,7 @@ async fn insufficent_permissions() {
 
     let config = Config::test(42);
 
-    let err = run(InstantAcme {}, &mut std::io::stdout(), &config, true)
+    let err = run::<Pem>(&mut InstantAcme {}, &mut std::io::stdout(), &config, true)
         .await
         .unwrap_err();
     let test = format!("{err:?}");

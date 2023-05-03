@@ -82,6 +82,8 @@ impl From<RenewArgs> for Config {
     }
 }
 
+// TODO: dont pass outputconfig to 
+// run/renew only to store on disk function <03-05-23, dvdsk>
 impl args::OutputConfig {
     fn test() -> Self {
         Self {
