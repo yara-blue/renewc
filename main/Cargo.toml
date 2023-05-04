@@ -1,6 +1,6 @@
 [package]
 name = "renewc"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 description = "Certificate renewal, with advanced diagnostics without installing anything"
 license = "Apache-2.0 OR MIT"
