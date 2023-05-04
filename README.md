@@ -17,6 +17,7 @@ Certificate renewal can be quite fragile. This as a renewal tool that runs witho
  - Asks before dangerous actions 
     - replacing production with staging
     - not due for renewal
+ - Highly customizable output (various PEM options and DER files)
  - Helps out when things go wrong, see [diagnostics](#diagnostics) 
  - Set up a *systemd* service for auto-renewal
  - Reload a *systemd* service once the certificate has been renewed
