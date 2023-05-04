@@ -158,7 +158,7 @@ fn load_certificate<P: PemItem>(config: &Config) -> eyre::Result<Option<MaybeSig
     let encoding = Encoding::from(output);
     let path = if certificate_path.is_dir() {
         derive_path(
-            &certificate_path,
+            certificate_path,
             &name(&config.domains)?,
             "cert",
             encoding.extension(),

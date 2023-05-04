@@ -27,9 +27,9 @@ fn write_cert(
     match operation {
         Operation::Append(path) => {
             let mut file = fs::OpenOptions::new().append(true).open(path)?;
-            return file
+            file
                 .write_all(&bytes)
-                .wrap_err("Could not append signed certificate to pem file");
+                .wrap_err("Could not append signed certificate to pem file")
         }
         Operation::Create(path) => {
             let mut file = fs::File::create(path)?;
@@ -53,9 +53,9 @@ fn write_key(
     match operation {
         Operation::Append(path) => {
             let mut file = fs::OpenOptions::new().append(true).open(path)?;
-            return file
+            file
                 .write_all(&bytes)
-                .wrap_err("Could not append private key to pem file");
+                .wrap_err("Could not append private key to pem file")
         }
         Operation::Create(path) => {
             let mut file = fs::File::create(path)
@@ -101,7 +101,7 @@ enum Operation<'a> {
 
 #[instrument(level = "debug", skip(config, signed), ret)]
 pub fn on_disk<P: PemItem>(config: &Config, signed: Signed<P>) -> eyre::Result<()> {
-    use Operation::*;
+    use Operation::{Append, Create};
     let cert_path = cert_path(config)?;
     let key_path = key_path(config)?;
     let chain_path = chain_path(config)?;

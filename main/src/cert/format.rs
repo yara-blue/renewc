@@ -26,7 +26,7 @@ impl PemItem for Pem {
     }
 
     fn chain_into_bytes(pems: &[Self]) -> Vec<u8> {
-        pem::encode_many(&pems).into_bytes()
+        pem::encode_many(pems).into_bytes()
     }
 
     fn chain_from_pem(encoded: impl AsRef<[u8]>) -> eyre::Result<Vec<Self>> {
@@ -82,7 +82,7 @@ impl Der {
     /// bytes must  be valid der
     #[must_use]
     pub(crate) fn from_bytes(bytes: Vec<u8>) -> Self {
-        Self(bytes.into())
+        Self(bytes)
     }
 
     #[must_use]
@@ -107,7 +107,7 @@ mod tests {
         let missing_linefeeds = "-----CERTIFICATE-----12oien23ie4n23you4n23h4oyu23l4en2348u7l234n23ein4o23n42h3yu4l23y432el4uy23l4e-----END CERTIFICATE-----";
 
         for invalid in [one_dash_too_much, missing_begin, missing_linefeeds] {
-            let _ = Pem::from_pem(invalid.to_owned(), Label::Certificate).unwrap_err();
+            let _ = Pem::from_pem(invalid, Label::Certificate).unwrap_err();
         }
     }
 
@@ -115,7 +115,7 @@ mod tests {
     fn reversible() {
         const ROOT_CA: &[u8] = "-----BEGIN CERTIFICATE-----\r\nMIIBkDCCATagAwIBAgIIHXJD3lzIXyMwCgYIKoZIzj0EAwIwITEfMB0GA1UEAwwW\r\ncmNnZW4gc2VsZiBzaWduZWQgY2VydDAgFw03NTAxMDEwMDAwMDBaGA8yNTAwMDQy\r\nMTE2NTk0OVowITEfMB0GA1UEAwwWcmNnZW4gc2VsZiBzaWduZWQgY2VydDBZMBMG\r\nByqGSM49AgEGCCqGSM49AwEHA0IABHtP92/H2wTvW/xZ9iSiCMnWOfaydoSWEGFi\r\nWPHBvTO0FyLEUxQKOOrunv071KrBbYECyX00Q5efWj46brjzjJajVjBUMCIGA1Ud\r\nEQQbMBmCF1NUQUdJTkcubGV0c2VuY3J5cHQub3JnMB0GA1UdDgQWBBQjX8hc3kNy\r\nHXuj5yHSZipVhCHtQDAPBgNVHRMBAf8EBTADAQH/MAoGCCqGSM49BAMCA0gAMEUC\r\nIQD7CpgwpL6KT3Ljedh5bL4x3LSY5guONLcWIfz2X9E8ngIgbrcaTmaryZfiYnnK\r\nETaDo04pY2cDOIsIy2ycUTJL084=\r\n-----END CERTIFICATE-----\r\n".as_bytes();
 
-        let der = Pem::from_pem(ROOT_CA.to_vec(), Label::Certificate)
+        let der = Pem::from_pem(ROOT_CA, Label::Certificate)
             .unwrap()
             .der();
         assert_ne!(der.clone().into_bytes(), ROOT_CA);

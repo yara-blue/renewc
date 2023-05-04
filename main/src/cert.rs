@@ -106,11 +106,7 @@ impl<P: PemItem> Signed<P> {
 
         let private_key = PemItem::from_pem(private_key, Label::PrivateKey)?;
 
-        Ok(Self {
-            private_key,
-            certificate,
-            chain,
-        })
+        Ok(Self { certificate, private_key, chain })
     }
 }
 
