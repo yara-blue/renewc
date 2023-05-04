@@ -202,17 +202,3 @@ fn key_path(config: &Config) -> eyre::Result<PathBuf> {
         Some(path) => path.clone(),
     })
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    mod path_is_file {
-        use super::*;
-
-        #[test]
-        fn test_name() {
-            
-        }
-    }
-}

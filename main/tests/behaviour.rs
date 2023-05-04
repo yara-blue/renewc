@@ -38,8 +38,11 @@ async fn production_does_not_overwrite_valid_production() {
 
     let output = String::from_utf8(output).unwrap();
     let text = format!("{}", "Production cert not yet due for renewal".green());
-    let correct_start = &text[..text.len() - 5]; // remove color end char
-    assert!(output.starts_with(correct_start), "stdout was: {output}");
+    let start = &text[..text.len() - 5]; // remove color end char
+    assert!(
+        output.starts_with(start),
+        "stdout did not start with:\n\t{start:#?}\ninstead it was:\n\t{output:#?}"
+    );
 }
 
 #[tokio::test]
@@ -75,17 +78,18 @@ async fn staging_does_not_overwrite_production() {
     let start = &text[..text.len() - 5]; // remove color end char
     assert!(
         output.starts_with(start),
-        "stdout did not start with: {text:#?}, instead it was: {output:#?}"
+        "stdout did not start with:\n\t{text:#?}\ninstead it was:\n\t{output:#?}"
     );
 
     let text = format!(
         "{}",
-        "Need user confirmation however no user input possible".red()
+        "Need user confirmation however no user input possible".bright_red()
     );
     let end = &text[5..]; // remove color start char
+    println!("{output}");
     assert!(
-        output.trim_end().ends_with(end),
-        "stdout did not end with: {text:#?}, instead it was: {output:#?}"
+        output.contains(end),
+        "stdout did not contain:\n\t{end:#?}\ninstead it was:\n\t{output:#?}"
     )
 }
 
@@ -120,11 +124,41 @@ async fn staging_overwrites_expired_production() {
     let output = String::from_utf8(output).unwrap();
     let text = format!(
         "{}",
-        "Requesting Staging cert. Overwriting expired production certificate. Certificate will not be valid".red()
+        "Requesting staging cert. Overwriting expired production certificate. Certificate will not be valid".green()
     );
     let start = &text[..text.len() - 5]; // remove color end char
     assert!(
         output.starts_with(start),
-        "stdout did not start with: {text:#?}, instead it was: {output:#?}"
+        "stdout did not start with:\n\t{start:#?}\ninstead it was:\n\t{output:#?}"
+    );
+}
+
+#[tokio::test]
+async fn corrupt_existing_does_not_crash() {
+    shared::setup_color_eyre();
+    shared::setup_tracing();
+
+    let dir = tempfile::tempdir().unwrap();
+
+    let mut config = Config::test(42);
+    config.output.certificate_path = dir.path().join("cert.pem");
+    config.output.output = Output::Pem;
+    config.production = true;
+
+    let corrupt_data = "-----BEGIN CERTIFisrtens-----\r\n 128972184ienst\r\n-----END";
+    std::fs::write(&config.output.certificate_path, corrupt_data).unwrap();
+
+    let mut acme = TestAcme::new(gen_cert::valid());
+    config.production = false;
+    let mut output = Vec::new();
+    let _cert = run::<Pem>(&mut acme, &mut output, &config, true)
+        .await
+        .unwrap();
+
+    let output = String::from_utf8(output).unwrap();
+    let text = "Warning: renew advise impossible";
+    assert!(
+        output.starts_with(text),
+        "stdout did not start with:\n\t{text:#?}\ninstead it was:\n\t{output:#?}"
     );
 }

@@ -17,26 +17,26 @@ pub use args::{Commands, InstallArgs, OutputConfig};
 /// certificates private key.
 pub enum Output {
     /// Use PEM encoding. Store the chain, the signed certificate and the private
-    /// key in the same file.
+    /// key in the same file. File extension will be 'pem'.
     ///
     /// Amongst others needed by: Haproxy
     Pem,
 
     /// Use PEM encoding. Store the certificate chain and signed certificate in the
-    /// same file. Keep the private key in another.
+    /// same file. Keep the private key in another. File extensions will be 'pem'.
     ///
     /// Amongst others needed by: Nginx and Apache
     #[default]
     PemSeperateKey,
     /// Use PEM encoding. Store the signed certificate and private key in the
-    /// same file and the chain in another.
+    /// same file and the chain in another. File extensions will be 'pem'.
     PemSeperateChain,
     /// Use PEM encoding. Store the signed certificate, private key and chain
-    /// all in their own file.
+    /// all in their own file. File extensions will be 'pem'.
     PemAllSeperate,
 
     /// Use DER encoding. Store each certificate of the chain, the signed certificate
-    /// and its private key in their own file.
+    /// and its private key in their own file. File extensions will be 'der'.
     Der,
 
     #[cfg(feature = "derchain")]
@@ -62,6 +62,7 @@ pub struct Config {
     pub(crate) overwrite_production: bool,
     /// do not ask questions
     pub non_interactive: bool,
+    pub force: bool,
     pub diagnostics: diagnostics::Config,
 }
 
@@ -74,6 +75,7 @@ impl From<RenewArgs> for Config {
             port: args.port,
             output: args.output,
             reload: args.reload,
+            force: args.force,
             renew_early: args.renew_early,
             overwrite_production: args.overwrite_production,
             non_interactive: false,
@@ -106,6 +108,7 @@ impl Config {
             output: args::OutputConfig::test(),
             reload: None,
             renew_early: false,
+            force: false,
             overwrite_production: false,
             non_interactive: true,
             diagnostics: diagnostics::Config::test(),

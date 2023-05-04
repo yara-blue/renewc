@@ -40,7 +40,7 @@ pub struct RenewArgs {
     /// domain(s) request certificates for multiple subdomains
     /// by passing this argument multiple times with various domains
     /// note the base domain must be the same in all
-    #[clap(long, required = true)]
+    #[clap(long, short, required = true)]
     pub domain: Vec<String>,
 
     /// Contact info
@@ -64,12 +64,16 @@ pub struct RenewArgs {
     #[clap(long, default_value_t = false)]
     pub renew_early: bool,
 
+    /// Ignore existing certificates and always renew
+    #[clap(long, default_value_t = false)]
+    pub force: bool,
+
     /// Request a staging certificate even if that overwrites a
     /// valid production certificate
     #[clap(long, default_value_t = false)]
     pub overwrite_production: bool,
 
-    #[clap(short, long)]
+    #[clap(long)]
     pub debug: bool,
 
     // the options in the Output struct are added at the end
@@ -86,12 +90,20 @@ pub struct OutputConfig {
     /// Path including file name where to output the signed
     /// certificate possibly with its private key and/or chain
     /// (depending on the selected Output option).
-    #[clap(long)]
+    ///
+    /// Note: The file extension depends on the chosen format.
+    #[clap(long, short)]
     pub certificate_path: PathBuf,
 
     /// Path including file name where to output the certificates
     /// private key. Used when it is stored seperate from the other
-    /// output. If left unspecified it is deduced from the certificate-path.
+    /// output. 
+    ///
+    /// If left unspecified this will default to the 
+    /// certificate-path's dir and the file name will be the shortest
+    /// part of the domain(s).
+    ///
+    /// Note: The file extension depends on the chosen format.
     #[clap(long)]
     pub key_path: Option<PathBuf>,
 
@@ -99,7 +111,12 @@ pub struct OutputConfig {
     /// Used when it is stored seperate from the other output. If left
     /// unspecified it is deduced from the certificate-path.
     ///
-    /// Note: can not be used when the format is set to Der.
+    /// If left unspecified this will default to the 
+    /// certificate-path's dir and the file name will be the shortest
+    /// part of the domain(s).
+    ///
+    /// Note: The file extension depends on the chosen format.
+    /// Note: Can not be used when the format is set to Der.
     #[clap(long)]
     pub chain_path: Option<PathBuf>,
 }

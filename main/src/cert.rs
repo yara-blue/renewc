@@ -127,9 +127,9 @@ where
             .transpose()?;
 
         let start_cert = pem.rfind("-----BEGIN CERTIFICATE-----");
-        let certificate = start_cert
-            .map(|i| pem.split_off(i))
-            .ok_or(eyre::eyre!("Can no find a certificate"))?;
+        let certificate = start_cert.map(|i| pem.split_off(i)).ok_or(eyre::eyre!(
+            "Can not find a certificate label in the pem content"
+        ))?;
         let certificate = PemItem::from_pem(certificate, Label::Certificate)?;
 
         let chain = P::chain_from_pem(pem.into_bytes())?;

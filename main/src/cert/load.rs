@@ -42,9 +42,10 @@ impl From<&Output> for Encoding {
     }
 }
 
+// TODO: remove Option, report errors upstream as warnings <03-05-23, dvdsk>
 #[instrument(level = "debug", skip(config), ret)]
 pub fn from_disk<P: PemItem>(config: &Config) -> eyre::Result<Option<Signed<P>>> {
-    let Some(MaybeSigned { certificate, private_key, mut chain }) = load_certificate(config)? else {
+    let Some(MaybeSigned { certificate, private_key, mut chain }) = load_certificate(config).wrap_err("Failed to load certificates from disk")? else {
         return Ok(None);
     };
 
@@ -171,7 +172,9 @@ fn load_certificate<P: PemItem>(config: &Config) -> eyre::Result<Option<MaybeSig
     };
 
     match encoding {
-        Encoding::PEM => MaybeSigned::from_pem(bytes).map(Option::Some),
+        Encoding::PEM => MaybeSigned::from_pem(bytes)
+            .map(Option::Some)
+            .wrap_err("Could not decode pem"),
         Encoding::DER => Ok(Some(MaybeSigned::<P> {
             certificate: Der::from_bytes(bytes).to_pem(Label::Certificate),
             private_key: None,

@@ -6,7 +6,7 @@ description = "Certificate renewal, with advanced diagnostics without installing
 license = "Apache-2.0 OR MIT"
 
 [dependencies]
-instant-acme = "0.2"
+instant-acme = { version = "0.2", git = "https://github.com/instant-labs/instant-acme", rev="c9a7b9d" }
 x509-parser = "0.15"
 x509-cert = "0.2" # only used for transforming pem to der encoded certs chains
 tracing = { version = "0.1" }
