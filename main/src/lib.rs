@@ -66,7 +66,7 @@ pub async fn run<P: PemItem>(
                 }
             };
 
-            match ui::precheck(config, cert, stdout) {
+            match ui::precheck(config, &cert, stdout) {
                 CheckResult::Refuse {
                     status: Some(status),
                     warning,

@@ -61,7 +61,7 @@ impl CheckResult {
     }
 }
 
-pub fn precheck(config: &Config, cert: Info, stdout: &mut impl Write) -> CheckResult {
+pub fn precheck(config: &Config, cert: &Info, stdout: &mut impl Write) -> CheckResult {
     match (config.production, cert.staging, cert.should_renew()) {
         (false, true, _) => {
             CheckResult::accept( "Requesting staging cert, certificates will not be valid")
