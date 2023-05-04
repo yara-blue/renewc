@@ -3,7 +3,7 @@ name = "renewc"
 version = "0.2.1"
 edition = "2021"
 description = "Certificate renewal, with advanced diagnostics without installing anything"
-license = "Apache-2.0 OR MIT"
+license = "GNUv3"
 
 [dependencies]
 instant-acme = { version = "0.2", git = "https://github.com/instant-labs/instant-acme", rev="c9a7b9d" }
