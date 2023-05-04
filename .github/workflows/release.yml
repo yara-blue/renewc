@@ -95,9 +95,12 @@ jobs:
       run: mv x64/renewc renewc_x64
     - name: rename aarch64 bin
       run: mv aarch64/renewc renewc_aarch64
+    - name: changelog as release body
+      run: cat CHANGELOG.md | sed -n '/^## /,/^## /{/^## /b;p}' > ${{ github.workspace }}-CHANGELOG.txt
     - name: Release
       uses: "softprops/action-gh-release@v1"
       with:
+        body_path: ${{ github.workspace }}-CHANGELOG.txt
         prerelease: false
         name: "renewc"
         files: |
