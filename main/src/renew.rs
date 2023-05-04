@@ -7,16 +7,18 @@ use rcgen::{Certificate, CertificateParams, DistinguishedName};
 use tokio::time::sleep;
 use tracing::{debug, error};
 
+use crate::cert::format::PemItem;
 use crate::cert::Signed;
 use crate::config::Config;
 use crate::diagnostics;
 
-use super::server::Http01Challenge;
+pub mod server;
 use acme::{
     Account, AuthorizationStatus, ChallengeType, Identifier, LetsEncrypt, NewAccount, NewOrder,
     Order, OrderState, OrderStatus,
 };
 use instant_acme as acme;
+use server::Http01Challenge;
 
 // Create a new account. This will generate a fresh ECDSA key for you.
 // Alternatively, restore an account from serialized credentials by
@@ -147,7 +149,7 @@ fn prepare_sign_request(names: &[String]) -> Result<(Certificate, Vec<u8>), rcge
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn request(config: &Config, debug: bool) -> eyre::Result<Signed> {
+pub async fn request<P: PemItem>(config: &Config, debug: bool) -> eyre::Result<Signed<P>> {
     let Config {
         domains: ref names,
         production,
@@ -162,8 +164,8 @@ pub async fn request(config: &Config, debug: bool) -> eyre::Result<Signed> {
 
     let challenges = prepare_challenge(&mut order).await?;
 
-    let server = super::server::run(config, &challenges)?;
-    diagnostics::server_reachable(config, &challenges)
+    let server = server::run(config, &challenges)?;
+    diagnostics::reachable::server(config, &challenges)
         .await
         .wrap_err("Domain does not route to this application")?;
     let ready = wait_for_order_rdy(&mut order, &challenges, debug);
@@ -184,15 +186,21 @@ pub async fn request(config: &Config, debug: bool) -> eyre::Result<Signed> {
     let (cert, csr) = prepare_sign_request(&names)?;
 
     order.finalize(&csr).await.unwrap();
-    let cert_chain_pem = loop {
+    let full_chain_pem = loop {
         match order.certificate().await? {
             Some(cert_chain_pem) => break cert_chain_pem,
             None => sleep(Duration::from_secs(1)).await,
         }
     };
 
-    Ok(Signed {
-        private_key: cert.serialize_private_key_pem(),
-        public_cert_chain: cert_chain_pem,
-    })
+    Signed::from_key_and_fullchain(cert.serialize_private_key_pem(), full_chain_pem)
+}
+
+pub struct InstantAcme;
+
+#[async_trait::async_trait]
+impl super::ACME for InstantAcme {
+    async fn renew<P: PemItem>(&self, config: &Config, debug: bool) -> eyre::Result<Signed<P>> {
+        request(config, debug).await
+    }
 }

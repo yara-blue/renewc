@@ -1,9 +1,39 @@
+use color_eyre::eyre;
+use renewc::cert::format::PemItem;
+use renewc::cert::Signed;
+use time::OffsetDateTime;
+
+use self::gen_cert::{generate_cert_with_chain, valid};
+
+pub mod gen_cert;
 pub mod port_binder;
+
+pub struct TestAcme {
+    cert_expires: OffsetDateTime,
+}
+
+impl TestAcme {
+    pub fn new(cert_expires: OffsetDateTime) -> Self {
+        Self { cert_expires }
+    }
+}
+
+#[async_trait::async_trait]
+impl renewc::ACME for TestAcme {
+    async fn renew<P: PemItem>(
+        &self,
+        config: &renewc::Config,
+        _debug: bool,
+    ) -> eyre::Result<Signed<P>> {
+        let combined = generate_cert_with_chain(self.cert_expires, !config.production);
+        Ok(combined)
+    }
+}
 
 pub fn setup_color_eyre() {
     use std::sync::Once;
     static COLOR_EYRE_SETUP: Once = Once::new();
-    COLOR_EYRE_SETUP.call_once(|| color_eyre::install().unwrap())
+    COLOR_EYRE_SETUP.call_once(|| color_eyre::install().unwrap());
 }
 
 pub fn setup_tracing() {
@@ -26,4 +56,32 @@ pub fn setup_tracing() {
         .with(fmt)
         .with(ErrorLayer::default())
         .try_init();
+}
+
+#[cfg(test)]
+mod tests {
+    use pem::Pem;
+    use renewc::{Config, ACME};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn acme_test_impl_pem_has_private_key() {
+        let acme = TestAcme::new(valid());
+        let cert: Signed<Pem> = acme.renew(&Config::test(42), true).await.unwrap();
+
+        dbg!(&cert.private_key);
+        let private_key = String::from_utf8(cert.private_key.into_bytes()).unwrap();
+        assert!(!private_key.is_empty());
+        assert!(private_key.contains("END PRIVATE KEY"));
+        assert!(
+            private_key
+                .as_str()
+                .trim_start_matches("-----BEGIN PRIVATE KEY -----")
+                .trim_end_matches("-----END PRIVATE KEY-----")
+                .chars()
+                .count()
+                > 100
+        );
+    }
 }

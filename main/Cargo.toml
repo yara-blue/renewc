@@ -1,13 +1,14 @@
 [package]
 name = "renewc"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 description = "Certificate renewal, with advanced diagnostics without installing anything"
 license = "Apache-2.0 OR MIT"
 
 [dependencies]
-instant-acme = "0.2"
+instant-acme = { version = "0.2", git = "https://github.com/instant-labs/instant-acme", rev="c9a7b9d" }
 x509-parser = "0.15"
+x509-cert = "0.2" # only used for transforming pem to der encoded certs chains
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-error = "0.2"
@@ -33,6 +34,11 @@ rand = "0.8"
 # advisory against it. For now colors will ben enabled always.
 # owo-colors = { version = "3.5", features = ["supports-colors"] }
 owo-colors = { version = "3.5" }
+yasna = "0.5"
+der = "0.7"
+async-trait = "0.1.68"
+data-encoding = "2.3.3"
+pem = "2.0.1"
 
 [dev-dependencies]
 libc = "0.2"

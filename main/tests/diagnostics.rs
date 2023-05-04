@@ -1,17 +1,20 @@
+use renewc::renew::InstantAcme;
 use renewc::{run, Config};
+use pem::Pem;
 
 mod shared;
 
 #[cfg(target_os = "linux")]
 #[tokio::test]
 async fn haproxy_binds_port() {
+    use tempfile::tempdir;
+
     shared::setup_color_eyre();
     shared::setup_tracing();
 
     let mut port_user = shared::port_binder::spawn("haproxy");
     let bound_port = port_user.port();
 
-    use tempfile::tempdir;
     let dir = tempdir().unwrap();
     let path = dir.path().join("haproxy.cfg");
 
@@ -22,15 +25,16 @@ async fn haproxy_binds_port() {
     let mut config = Config::test(bound_port);
     config.diagnostics.haproxy.path = path;
 
-    let err = run(&mut std::io::stdout(), config, true).await.unwrap_err();
+    let err = run::<Pem>(&mut InstantAcme {}, &mut std::io::stdout(), &config, true)
+        .await
+        .unwrap_err();
     let test = format!("{err:?}");
 
     println!("{test:#?}");
     port_user.signal_done();
     assert!(
         test.contains("haproxy is forwarding port"),
-        "error was: {}",
-        test
+        "error was: {test}"
     );
 }
 
@@ -41,7 +45,9 @@ async fn insufficent_permissions() {
 
     let config = Config::test(42);
 
-    let err = run(&mut std::io::stdout(), config, true).await.unwrap_err();
+    let err = run::<Pem>(&mut InstantAcme {}, &mut std::io::stdout(), &config, true)
+        .await
+        .unwrap_err();
     let test = format!("{err:?}");
 
     assert!(test.contains("You normally need sudo to attach to ports below 1025"));

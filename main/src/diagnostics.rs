@@ -3,11 +3,10 @@ use std::string::ToString;
 use color_eyre::{Help, Report};
 use itertools::Itertools;
 
-mod port;
 mod applications;
-mod reachable;
+mod port;
+pub mod reachable;
 pub use applications::Config;
-pub use reachable::server_reachable;
 
 use crate::config;
 
@@ -15,7 +14,6 @@ fn root() -> bool {
     use libproc::libproc::proc_pid;
     proc_pid::am_root()
 }
-
 
 fn insufficent_permission(port: u16) -> bool {
     port <= 1024 && !root()

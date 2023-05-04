@@ -10,11 +10,11 @@ pub struct Feedback {
 }
 
 impl Feedback {
-    fn new(note: impl Into<String>, suggestion: Option<impl Into<String>>) -> Option<Feedback> {
-        Some(Self {
+    fn new(note: impl Into<String>, suggestion: Option<impl Into<String>>) -> Feedback {
+        Self {
             note: note.into(),
-            suggestion: suggestion.map(|s| s.into()),
-        })
+            suggestion: suggestion.map(std::convert::Into::into),
+        }
     }
 }
 
