@@ -90,7 +90,7 @@ async fn staging_does_not_overwrite_production() {
     assert!(
         output.contains(end),
         "stdout did not contain:\n\t{end:#?}\ninstead it was:\n\t{output:#?}"
-    )
+    );
 }
 
 #[tokio::test]

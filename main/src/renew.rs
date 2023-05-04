@@ -1,4 +1,5 @@
 use std::io::Read;
+use std::string::String;
 use std::time::Duration;
 
 use color_eyre::eyre::{self, Context};
@@ -24,15 +25,25 @@ use server::Http01Challenge;
 // Alternatively, restore an account from serialized credentials by
 // using `Account::from_credentials()`.
 #[tracing::instrument(skip_all)]
-async fn account(production: bool) -> Result<Account, acme::Error> {
-    let url = if production {
+async fn account(config: &Config) -> Result<Account, acme::Error> {
+    let url = if config.production {
         LetsEncrypt::Production.url()
     } else {
         LetsEncrypt::Staging.url()
     };
+    let contact: Vec<_> = config
+        .email
+        .iter()
+        .map(|addr| format!("mailto:{addr}"))
+        .collect();
+
     Account::create(
         &NewAccount {
-            contact: &[],
+            contact: contact
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>()
+                .as_slice(),
             terms_of_service_agreed: true,
             only_return_existing: false,
         },
@@ -150,17 +161,11 @@ fn prepare_sign_request(names: &[String]) -> Result<(Certificate, Vec<u8>), rcge
 
 #[tracing::instrument(skip_all)]
 pub async fn request<P: PemItem>(config: &Config, debug: bool) -> eyre::Result<Signed<P>> {
-    let Config {
-        domains: ref names,
-        production,
-        ..
-    } = config;
-
-    let account = account(*production).await?;
-    let mut order = order(&account, names)
+    let account = account(config).await?;
+    let mut order = order(&account, &config.domains)
         .await
         .wrap_err("Certificate authority can not issue a certificate")
-        .with_note(|| format!("names: {names:?}"))?;
+        .with_note(|| format!("names: {:?}", config.domains))?;
 
     let challenges = prepare_challenge(&mut order).await?;
 

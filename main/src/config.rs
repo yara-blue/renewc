@@ -102,7 +102,7 @@ impl Config {
     pub fn test(port: u16) -> Self {
         Config {
             domains: vec!["testdomain.org".into()],
-            email: vec!["test_email".into()],
+            email: vec!["test@testdomain.org".into()],
             production: false,
             port,
             output: args::OutputConfig::test(),

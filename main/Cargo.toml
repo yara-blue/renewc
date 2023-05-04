@@ -1,9 +1,9 @@
 [package]
 name = "renewc"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "Certificate renewal, with advanced diagnostics without installing anything"
-license = "Apache-2.0 OR MIT"
+license = "GNUv3"
 
 [dependencies]
 instant-acme = { version = "0.2", git = "https://github.com/instant-labs/instant-acme", rev="c9a7b9d" }
@@ -36,9 +36,9 @@ rand = "0.8"
 owo-colors = { version = "3.5" }
 yasna = "0.5"
 der = "0.7"
-async-trait = "0.1.68"
-data-encoding = "2.3.3"
-pem = "2.0.1"
+async-trait = "0.1"
+data-encoding = "2.3"
+pem = "2"
 
 [dev-dependencies]
 libc = "0.2"

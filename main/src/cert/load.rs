@@ -20,7 +20,7 @@ pub enum Encoding {
 }
 
 impl Encoding {
-    pub(crate) fn extension(&self) -> &'static str {
+    pub(crate) fn extension(self) -> &'static str {
         match self {
             Encoding::PEM => "pem",
             Encoding::DER => "der",
@@ -33,10 +33,10 @@ impl Encoding {
 impl From<&Output> for Encoding {
     fn from(output: &Output) -> Self {
         match output {
-            Output::Pem => Encoding::PEM,
-            Output::PemSeperateKey => Encoding::PEM,
-            Output::PemSeperateChain => Encoding::PEM,
-            Output::PemAllSeperate => Encoding::PEM,
+            Output::Pem
+            | Output::PemSeperateKey
+            | Output::PemSeperateChain
+            | Output::PemAllSeperate => Encoding::PEM,
             Output::Der => Encoding::DER,
         }
     }
@@ -158,7 +158,7 @@ fn load_certificate<P: PemItem>(config: &Config) -> eyre::Result<Option<MaybeSig
     let encoding = Encoding::from(output);
     let path = if certificate_path.is_dir() {
         derive_path(
-            &certificate_path,
+            certificate_path,
             &name(&config.domains)?,
             "cert",
             encoding.extension(),

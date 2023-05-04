@@ -29,7 +29,6 @@ async fn der_and_pem_equal() {
         Output::PemAllSeperate,
         Output::Der,
     ]
-    .into_iter()
     {
         config.output.output = dbg!(&format).clone();
         store::on_disk(&config, original.clone()).unwrap();
