@@ -10,6 +10,12 @@ jobs:
     name: Check Actions
     runs-on: ubuntu-latest
     steps:
+      - name: Check if pull request was opened by a bot
+        run: |
+          if [[ "${{ github.event.pull_request.user.login }}" =~ "bot" ]]; then
+            echo "Pull request was opened by a bot, exiting."
+            exit 1
+          fi
       - uses: actions/checkout@v1
       - name: Changelog check
         uses: Zomzog/changelog-checker@v1.2.0
