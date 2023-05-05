@@ -14,7 +14,7 @@ jobs:
         run: |
           if [[ "${{ github.event.pull_request.user.login }}" =~ "bot" ]]; then
             echo "Pull request was opened by a bot, exiting."
-            exit 1
+            exit 0
           fi
       - uses: actions/checkout@v1
       - name: Changelog check
