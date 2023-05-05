@@ -54,17 +54,32 @@ Suggestion: try calling renewc with: `--port 34320`
 ```
 
 ## Install
+#### Using download.sh:
+Recommended this figures out the right architecture, download the correct binary and make it executable. Requires `curl` however (usually installed).
+```bash
+curl -sL https://github.com/dvdsk/renewc/blob/main/download.sh | sh
+```
+
+#### Download binary
 Download the binary for your platform:
-- x86/x64 (normal pc's): [x64](https://github.com/dvdsk/renewc/releases/latest/download/renewc_x64)  
+- x86\_x64 (normal pc's): [x64](https://github.com/dvdsk/renewc/releases/latest/download/renewc_x64)  
 ```bash
 curl -L https://github.com/dvdsk/renewc/releases/latest/download/renewc_x64 -o renewc
 ``` 
-- arm based systems (raspberry pi): [aarch64](https://github.com/dvdsk/renewc/releases/latest/download/renewc_aarch64)
+- modern aarch64 ARM systems (Raspberry Pi 3/4 with Ubuntu server): [aarch64](https://github.com/dvdsk/renewc/releases/latest/download/renewc_aarch64)
 ```bash
 curl -L https://github.com/dvdsk/renewc/releases/latest/download/renewc_aarch64 -o renewc
 ``` 
+- older armv7 systems (Raspberry Pi 2/3/4 with Raspbian): [armv7](https://github.com/dvdsk/renewc/releases/latest/download/renewc_armv7)
+```bash
+curl -L https://github.com/dvdsk/renewc/releases/latest/download/renewc_armv7 -o renewc
+``` 
+- older arm systems (Raspberry Pi 0/1): [arm](https://github.com/dvdsk/renewc/releases/latest/download/renewc_arm)
+```bash
+curl -L https://github.com/dvdsk/renewc/releases/latest/download/renewc_arm -o renewc
+``` 
 
-Currently, we only target Linux PR's targeting other systems are welcome.
+Currently, we only target Linux. PR's targeting other systems are welcome.
 
 ## Basic usage
 To request or renew a certificate for `example.org` and store it at `/where/to/store/cert` run: 

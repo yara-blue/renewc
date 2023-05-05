@@ -13,14 +13,21 @@ permissions:
   contents: write
 
 jobs:
-  build_x64:
+  compile:
+    strategy:
+      matrix:
+        target:
+          - ""
+          - aarch64-unknown-linux-musl
+          - armv7-unknown-linux-musleabihf
+          - arm-unknown-linux-musleabihf
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        target: x86_64-unknown-linux-musl
+        target: ${{ matrix.target }}
         toolchain: stable
 
     - uses: actions/cache@v3
@@ -31,57 +38,29 @@ jobs:
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
           target/
-        key: ${{ runner.os }}-cargo-release2-${{ hashFiles('**/Cargo.lock') }}
+          compilers/
+        key: ${{ runner.os }}-compile-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
 
-    - uses: actions-rs/cargo@v1
-      with:
-        use-cross: false
-        command: build
-        args: --release --bin renewc
+    - name: compile
+      run: ./build.sh ${{ matrix.target }}
 
     - name: Upload
       uses: actions/upload-artifact@v3
       with: 
-        name: x64
-        path: target/release/renewc
-
-
-  build_aarch64:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        target: aarch64-unknown-linux-musl
-        toolchain: stable
-
-    - uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          setup_crosscompile
-          target/
-        key: ${{ runner.os }}-cargo-release3-${{ hashFiles('**/Cargo.lock') }}
-    
-    - name: crosscompile 
-      run: bash crosscompile.sh
-
-    - name: Upload
-      uses: actions/upload-artifact@v3
-      with: 
-        name: aarch64
-        path: target/aarch64-unknown-linux-musl/release/renewc
+        name: ${{ matrix.target }}
+        path: target/${{ matrix.target }}/release/renewc
 
   release:
     runs-on: ubuntu-latest
     needs: 
-      - build_x64
-      - build_aarch64
-
+      - compile
+    strategy:
+      matrix:
+        target:
+          - ""
+          - aarch64-unknown-linux-musl
+          - armv7-unknown-linux-musleabihf
+          - arm-unknown-linux-musleabihf
     steps:
     - uses: actions/checkout@v3
     - name: Download the binaries
@@ -90,11 +69,13 @@ jobs:
       run: ls -la x64
     - name: find tag
       id: tag
-      run: echo "version_tag=$(cat main/Cargo.toml | grep 'version = ' | head -n 1 | cut -d \" -f 2)" >> $GITHUB_OUTPUT
-    - name: rename x64 bin
-      run: mv x64/renewc renewc_x64
-    - name: rename aarch64 bin
-      run: mv aarch64/renewc renewc_aarch64
+      run: |
+          VERSION=$(grep '^version =' main/Cargo.toml | head -n 1 | awk '{print $3}' | tr -d '"' | tr -d "\n")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Found version: $VERSION"
+          echo "::set-output name=version::$VERSION"
+    - name: rename bins
+      run: mv ${{ matrix.target }}/renewc renewc_${{ matrix.target }}
     - name: changelog as release body
       run: cat CHANGELOG.md | awk '/^## /{if (++c == 2) {exit}} c == 1' | tail -n +2 > ${{ github.workspace }}-CHANGELOG.txt
     - name: Release
@@ -102,8 +83,7 @@ jobs:
       with:
         body_path: ${{ github.workspace }}-CHANGELOG.txt
         prerelease: false
-        name: "renewc"
+        name: Release ${{ env.VERSION }}
         files: |
-          renewc_aarch64
-          renewc_x64
-        tag_name: ${{steps.tag.outputs.version_tag}}
+          renewc_*
+        tag_name: ${{ env.VERSION }}
