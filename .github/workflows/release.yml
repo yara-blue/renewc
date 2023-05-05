@@ -96,7 +96,7 @@ jobs:
     - name: rename aarch64 bin
       run: mv aarch64/renewc renewc_aarch64
     - name: changelog as release body
-      run: cat CHANGELOG.md | sed -n '/^## /,/^## /{/^## /b;p}' > ${{ github.workspace }}-CHANGELOG.txt
+      run: cat CHANGELOG.md | awk '/^## /{if (++c == 2) {exit}} c == 1' | tail -n +2 > ${{ github.workspace }}-CHANGELOG.txt
     - name: Release
       uses: "softprops/action-gh-release@v1"
       with:
