@@ -1,14 +1,19 @@
 [package]
 name = "renewc"
 version = "0.2.3"
+authors = ["David Kleingeld <opensource@davidsk.dev>"]
 edition = "2021"
 description = "Certificate renewal, with advanced diagnostics without installing anything"
 license = "GNUv3"
+readme = "README.md"
+homepage = "https://github.com/dvdsk/renewc"
+repository = "https://github.com/dvdsk/renewc"
+keywords = ["cli", "certificate", "acme"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 instant-acme = { version = "0.2", git = "https://github.com/instant-labs/instant-acme", rev="c9a7b9d" }
 x509-parser = "0.15"
-x509-cert = "0.2" # only used for transforming pem to der encoded certs chains
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-error = "0.2"
@@ -28,14 +33,12 @@ itertools = "0.10"
 
 haproxy-config = "0.4"
 is-terminal = "0.4"
-shared_memory = "0.12"
 rand = "0.8"
 # supports-color feature ends up enabling atty which has a RUSTSEC 
 # advisory against it. For now colors will ben enabled always.
 # owo-colors = { version = "3.5", features = ["supports-colors"] }
 owo-colors = { version = "3.5" }
 yasna = "0.5"
-der = "0.7"
 async-trait = "0.1"
 data-encoding = "2.3"
 pem = "2"
@@ -48,3 +51,4 @@ rcgen = "0.10"
 os_pipe = "1.1"
 nix = { version = "0.26", features = ["fs"] }
 tempfile = "3"
+shared_memory = "0.12"
