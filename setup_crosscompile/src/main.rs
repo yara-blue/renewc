@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::{env, fs};
@@ -37,14 +38,19 @@ fn download_compiler(dir: PathBuf, cross: &str) {
 fn main() {
     #[cfg(not(all(target_arch = "x86_64", target_os = "linux")))]
     compile_error!("only setup to download crosscomp running on x86_64 linux");
+    let mut cross_names = HashMap::new();
+    cross_names.insert("aarch64-unknown-linux-musl", "aarch64-linux-musl-cross");
+    cross_names.insert(
+        "armv7-unknown-linux-musleabihf",
+        "armv7l-linux-musleabihf-cross",
+    );
+    cross_names.insert("arm-unknown-linux-musleabihf", "arm-linux-musleabihf-cross");
 
     let target_arch = env::args().nth(1).expect("needs arch as argument");
-    let cross_name = match target_arch.as_str() {
-        "aarch64-unknown-linux-musl" => "aarch64-linux-musl-cross",
-        "armv7-unknown-linux-musleabi" => "armv7l-linux-musleabihf-cross",
-        "x86_64" => return,
-        arch => panic!("unsupported arch: {arch}"),
-    };
+    let cross_name = cross_names.get(target_arch.as_str()).expect(&format!(
+        "unsupported arch: {target_arch}\nvalid options are: {:?}",
+        cross_names.keys().collect::<Vec<_>>()
+    ));
 
     let dir = PathBuf::from("../compilers");
     if !dir.is_dir() {

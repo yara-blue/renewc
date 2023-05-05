@@ -1,7 +1,9 @@
 [target.aarch64-unknown-linux-musl]
 linker = "compilers/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc"
-# [target.aarch64-unknown-linux-musl]
-# linker = "compilers/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc"
+[target.armv7-unknown-linux-musleabihf]
+linker = "compilers/armv7l-linux-musleabihf-cross/bin/armv7l-linux-musleabihf-gcc"
+[target.arm-unknown-linux-musleabihf]
+linker = "compilers/arm-linux-musleabihf-cross/bin/arm-linux-musleabihf-gcc"
 
 [env]
 # tell pkg-config where to find the cross compilers
@@ -9,5 +11,8 @@ linker = "compilers/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc"
 CC_aarch64-unknown-linux-musl = { value = "compilers/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc", relative = true }
 AR_aarch64-unknown-linux-musl = { value = "compilers/aarch64-linux-musl-cross/bin/aarch64-linux-musl-ar", relative = true }
 
-CC_armv7-unknown-linux-musleabihf = { value = "compilers/armv7l-linux-musleabihf-cross/bin/aarch64-linux-musleabihf-gcc", relative = true }
-AR_armv7-unknown-linux-musleabihf = { value = "compilers/armv7l-linux-musleabihf-cross/bin/aarch64-linux-musleabihf-ar", relative = true }
+CC_armv7-unknown-linux-musleabihf = { value = "compilers/armv7l-linux-musleabihf-cross/bin/armv7l-linux-musleabihf-gcc", relative = true }
+AR_armv7-unknown-linux-musleabihf = { value = "compilers/armv7l-linux-musleabihf-cross/bin/armv7l-linux-musleabihf-ar", relative = true }
+
+CC_arm-unknown-linux-musleabihf = { value = "compilers/arm-linux-musleabihf-cross/bin/arm-linux-musleabihf-gcc", relative = true }
+AR_arm-unknown-linux-musleabihf = { value = "compilers/arm-linux-musleabihf-cross/bin/arm-linux-musleabihf-ar", relative = true }
