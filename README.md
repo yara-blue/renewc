@@ -57,7 +57,7 @@ Suggestion: try calling renewc with: `--port 34320`
 #### Using download.sh:
 Recommended this figures out the right architecture, download the correct binary and make it executable. Requires `curl` however (usually installed).
 ```bash
-curl -sL https://github.com/dvdsk/renewc/blob/main/download.sh | sh
+curl -sL https://raw.githubusercontent.com/dvdsk/renewc/main/download.sh | sh
 ```
 
 #### Download binary
