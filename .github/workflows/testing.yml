@@ -24,12 +24,19 @@ jobs:
 
   test_cross_compilation:
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+          - armv7-unknown-linux-musleabihf
+          - arm-unknown-linux-musleabihf
     steps:
     - uses: actions/checkout@v3
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
+        target: ${{ matrix.target }}
         toolchain: stable
 
     - uses: actions/cache@v3
@@ -40,14 +47,10 @@ jobs:
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
           target/
-        key: ${{ runner.os }}-cargo2-${{ hashFiles('**/Cargo.lock') }}
+          compilers/
+        key: ${{ runner.os }}-compile-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: setup crosscompiler
-      working-directory: ./setup_crosscompile
-      run: cargo r
-    - name: add aarch64 musl toolchain
-      run: rustup target add aarch64-unknown-linux-musl
-    - name: crosscompile
-      working-directory: ./main
-      run: cargo b --target aarch64-unknown-linux-musl
+    - name: compile
+      run: ./build.sh ${{ matrix.target }}
+
       
