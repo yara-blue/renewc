@@ -74,7 +74,7 @@ jobs:
           echo "::set-output name=version::$VERSION"
     - name: rename bins
       run: |
-        suffix=`echo ${{ matrix.target }} | cut -d "-" -f 0`
+        suffix=`echo ${{ matrix.target }} | cut -d "-" -f 1`
         mv ${{ matrix.target }}/renewc renewc_$suffix
     - name: changelog as release body
       run: cat CHANGELOG.md | awk '/^## /{if (++c == 2) {exit}} c == 1' | tail -n +2 > ${{ github.workspace }}-CHANGELOG.txt
