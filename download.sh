@@ -11,7 +11,7 @@ case $OS in
             arm*) TARGET="arm" ;;
             armv7*) TARGET="armv7" ;;
             aarch64) TARGET="aarch64" ;;
-            x86_64) TARGET="x64" ;;
+            x86_64) TARGET="x64_64" ;;
             *) echo "Error: Unsupported architecture: $ARCH, please open an issue"; exit 1 ;;
         esac
     ;;

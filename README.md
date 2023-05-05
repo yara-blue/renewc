@@ -62,7 +62,7 @@ curl -sL https://github.com/dvdsk/renewc/blob/main/download.sh | sh
 
 #### Download binary
 Download the binary for your platform:
-- x86\_x64 (normal pc's): [x64](https://github.com/dvdsk/renewc/releases/latest/download/renewc_x64)  
+- x86\_x64 (normal pc's): [x64](https://github.com/dvdsk/renewc/releases/latest/download/renewc_x86_64)  
 ```bash
 curl -L https://github.com/dvdsk/renewc/releases/latest/download/renewc_x64 -o renewc
 ``` 
