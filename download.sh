@@ -11,7 +11,7 @@ case $OS in
             arm*) TARGET="arm" ;;
             armv7*) TARGET="armv7" ;;
             aarch64) TARGET="aarch64" ;;
-            x86_64) TARGET="x64_64" ;;
+            x86_64) TARGET="x86_64" ;;
             *) echo "Error: Unsupported architecture: $ARCH, please open an issue"; exit 1 ;;
         esac
     ;;
@@ -29,6 +29,11 @@ LATEST_RELEASE_URL="$REPO/releases/latest/download/renewc_$TARGET"
 echo "Downloading..."
 curl -sL "$LATEST_RELEASE_URL" -o "renewc"
 chmod +x renewc
+
+if [ $(stat -c %s renewc) -lt 100 ]; then
+    echo "Something went wrong downloading, please report this"
+	exit 1
+fi
 
 echo ""
 echo "Finished!"
