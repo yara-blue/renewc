@@ -15,7 +15,7 @@ if [ $# -gt 0 ]; then
 	cd ../main
 	cargo b --target $1 --release
 else
-	cd ../main
+	cd main
 	cargo b --release
 fi 
 
