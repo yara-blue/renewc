@@ -9,13 +9,11 @@ jobs:
   build:
     name: Check Actions
     runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.user.type == 'Bot'
+    continue-on-error: true
     steps:
-      - name: Check if pull request was opened by a bot
-        run: |
-          if [[ "${{ github.event.pull_request.user.login }}" =~ "bot" ]]; then
-            echo "Pull request was opened by a bot, exiting."
-            exit 0
-          fi
       - uses: actions/checkout@v1
       - name: Changelog check
         uses: Zomzog/changelog-checker@v1.2.0
