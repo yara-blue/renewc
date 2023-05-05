@@ -1,6 +1,6 @@
 [package]
 name = "renewc"
-version = "0.2.1"
+version = "0.2.3"
 edition = "2021"
 description = "Certificate renewal, with advanced diagnostics without installing anything"
 license = "GNUv3"
