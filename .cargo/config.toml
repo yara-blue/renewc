@@ -1,3 +1,5 @@
+[target.x86_64-unknown-linux-musl]
+linker = "compilers/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc"
 [target.aarch64-unknown-linux-musl]
 linker = "compilers/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc"
 [target.armv7-unknown-linux-musleabihf]
@@ -8,6 +10,9 @@ linker = "compilers/arm-linux-musleabihf-cross/bin/arm-linux-musleabihf-gcc"
 [env]
 # tell pkg-config where to find the cross compilers
 # see: https://github.com/rust-lang/pkg-config-rs#external-configuration-via-target-scoped-environment-variables
+CC_x86_64-unknown-linux-musl = { value = "compilers/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc", relative = true }
+AR_x86_64-unknown-linux-musl = { value = "compilers/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc-ar", relative = true }
+
 CC_aarch64-unknown-linux-musl = { value = "compilers/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc", relative = true }
 AR_aarch64-unknown-linux-musl = { value = "compilers/aarch64-linux-musl-cross/bin/aarch64-linux-musl-ar", relative = true }
 

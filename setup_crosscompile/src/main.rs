@@ -38,18 +38,19 @@ fn download_compiler(dir: PathBuf, cross: &str) {
 fn main() {
     #[cfg(not(all(target_arch = "x86_64", target_os = "linux")))]
     compile_error!("only setup to download crosscomp running on x86_64 linux");
-    let mut cross_names = HashMap::new();
-    cross_names.insert("aarch64-unknown-linux-musl", "aarch64-linux-musl-cross");
-    cross_names.insert(
+    let mut musl_compilers = HashMap::new();
+    musl_compilers.insert("x86_64-unknown-linux-musl", "x86_64-linux-musl-native");
+    musl_compilers.insert("aarch64-unknown-linux-musl", "aarch64-linux-musl-cross");
+    musl_compilers.insert(
         "armv7-unknown-linux-musleabihf",
         "armv7l-linux-musleabihf-cross",
     );
-    cross_names.insert("arm-unknown-linux-musleabihf", "arm-linux-musleabihf-cross");
+    musl_compilers.insert("arm-unknown-linux-musleabihf", "arm-linux-musleabihf-cross");
 
     let target_arch = env::args().nth(1).expect("needs arch as argument");
-    let cross_name = cross_names.get(target_arch.as_str()).expect(&format!(
+    let compiler_name = musl_compilers.get(target_arch.as_str()).expect(&format!(
         "unsupported arch: {target_arch}\nvalid options are: {:?}",
-        cross_names.keys().collect::<Vec<_>>()
+        musl_compilers.keys().collect::<Vec<_>>()
     ));
 
     let dir = PathBuf::from("../compilers");
@@ -57,7 +58,7 @@ fn main() {
         fs::create_dir(&dir).unwrap();
     }
 
-    if !dir.join(&cross_name).is_dir() {
-        download_compiler(dir, cross_name);
+    if !dir.join(&compiler_name).is_dir() {
+        download_compiler(dir, compiler_name);
     }
 }
