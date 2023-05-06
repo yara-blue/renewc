@@ -20,7 +20,7 @@ async fn der_and_pem_equal() {
 
     let mut config = Config::test(42);
     config.production = false;
-    config.output.certificate_path = path;
+    config.output_config.certificate_path = path;
 
     for format in [
         Output::Pem,
@@ -30,7 +30,7 @@ async fn der_and_pem_equal() {
         Output::Der,
     ]
     {
-        config.output.output = dbg!(&format).clone();
+        config.output_config.output = dbg!(&format).clone();
         store::on_disk(&config, original.clone()).unwrap();
         let loaded = load::from_disk(&config).unwrap().unwrap();
 

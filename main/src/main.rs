@@ -6,7 +6,7 @@ use tracing::warn;
 
 use renewc::config::Commands;
 use renewc::renew::InstantAcme;
-use renewc::{cert, run, systemd};
+use renewc::{cert, install, run};
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -43,21 +43,17 @@ async fn main() -> eyre::Result<()> {
             };
             cert::store::on_disk(&config, certs).wrap_err("Could not write out certificates")?;
             if let Some(service) = &config.reload {
-                systemd::systemctl(&["reload"], service)
-                    .wrap_err_with(|| "Could not reload ".to_owned() + service)?;
+                install::reload(service)?;
             }
         }
         Commands::Install(args) => {
             if !args.run.production {
                 warn!("Installing service that runs against staging-environment, certificates will not be valid");
             }
-            systemd::write_service().wrap_err("Could not write systemd service")?;
-            systemd::write_timer(&args).wrap_err("Could not write systemd timer")?;
-            systemd::enable().wrap_err("Could not enable service and timer")?;
+            install::perform(args).wrap_err("failed to install")?;
         }
         Commands::Uninstall => {
-            systemd::disable().wrap_err("Could not disable service and timer")?;
-            systemd::remove_units().wrap_err("Could not remove service and timer")?;
+            install::undo().wrap_err("failed to uninstall")?;
         }
     }
     Ok(())
@@ -72,15 +68,12 @@ pub fn setup_tracing(debug: bool) {
     let filter = if debug {
         "renewc=debug,warn"
     } else {
-        "renewc=info,warn"
+        "renewc=warn"
     };
 
     let filter = filter::EnvFilter::builder().parse(filter).unwrap();
 
-    let fmt = fmt::layer()
-        .pretty()
-        .with_line_number(true)
-        .with_test_writer();
+    let fmt = fmt::layer().pretty().with_line_number(true);
 
     let _ignore_err = tracing_subscriber::registry()
         .with(filter)

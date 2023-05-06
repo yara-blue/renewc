@@ -106,14 +106,14 @@ pub fn on_disk<P: PemItem>(config: &Config, signed: Signed<P>) -> eyre::Result<(
     let key_path = key_path(config)?;
     let chain_path = chain_path(config)?;
 
-    let encoding = Encoding::from(&config.output.output);
+    let encoding = Encoding::from(&config.output_config.output);
     let Signed {
         certificate,
         private_key,
         chain,
     } = signed;
 
-    match config.output.output {
+    match config.output_config.output {
         Output::Pem => {
             write_chain(encoding, chain, &cert_path)?;
             write_cert(encoding, certificate, Append(&cert_path))?;
@@ -145,7 +145,7 @@ fn cert_path(config: &Config) -> eyre::Result<PathBuf> {
         output,
         certificate_path,
         ..
-    } = &config.output;
+    } = &config.output_config;
 
     let encoding = Encoding::from(output);
 
@@ -168,7 +168,7 @@ fn chain_path(config: &Config) -> eyre::Result<PathBuf> {
         certificate_path,
         chain_path,
         ..
-    } = &config.output;
+    } = &config.output_config;
 
     let encoding = Encoding::from(output);
     Ok(match chain_path {
@@ -189,7 +189,7 @@ fn key_path(config: &Config) -> eyre::Result<PathBuf> {
         certificate_path,
         key_path,
         ..
-    } = &config.output;
+    } = &config.output_config;
 
     let encoding = Encoding::from(output);
     Ok(match key_path {

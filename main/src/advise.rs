@@ -37,6 +37,7 @@ pub enum CheckResult {
     Accept {
         status: String,
     },
+    NoCert,
 }
 
 impl CheckResult {
@@ -61,7 +62,11 @@ impl CheckResult {
     }
 }
 
-pub fn precheck(config: &Config, cert: &Info, stdout: &mut impl Write) -> CheckResult {
+pub fn given_existing(config: &Config, cert: &Option<Info>, stdout: &mut impl Write) -> CheckResult {
+    let Some(cert) = cert else {
+        return CheckResult::NoCert;
+    };
+
     match (config.production, cert.staging, cert.should_renew()) {
         (false, true, _) => {
             CheckResult::accept( "Requesting staging cert, certificates will not be valid")
