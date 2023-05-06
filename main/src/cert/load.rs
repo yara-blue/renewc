@@ -79,7 +79,7 @@ fn load_seperate_chain<P: PemItem>(config: &Config) -> eyre::Result<Vec<P>> {
         certificate_path,
         chain_path,
         ..
-    } = &config.output;
+    } = &config.output_config;
     let encoding = Encoding::from(output);
     let path = match chain_path {
         None => derive_path(
@@ -125,7 +125,7 @@ fn load_seperate_private_key<P: PemItem>(config: &Config) -> eyre::Result<Option
         certificate_path,
         key_path,
         ..
-    } = &config.output;
+    } = &config.output_config;
     let encoding = Encoding::from(output);
 
     let path = match key_path {
@@ -154,7 +154,7 @@ fn load_certificate<P: PemItem>(config: &Config) -> eyre::Result<Option<MaybeSig
         output,
         certificate_path,
         ..
-    } = &config.output;
+    } = &config.output_config;
     let encoding = Encoding::from(output);
     let path = if certificate_path.is_dir() {
         derive_path(

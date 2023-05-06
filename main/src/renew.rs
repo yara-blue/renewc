@@ -160,7 +160,7 @@ fn prepare_sign_request(names: &[String]) -> Result<(Certificate, Vec<u8>), rcge
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn request<P: PemItem>(config: &Config, debug: bool) -> eyre::Result<Signed<P>> {
+pub async fn renew<P: PemItem>(config: &Config, debug: bool) -> eyre::Result<Signed<P>> {
     let account = account(config).await?;
     let mut order = order(&account, &config.domains)
         .await
@@ -206,6 +206,6 @@ pub struct InstantAcme;
 #[async_trait::async_trait]
 impl super::ACME for InstantAcme {
     async fn renew<P: PemItem>(&self, config: &Config, debug: bool) -> eyre::Result<Signed<P>> {
-        request(config, debug).await
+        renew(config, debug).await
     }
 }

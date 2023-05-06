@@ -1,5 +1,7 @@
 use clap::{Parser, Subcommand};
+use time::macros::format_description;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use super::Output;
 
@@ -24,11 +26,27 @@ impl Commands {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct Time(pub time::Time);
+
+impl FromStr for Time {
+    type Err = time::error::Parse;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let format = format_description!("[hour]:[minute]");
+        Ok(Self(time::Time::parse(s, &format)?))
+    }
+}
+
 #[derive(Parser, Debug)]
 pub struct InstallArgs {
     /// time at which refresh should run
     #[clap(long, default_value = "04:00")]
-    pub(crate) time: String,
+    pub(crate) time: Time,
+
+    /// where to install the binary
+    #[clap(long, default_value = "04:00")]
+    pub(crate) location: Option<PathBuf>,
 
     #[clap(flatten)]
     pub run: RenewArgs,
@@ -78,12 +96,13 @@ pub struct RenewArgs {
 
     // the options in the Output struct are added at the end
     #[clap(flatten)]
-    pub output: OutputConfig,
+    pub output_config: OutputConfig,
 }
 
 #[derive(Parser, Debug, Clone)]
 pub struct OutputConfig {
-    /// The format to store the key in
+    /// How to store the output, encoding and ways to split
+    /// the file between files.
     #[clap(value_enum, default_value_t = Output::PemSeperateKey)]
     pub output: Output,
 

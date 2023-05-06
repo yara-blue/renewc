@@ -17,8 +17,8 @@ async fn production_does_not_overwrite_valid_production() {
     let dir = tempfile::tempdir().unwrap();
 
     let mut config = Config::test(42);
-    config.output.certificate_path = dir.path().join("cert.pem");
-    config.output.output = Output::Pem;
+    config.output_config.certificate_path = dir.path().join("cert.pem");
+    config.output_config.output = Output::Pem;
     config.production = true;
 
     // run to place still valid cert
@@ -54,8 +54,8 @@ async fn staging_does_not_overwrite_production() {
     let dir = tempfile::tempdir().unwrap();
 
     let mut config = Config::test(42);
-    config.output.certificate_path = dir.path().join("cert.pem");
-    config.output.output = Output::Pem;
+    config.output_config.certificate_path = dir.path().join("cert.pem");
+    config.output_config.output = Output::Pem;
     config.production = true;
 
     // run to place still valid cert
@@ -102,8 +102,8 @@ async fn staging_overwrites_expired_production() {
     let mut acme = TestAcme::new(gen_cert::expired());
 
     let mut config = Config::test(42);
-    config.output.certificate_path = dir.path().join("cert.pem");
-    config.output.output = Output::Pem;
+    config.output_config.certificate_path = dir.path().join("cert.pem");
+    config.output_config.output = Output::Pem;
     config.production = true;
 
     // run to place still valid cert
@@ -141,12 +141,12 @@ async fn corrupt_existing_does_not_crash() {
     let dir = tempfile::tempdir().unwrap();
 
     let mut config = Config::test(42);
-    config.output.certificate_path = dir.path().join("cert.pem");
-    config.output.output = Output::Pem;
+    config.output_config.certificate_path = dir.path().join("cert.pem");
+    config.output_config.output = Output::Pem;
     config.production = true;
 
     let corrupt_data = "-----BEGIN CERTIFisrtens-----\r\n 128972184ienst\r\n-----END";
-    std::fs::write(&config.output.certificate_path, corrupt_data).unwrap();
+    std::fs::write(&config.output_config.certificate_path, corrupt_data).unwrap();
 
     let mut acme = TestAcme::new(gen_cert::valid());
     config.production = false;
