@@ -13,7 +13,8 @@ Certificate renewal can be quite fragile. This as a renewal tool that runs witho
 
 ## Features 
  - Request or renews a *Let's Encrypt* certificate
- - Runs on any Linux system without setup thanks to [musl](https://musl.libc.org/about.html)
+ - Runs on any Linux system without any setup thanks to [musl](https://musl.libc.org/about.html)  
+  _(Given a linux kernel more recent then version 2.6.38 from 2011)_
  - Asks before dangerous actions 
     - replacing production with staging
     - not due for renewal
