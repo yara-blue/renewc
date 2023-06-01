@@ -48,6 +48,7 @@ async fn account(config: &Config) -> Result<Account, acme::Error> {
             only_return_existing: false,
         },
         url,
+        None,
     )
     .await
 }
@@ -208,7 +209,11 @@ pub struct InstantAcme;
 
 #[async_trait::async_trait]
 impl super::ACME for InstantAcme {
-    async fn renew<P: PemItem>(&self, config: &Config, debug: bool) -> eyre::Result<Signed<P>> {
+    async fn renew<P: PemItem>(
+        &self,
+        config: &Config,
+        debug: bool,
+    ) -> eyre::Result<Signed<P>> {
         renew(config, debug).await
     }
 }

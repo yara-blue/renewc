@@ -4,3 +4,6 @@ members = [
 	"main",
 	"setup_crosscompile"
 ]
+
+[patch.crates-io]
+instant-acme = { path = "../../tmp/instant-acme" }
