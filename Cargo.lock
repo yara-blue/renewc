@@ -799,8 +799,9 @@ dependencies = [
 
 [[package]]
 name = "instant-acme"
-version = "0.2.1"
-source = "git+https://github.com/instant-labs/instant-acme?rev=c9a7b9d#c9a7b9da524149f1bf51faa3936e6d71068c8a6d"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "65c053aeedb86a6a96cde07c0401cc1e0da742388cc960079ea201854c89f2d6"
 dependencies = [
  "base64 0.21.0",
  "hyper",
