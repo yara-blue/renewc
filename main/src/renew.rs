@@ -118,16 +118,19 @@ async fn wait_for_order_rdy<'a>(
             break Err(eyre::eyre!("order is not ready in time"));
         }
 
-        match &order.state().status {
+        let status = match &order.state().status {
             OrderStatus::Ready => break Ok(order.state()),
             OrderStatus::Invalid => break Err(eyre::eyre!("order is invalid"))
                 .suggestion("sometimes this happens when the challenge server is not reachable. Try the debug flag to investigate"),
-            _ => (),
-        }
+            other => other,
+        };
 
         delay *= 2;
         tries += 1;
-        debug!(tries, "order is not ready, waiting {delay:?}");
+        debug!(
+            tries,
+            "order is not ready (status: {status:?}), waiting {delay:?}"
+        );
         sleep(delay).await;
     };
 
