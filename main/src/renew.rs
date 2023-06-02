@@ -48,6 +48,7 @@ async fn account(config: &Config) -> Result<Account, acme::Error> {
             only_return_existing: false,
         },
         url,
+        None,
     )
     .await
 }
@@ -111,23 +112,32 @@ async fn wait_for_order_rdy<'a>(
         order.set_challenge_ready(url).await.unwrap();
     }
 
-    let mut tries = 1u8;
+    let mut tries = 0u8;
     let mut delay = Duration::from_millis(250);
     let state = loop {
-        if tries >= 5 {
-            break Err(eyre::eyre!("order is not ready in time"));
-        }
+        order
+            .refresh()
+            .await
+            .wrap_err("could not get update on order from server")?;
 
-        match &order.state().status {
+        let status = match &order.state().status {
             OrderStatus::Ready => break Ok(order.state()),
             OrderStatus::Invalid => break Err(eyre::eyre!("order is invalid"))
                 .suggestion("sometimes this happens when the challenge server is not reachable. Try the debug flag to investigate"),
-            _ => (),
-        }
+            other => other,
+        };
 
         delay *= 2;
         tries += 1;
-        debug!(tries, "order is not ready, waiting {delay:?}");
+        debug!(
+            tries,
+            "order is not ready (status: {status:?}), waiting {delay:?}"
+        );
+
+        if tries >= 5 {
+            break Err(eyre::eyre!("order is not ready in time"))
+                .with_note(|| format!("last order status: {status:?}"));
+        }
         sleep(delay).await;
     };
 

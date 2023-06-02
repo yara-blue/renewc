@@ -9,7 +9,7 @@ use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 
 use color_eyre::eyre;
-use tracing::error;
+use tracing::{error, debug};
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -28,15 +28,16 @@ pub struct Http01Challenge {
 type Token = String;
 type KeyAuth = String;
 
-#[tracing::instrument]
+#[tracing::instrument(skip_all, fields(token))]
 async fn challenge(
     Extension(key_auth): Extension<Arc<HashMap<Token, KeyAuth>>>,
     Path(token): Path<String>,
 ) -> String {
     let Some(key_auth) = key_auth.get(&token) else {
-        error!("we do not have a auth key for token: {token}");
+        error!("do not have a auth key for token");
         return "Error no auth key for token".to_owned();
     };
+    debug!("got request for aut key");
     key_auth.clone()
 }
 

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.3] - 2023-05-05
 
+### Fixes
+ - orders no longer get stuck at status pending
+ - when challenge server is not reachable the error message no longer mentions "a different server malfunctioning"
+
+## [0.2.3] - 2023-05-05
+
 ### Added
  - add support for Linux targets with arm or armv7 architecture and hardware floating point unit
 
