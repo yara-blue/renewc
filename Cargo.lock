@@ -799,7 +799,8 @@ dependencies = [
 
 [[package]]
 name = "instant-acme"
-version = "0.3.1"
+version = "0.3.2"
+source = "git+https://github.com/instant-labs/instant-acme?branch=http-client-bounds#591b99ada2814ff0970702218c68b0c9be938ef9"
 dependencies = [
  "base64 0.21.2",
  "hyper",
