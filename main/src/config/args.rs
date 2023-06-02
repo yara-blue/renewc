@@ -1,7 +1,7 @@
-use clap::{Parser, Subcommand};
-use time::macros::format_description;
+use clap::{Parser, Subcommand, ValueHint};
 use std::path::PathBuf;
 use std::str::FromStr;
+use time::macros::format_description;
 
 use super::Output;
 
@@ -45,7 +45,7 @@ pub struct InstallArgs {
     pub(crate) time: Time,
 
     /// where to install the binary
-    #[clap(long, default_value = "04:00")]
+    #[clap(long)]
     pub(crate) location: Option<PathBuf>,
 
     #[clap(flatten)]
@@ -58,11 +58,11 @@ pub struct RenewArgs {
     /// domain(s) request certificates for multiple subdomains
     /// by passing this argument multiple times with various domains
     /// note the base domain must be the same in all
-    #[clap(long, short, required = true)]
+    #[clap(long, short, required = true, value_hint=ValueHint::Other)]
     pub domain: Vec<String>,
 
     /// Contact info
-    #[clap(long)]
+    #[clap(long, value_hint = ValueHint::EmailAddress)]
     pub email: Vec<String>,
 
     /// Use Let's Encrypt production environment
@@ -72,10 +72,11 @@ pub struct RenewArgs {
 
     /// External port 80 should be forwarded to this
     /// internal port
-    #[clap(long, default_value_t = 80, value_parser = clap::value_parser!(u16).range(1..))]
+    #[clap(long, short, default_value_t = 80, value_parser = clap::value_parser!(u16).range(1..))]
     pub port: u16,
 
     /// Systemd service to reload after renewal
+    #[clap(long, short, value_hint=ValueHint::Other)]
     pub reload: Option<String>,
 
     /// Renew a certificate even if its not due yet
@@ -103,7 +104,7 @@ pub struct RenewArgs {
 pub struct OutputConfig {
     /// How to store the output, encoding and ways to split
     /// the file between files.
-    #[clap(value_enum, default_value_t = Output::PemSeperateKey)]
+    #[clap(long, short, value_enum, default_value_t = Output::PemSeperateKey)]
     pub output: Output,
 
     /// Path including file name where to output the signed
@@ -111,31 +112,31 @@ pub struct OutputConfig {
     /// (depending on the selected Output option).
     ///
     /// Note: The file extension depends on the chosen format.
-    #[clap(long, short)]
+    #[clap(long, short, value_hint=ValueHint::FilePath)]
     pub certificate_path: PathBuf,
 
     /// Path including file name where to output the certificates
     /// private key. Used when it is stored seperate from the other
-    /// output. 
+    /// output.
     ///
-    /// If left unspecified this will default to the 
+    /// If left unspecified this will default to the
     /// certificate-path's dir and the file name will be the shortest
     /// part of the domain(s).
     ///
     /// Note: The file extension depends on the chosen format.
-    #[clap(long)]
+    #[clap(long, value_hint=ValueHint::FilePath)]
     pub key_path: Option<PathBuf>,
 
     /// Path including file name where to output the certificates chain.
     /// Used when it is stored seperate from the other output. If left
     /// unspecified it is deduced from the certificate-path.
     ///
-    /// If left unspecified this will default to the 
+    /// If left unspecified this will default to the
     /// certificate-path's dir and the file name will be the shortest
     /// part of the domain(s).
     ///
     /// Note: The file extension depends on the chosen format.
     /// Note: Can not be used when the format is set to Der.
-    #[clap(long)]
+    #[clap(long, value_hint=ValueHint::FilePath)]
     pub chain_path: Option<PathBuf>,
 }
