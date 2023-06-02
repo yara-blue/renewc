@@ -112,13 +112,9 @@ async fn wait_for_order_rdy<'a>(
         order.set_challenge_ready(url).await.unwrap();
     }
 
-    let mut tries = 1u8;
+    let mut tries = 0u8;
     let mut delay = Duration::from_millis(250);
     let state = loop {
-        if tries >= 5 {
-            break Err(eyre::eyre!("order is not ready in time"));
-        }
-
         let status = match &order.state().status {
             OrderStatus::Ready => break Ok(order.state()),
             OrderStatus::Invalid => break Err(eyre::eyre!("order is invalid"))
@@ -132,6 +128,11 @@ async fn wait_for_order_rdy<'a>(
             tries,
             "order is not ready (status: {status:?}), waiting {delay:?}"
         );
+
+        if tries >= 5 {
+            break Err(eyre::eyre!("order is not ready in time"))
+                .with_note(|| format!("last order status: {status:?}"));
+        }
         sleep(delay).await;
     };
 
@@ -209,11 +210,7 @@ pub struct InstantAcme;
 
 #[async_trait::async_trait]
 impl super::ACME for InstantAcme {
-    async fn renew<P: PemItem>(
-        &self,
-        config: &Config,
-        debug: bool,
-    ) -> eyre::Result<Signed<P>> {
+    async fn renew<P: PemItem>(&self, config: &Config, debug: bool) -> eyre::Result<Signed<P>> {
         renew(config, debug).await
     }
 }
