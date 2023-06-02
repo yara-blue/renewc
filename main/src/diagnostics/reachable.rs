@@ -29,29 +29,21 @@ async fn check_response(resp: Response<Body>, key_auth: &str, domain: &str) -> e
     }
 }
 
-// // TODO: check if something binds to port if it does print this <dvdsk>
-fn error_timeout(domain: &str) -> eyre::Result<()> {
-    // we explicitly do not instruct the user to turn the other application off
-    // in case it is a revers proxy/load balancer such as HAProxy. Another diagnostic
-    // will help them out once we can not bind to port 80.
-    Err(eyre::eyre!("Timed out reaching {domain}")
-        .note("Another server is getting traffic for external port 80, it is however not functioning")
-        .suggestion(format!("Check if port 80 is forwarded to a port on this machine. If it is configure {APP} to use that port with the `--port` option. If not forward port 80 to this machine")))
-}
-
 async fn check(path: &str, domain: &str, key_auth: &str) -> eyre::Result<()> {
     let url = format!("http://{domain}{path}");
     debug!("checking: {url}");
     let client = hyper::Client::new();
     let get = client.get(Uri::from_str(&url).unwrap());
-    let get = timeout(Duration::from_millis(50), get);
+    let get = timeout(Duration::from_millis(250), get);
     match get.await {
         Ok(Ok(resp)) => check_response(resp, key_auth, domain).await,
-        Ok(Err(e)) if e.is_timeout() => Err(eyre::eyre!("Could not reach {APP} via {domain}")),
-        Ok(Err(e)) if e.is_connect() => Err(eyre::eyre!("Could not reach {APP} via {domain}"))
+        Ok(Err(e)) if e.is_timeout() || e.is_connect() => {
+            Err(eyre::eyre!("Could not reach {APP} via {domain}"))
+                .suggestion("Forward port 80 to this machine")
+        }
+        Err(_) => Err(eyre::eyre!("Could not reach {APP} via {domain}"))
             .suggestion("Forward port 80 to this machine"),
         Ok(Err(e)) => unreachable!("reqwest error: {e:?}"),
-        Err(_) => Err(eyre::eyre!("Could not reach {APP} via {domain}")),
     }
 }
 
@@ -63,6 +55,7 @@ pub async fn server(config: &Config, challanges: &[Http01Challenge]) -> eyre::Re
         .expect("there is always one domain thus one challange");
 
     let path = format!("/.well-known/acme-challenge/{token}");
+    // TODO: make this run concurrently <02-06-23>
     for domain in &config.domains {
         check(&path, domain, key_auth).await?;
     }
