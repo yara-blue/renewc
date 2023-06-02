@@ -76,7 +76,6 @@ pub fn report(config: &super::Config, bound_port: u16) -> Result<Findings, Repor
 
 #[instrument(level = "debug", skip(config))]
 pub fn forwarded_ports(config: HaConfig, bound_port: u16) -> Result<Vec<u16>, Report> {
-    debug!("{config:#?}");
     let backend_ports: HashMap<String, u16> = config
         .backends
         .into_iter()
