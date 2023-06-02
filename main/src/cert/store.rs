@@ -1,17 +1,15 @@
 use std::fs;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use super::format::PemItem;
-use super::io::{derive_path, name};
-use super::load::Encoding;
 use super::Signed;
 use color_eyre::eyre::{self, Context};
 use color_eyre::Help;
 use itertools::Itertools;
-use tracing::instrument;
+use tracing::{instrument, warn};
 
-use crate::config::{Output, OutputConfig};
+use crate::config::{Encoding, Output, OutputConfig};
 use crate::Config;
 
 #[instrument(level = "debug", skip(certificate))]
@@ -27,8 +25,7 @@ fn write_cert(
     match operation {
         Operation::Append(path) => {
             let mut file = fs::OpenOptions::new().append(true).open(path)?;
-            file
-                .write_all(&bytes)
+            file.write_all(&bytes)
                 .wrap_err("Could not append signed certificate to pem file")
         }
         Operation::Create(path) => {
@@ -53,8 +50,7 @@ fn write_key(
     match operation {
         Operation::Append(path) => {
             let mut file = fs::OpenOptions::new().append(true).open(path)?;
-            file
-                .write_all(&bytes)
+            file.write_all(&bytes)
                 .wrap_err("Could not append private key to pem file")
         }
         Operation::Create(path) => {
@@ -102,11 +98,18 @@ enum Operation<'a> {
 #[instrument(level = "debug", skip(config, signed), ret)]
 pub fn on_disk<P: PemItem>(config: &Config, signed: Signed<P>) -> eyre::Result<()> {
     use Operation::{Append, Create};
-    let cert_path = cert_path(config)?;
-    let key_path = key_path(config)?;
-    let chain_path = chain_path(config)?;
+    let OutputConfig {
+        output,
+        cert_path,
+        key_path,
+        chain_path,
+    } = &config.output_config;
 
-    let encoding = Encoding::from(&config.output_config.output);
+    let cert_path = cert_path.as_path();
+    let key_path = key_path.as_path();
+    let chain_path = chain_path.as_path();
+
+    let encoding = Encoding::from(output);
     let Signed {
         certificate,
         private_key,
@@ -137,68 +140,4 @@ pub fn on_disk<P: PemItem>(config: &Config, signed: Signed<P>) -> eyre::Result<(
     }
 
     Ok(())
-}
-
-#[instrument(level = "debug", ret, skip(config))]
-fn cert_path(config: &Config) -> eyre::Result<PathBuf> {
-    let OutputConfig {
-        output,
-        certificate_path,
-        ..
-    } = &config.output_config;
-
-    let encoding = Encoding::from(output);
-
-    Ok(if certificate_path.is_dir() {
-        derive_path(
-            certificate_path,
-            &name(&config.domains)?,
-            "cert",
-            encoding.extension(),
-        )
-    } else {
-        certificate_path.clone()
-    })
-}
-
-#[instrument(level = "debug", ret, skip(config))]
-fn chain_path(config: &Config) -> eyre::Result<PathBuf> {
-    let OutputConfig {
-        output,
-        certificate_path,
-        chain_path,
-        ..
-    } = &config.output_config;
-
-    let encoding = Encoding::from(output);
-    Ok(match chain_path {
-        None => derive_path(
-            certificate_path,
-            &name(&config.domains)?,
-            "chain",
-            encoding.extension(),
-        ),
-        Some(path) => path.clone(),
-    })
-}
-
-#[instrument(level = "debug", ret, skip(config))]
-fn key_path(config: &Config) -> eyre::Result<PathBuf> {
-    let OutputConfig {
-        output,
-        certificate_path,
-        key_path,
-        ..
-    } = &config.output_config;
-
-    let encoding = Encoding::from(output);
-    Ok(match key_path {
-        None => derive_path(
-            certificate_path,
-            &name(&config.domains)?,
-            "key",
-            encoding.extension(),
-        ),
-        Some(path) => path.clone(),
-    })
 }

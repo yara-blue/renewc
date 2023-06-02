@@ -1,14 +1,13 @@
 use renewc::renew::InstantAcme;
 use renewc::{run, Config};
 use pem::Pem;
+use tempfile::tempdir;
 
 mod shared;
 
 #[cfg(target_os = "linux")]
 #[tokio::test]
 async fn haproxy_binds_port() {
-    use tempfile::tempdir;
-
     shared::setup_color_eyre();
     shared::setup_tracing();
 
@@ -22,7 +21,7 @@ async fn haproxy_binds_port() {
     let ha_config = ha_config.replace("<PORT>", &bound_port.to_string());
     std::fs::write(&path, ha_config).unwrap();
 
-    let mut config = Config::test(bound_port);
+    let mut config = Config::test(bound_port, dir.path());
     config.diagnostics.haproxy.path = path;
 
     let err = run::<Pem>(&mut InstantAcme {}, &mut std::io::stdout(), &config, true)
@@ -43,7 +42,8 @@ async fn insufficent_permissions() {
     shared::setup_color_eyre();
     shared::setup_tracing();
 
-    let config = Config::test(42);
+    let dir = tempdir().unwrap();
+    let config = Config::test(42, dir.path());
 
     let err = run::<Pem>(&mut InstantAcme {}, &mut std::io::stdout(), &config, true)
         .await

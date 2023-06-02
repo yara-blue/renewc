@@ -13,14 +13,12 @@ async fn der_and_pem_equal() {
     shared::setup_tracing();
 
     let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("cert.pem");
 
     let valid_till = OffsetDateTime::now_utc();
     let original: Signed<Pem> = gen_cert::generate_cert_with_chain(valid_till, false);
 
-    let mut config = Config::test(42);
+    let mut config = Config::test(42, dir.path());
     config.production = false;
-    config.output_config.certificate_path = path;
 
     for format in [
         Output::Pem,

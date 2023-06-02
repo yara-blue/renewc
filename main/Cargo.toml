@@ -43,6 +43,7 @@ yasna = "0.5"
 async-trait = "0.1"
 data-encoding = "2.4"
 pem = "2"
+strum = { version = "0.24.1", features = ["derive"] }
 
 [dev-dependencies]
 libc = "0.2"

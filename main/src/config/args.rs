@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand, ValueHint};
-use std::path::PathBuf;
-use std::str::FromStr;
 use time::macros::format_description;
+use std::path::{PathBuf, Path};
+use std::str::FromStr;
 
 use super::Output;
 
@@ -97,11 +97,11 @@ pub struct RenewArgs {
 
     // the options in the Output struct are added at the end
     #[clap(flatten)]
-    pub output_config: OutputConfig,
+    pub output_config: OutputArgs,
 }
 
 #[derive(Parser, Debug, Clone)]
-pub struct OutputConfig {
+pub struct OutputArgs {
     /// How to store the output, encoding and ways to split
     /// the file between files.
     #[clap(long, short, value_enum, default_value_t = Output::PemSeperateKey)]
@@ -139,4 +139,15 @@ pub struct OutputConfig {
     /// Note: Can not be used when the format is set to Der.
     #[clap(long, value_hint=ValueHint::FilePath)]
     pub chain_path: Option<PathBuf>,
+}
+
+impl OutputArgs {
+    pub fn test(dir: &Path) -> Self {
+        Self {
+            output: Output::default(),
+            certificate_path: dir.to_owned(),
+            key_path: None,
+            chain_path: None,
+        }
+    }
 }
