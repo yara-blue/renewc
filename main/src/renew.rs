@@ -115,6 +115,11 @@ async fn wait_for_order_rdy<'a>(
     let mut tries = 0u8;
     let mut delay = Duration::from_millis(250);
     let state = loop {
+        order
+            .refresh()
+            .await
+            .wrap_err("could not get update on order from server")?;
+
         let status = match &order.state().status {
             OrderStatus::Ready => break Ok(order.state()),
             OrderStatus::Invalid => break Err(eyre::eyre!("order is invalid"))
