@@ -129,9 +129,9 @@ fn exit_requested(w: &mut impl Write, config: &Config, question: &str) -> bool {
     let mut buf = String::new();
     std::io::stdin().read_line(&mut buf).unwrap();
     if let Some('y') = buf.chars().next() {
+        false
+    } else {
         info!(w, "Quiting, user requested exit");
         true
-    } else {
-        false
     }
 }
