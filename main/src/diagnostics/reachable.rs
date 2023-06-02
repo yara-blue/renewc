@@ -29,6 +29,7 @@ async fn check_response(resp: Response<Body>, key_auth: &str, domain: &str) -> e
     }
 }
 
+// // TODO: check if something binds to port if it does print this <dvdsk>
 fn error_timeout(domain: &str) -> eyre::Result<()> {
     // we explicitly do not instruct the user to turn the other application off
     // in case it is a revers proxy/load balancer such as HAProxy. Another diagnostic
@@ -46,11 +47,11 @@ async fn check(path: &str, domain: &str, key_auth: &str) -> eyre::Result<()> {
     let get = timeout(Duration::from_millis(50), get);
     match get.await {
         Ok(Ok(resp)) => check_response(resp, key_auth, domain).await,
-        Ok(Err(e)) if e.is_timeout() => error_timeout(domain),
+        Ok(Err(e)) if e.is_timeout() => Err(eyre::eyre!("Could not reach {APP} via {domain}")),
         Ok(Err(e)) if e.is_connect() => Err(eyre::eyre!("Could not reach {APP} via {domain}"))
             .suggestion("Forward port 80 to this machine"),
         Ok(Err(e)) => unreachable!("reqwest error: {e:?}"),
-        Err(_) => error_timeout(domain),
+        Err(_) => Err(eyre::eyre!("Could not reach {APP} via {domain}")),
     }
 }
 
