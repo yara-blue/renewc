@@ -86,7 +86,7 @@ fn load_seperate_private_key<P: PemItem>(config: &Config) -> eyre::Result<Option
     } = &config.output_config;
     let encoding = Encoding::from(output);
 
-    let Some(bytes) = read_any_file(&key_path.as_path())? else {
+    let Some(bytes) = read_any_file(key_path.as_path())? else {
         return Ok(None);
     };
 
@@ -104,7 +104,7 @@ fn load_certificate<P: PemItem>(config: &Config) -> eyre::Result<Option<MaybeSig
         ..
     } = &config.output_config;
 
-    let Some(bytes) = read_any_file(&cert_path.as_path())? else {
+    let Some(bytes) = read_any_file(cert_path.as_path())? else {
         return Ok(None);
     };
 

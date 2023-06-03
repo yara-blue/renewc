@@ -17,7 +17,7 @@ async fn der_and_pem_equal() {
     let valid_till = OffsetDateTime::now_utc();
     let original: Signed<Pem> = gen_cert::generate_cert_with_chain(valid_till, false);
 
-    let mut config = Config::test(42, dir.path());
+    let mut config = Config::test(42, &dir.path().join("test_cert"));
     config.production = false;
 
     for format in [

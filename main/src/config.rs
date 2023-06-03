@@ -6,12 +6,12 @@ use strum::EnumIter;
 use crate::diagnostics;
 
 use self::args::RenewArgs;
-use self::paths::{name, ChainPath, KeyPath};
+use self::paths::{ChainPath, KeyPath};
 
 mod args;
 mod paths;
 pub use args::{Commands, InstallArgs, OutputArgs};
-use paths::CertPath;
+use paths::{CertPath, name};
 
 #[derive(clap::ValueEnum, Debug, Clone, Default, PartialEq, Eq)]
 /// How to store the output.

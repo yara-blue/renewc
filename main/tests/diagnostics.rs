@@ -21,7 +21,7 @@ async fn haproxy_binds_port() {
     let ha_config = ha_config.replace("<PORT>", &bound_port.to_string());
     std::fs::write(&path, ha_config).unwrap();
 
-    let mut config = Config::test(bound_port, dir.path());
+    let mut config = Config::test(bound_port, &dir.path().join("test_cert"));
     config.diagnostics.haproxy.path = path;
 
     let err = run::<Pem>(&mut InstantAcme {}, &mut std::io::stdout(), &config, true)
@@ -43,7 +43,7 @@ async fn insufficent_permissions() {
     shared::setup_tracing();
 
     let dir = tempdir().unwrap();
-    let config = Config::test(42, dir.path());
+    let config = Config::test(42, &dir.path().join("test_cert"));
 
     let err = run::<Pem>(&mut InstantAcme {}, &mut std::io::stdout(), &config, true)
         .await

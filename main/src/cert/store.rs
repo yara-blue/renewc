@@ -118,24 +118,24 @@ pub fn on_disk<P: PemItem>(config: &Config, signed: Signed<P>) -> eyre::Result<(
 
     match config.output_config.output {
         Output::Pem => {
-            write_chain(encoding, chain, &cert_path)?;
-            write_cert(encoding, certificate, Append(&cert_path))?;
-            write_key(encoding, private_key, Append(&cert_path))?;
+            write_chain(encoding, chain, cert_path)?;
+            write_cert(encoding, certificate, Append(cert_path))?;
+            write_key(encoding, private_key, Append(cert_path))?;
         }
         Output::PemSeperateKey => {
-            write_chain(encoding, chain, &cert_path)?;
-            write_cert(encoding, certificate, Append(&cert_path))?;
-            write_key(encoding, private_key, Create(&key_path))?;
+            write_chain(encoding, chain, cert_path)?;
+            write_cert(encoding, certificate, Append(cert_path))?;
+            write_key(encoding, private_key, Create(key_path))?;
         }
         Output::PemSeperateChain => {
-            write_chain(encoding, chain, &chain_path)?;
-            write_cert(encoding, certificate, Create(&cert_path))?;
-            write_key(encoding, private_key, Append(&cert_path))?;
+            write_chain(encoding, chain, chain_path)?;
+            write_cert(encoding, certificate, Create(cert_path))?;
+            write_key(encoding, private_key, Append(cert_path))?;
         }
         Output::PemAllSeperate | Output::Der => {
-            write_chain(encoding, chain, &chain_path)?;
-            write_cert(encoding, certificate, Create(&cert_path))?;
-            write_key(encoding, private_key, Create(&key_path))?;
+            write_chain(encoding, chain, chain_path)?;
+            write_cert(encoding, certificate, Create(cert_path))?;
+            write_key(encoding, private_key, Create(key_path))?;
         }
     }
 

@@ -16,7 +16,7 @@ async fn production_does_not_overwrite_valid_production() {
     let mut acme = TestAcme::new(gen_cert::valid());
     let dir = tempfile::tempdir().unwrap();
 
-    let mut config = Config::test(42, dir.path());
+    let mut config = Config::test(42, &dir.path().join("test"));
     config.output_config.output = Output::Pem;
     config.production = true;
 
@@ -52,7 +52,7 @@ async fn staging_does_not_overwrite_production() {
     let mut acme = TestAcme::new(gen_cert::valid());
     let dir = tempfile::tempdir().unwrap();
 
-    let mut config = Config::test(42, dir.path());
+    let mut config = Config::test(42, &dir.path().join("test_cert"));
     config.output_config.output = Output::Pem;
     config.production = true;
 
@@ -99,7 +99,7 @@ async fn staging_overwrites_expired_production() {
     let dir = tempfile::tempdir().unwrap();
     let mut acme = TestAcme::new(gen_cert::expired());
 
-    let mut config = Config::test(42, dir.path());
+    let mut config = Config::test(42, &dir.path().join("test_cert"));
     config.output_config.output = Output::Pem;
     config.production = true;
 
@@ -137,7 +137,7 @@ async fn corrupt_existing_does_not_crash() {
 
     let dir = tempfile::tempdir().unwrap();
 
-    let mut config = Config::test(42, dir.path());
+    let mut config = Config::test(42, &dir.path().join("test_cert"));
     config.output_config.output = Output::Pem;
     config.production = true;
 

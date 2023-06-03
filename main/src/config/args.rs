@@ -142,7 +142,7 @@ pub struct OutputArgs {
 }
 
 impl OutputArgs {
-    pub fn test(dir: &Path) -> Self {
+    #[must_use] pub fn test(dir: &Path) -> Self {
         Self {
             output: Output::default(),
             certificate_path: dir.to_owned(),
