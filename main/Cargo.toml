@@ -1,6 +1,6 @@
 [package]
 name = "renewc"
-version = "0.2.5"
+version = "0.2.6"
 authors = ["David Kleingeld <opensource@davidsk.dev>"]
 edition = "2021"
 description = "Certificate renewal, with advanced diagnostics without installing anything"

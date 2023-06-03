@@ -111,7 +111,8 @@ pub struct OutputArgs {
     /// certificate possibly with its private key and/or chain
     /// (depending on the selected Output option).
     ///
-    /// Note: The file extension depends on the chosen format.
+    /// Note: The correct file extension is added automatically 
+    /// if left unspecified. It depends on the chosen output format.
     #[clap(long, short, value_hint=ValueHint::FilePath)]
     pub certificate_path: PathBuf,
 
@@ -123,7 +124,8 @@ pub struct OutputArgs {
     /// certificate-path's dir and the file name will be the shortest
     /// part of the domain(s).
     ///
-    /// Note: The file extension depends on the chosen format.
+    /// Note: The correct file extension is added automatically 
+    /// if left unspecified. It depends on the chosen output format.
     #[clap(long, value_hint=ValueHint::FilePath)]
     pub key_path: Option<PathBuf>,
 
@@ -135,8 +137,9 @@ pub struct OutputArgs {
     /// certificate-path's dir and the file name will be the shortest
     /// part of the domain(s).
     ///
-    /// Note: The file extension depends on the chosen format.
     /// Note: Can not be used when the format is set to Der.
+    /// Note: The correct file extension is added automatically 
+    /// if left unspecified
     #[clap(long, value_hint=ValueHint::FilePath)]
     pub chain_path: Option<PathBuf>,
 }
