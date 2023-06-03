@@ -1,12 +1,17 @@
-use std::path::PathBuf;
-use std::str::FromStr;
+use std::path::Path;
+
+use color_eyre::eyre;
+use strum::EnumIter;
 
 use crate::diagnostics;
 
 use self::args::RenewArgs;
+use self::paths::{ChainPath, KeyPath};
 
 mod args;
-pub use args::{Commands, InstallArgs, OutputConfig};
+mod paths;
+pub use args::{Commands, InstallArgs, OutputArgs};
+use paths::{CertPath, name};
 
 #[derive(clap::ValueEnum, Debug, Clone, Default, PartialEq, Eq)]
 /// How to store the output.
@@ -49,6 +54,61 @@ pub enum Output {
     PKCS12AllSeperate,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter)]
+pub enum Encoding {
+    PEM,
+    DER,
+    #[cfg(feature = "derchain")]
+    PKCS12,
+}
+
+impl Encoding {
+    pub(crate) fn extension(self) -> &'static str {
+        match self {
+            Encoding::PEM => "pem",
+            Encoding::DER => "der",
+            #[cfg(feature = "derchain")]
+            Encoding::PKCS12 => "pkcs12",
+        }
+    }
+}
+
+impl From<&Output> for Encoding {
+    fn from(output: &Output) -> Self {
+        match output {
+            Output::Pem
+            | Output::PemSeperateKey
+            | Output::PemSeperateChain
+            | Output::PemAllSeperate => Encoding::PEM,
+            Output::Der => Encoding::DER,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct OutputConfig {
+    pub output: Output,
+    pub cert_path: CertPath,
+    pub key_path: KeyPath,
+    pub chain_path: ChainPath,
+}
+
+impl OutputConfig {
+    fn new(args: OutputArgs, name: &str) -> Result<Self, eyre::Report> {
+        Ok(OutputConfig {
+            cert_path: CertPath::new(&args.output, &args.certificate_path, name)?,
+            key_path: KeyPath::new(&args.output, &args.certificate_path, args.key_path, name)?,
+            chain_path: ChainPath::new(
+                &args.output,
+                &args.certificate_path,
+                args.chain_path,
+                name,
+            )?,
+            output: args.output,
+        })
+    }
+}
+
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -56,7 +116,7 @@ pub struct Config {
     pub(crate) email: Vec<String>,
     pub production: bool,
     pub(crate) port: u16,
-    pub output_config: args::OutputConfig,
+    pub output_config: OutputConfig,
     pub reload: Option<String>,
     pub(crate) renew_early: bool,
     pub(crate) overwrite_production: bool,
@@ -66,46 +126,41 @@ pub struct Config {
     pub diagnostics: diagnostics::Config,
 }
 
-impl From<RenewArgs> for Config {
-    fn from(args: RenewArgs) -> Self {
-        Config {
+impl TryFrom<RenewArgs> for Config {
+    type Error = eyre::Report;
+
+    fn try_from(args: RenewArgs) -> Result<Self, Self::Error> {
+        let name = name(&args.domain)?;
+        let output_config = OutputConfig::new(args.output_config, &name)?;
+        Ok(Config {
             domains: args.domain,
             email: args.email,
             production: args.production,
             port: args.port,
-            output_config: args.output_config,
+            output_config,
             reload: args.reload,
             force: args.force,
             renew_early: args.renew_early,
             overwrite_production: args.overwrite_production,
             non_interactive: false,
             diagnostics: diagnostics::Config::default(),
-        }
-    }
-}
-
-// TODO: dont pass outputconfig to 
-// run/renew only to store on disk function <03-05-23, dvdsk>
-impl args::OutputConfig {
-    fn test() -> Self {
-        Self {
-            output: Output::default(),
-            certificate_path: PathBuf::from_str("test").unwrap(),
-            key_path: None,
-            chain_path: None,
-        }
+        })
     }
 }
 
 impl Config {
     #[must_use]
-    pub fn test(port: u16) -> Self {
+    pub fn test(port: u16, dir: &Path) -> Self {
+        let domains = vec!["testdomain.org".into()];
+        let name = name(&domains).unwrap();
+        let output_args = OutputArgs::test(dir);
+        let output_config = OutputConfig::new(output_args, &name).unwrap();
         Config {
-            domains: vec!["testdomain.org".into()],
+            domains,
             email: vec!["test@testdomain.org".into()],
             production: false,
             port,
-            output_config: args::OutputConfig::test(),
+            output_config,
             reload: None,
             renew_early: false,
             force: false,

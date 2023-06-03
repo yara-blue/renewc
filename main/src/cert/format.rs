@@ -120,7 +120,4 @@ mod tests {
         let pem: Pem = der.to_pem(Label::Certificate);
         assert_eq!(pem.into_bytes(), ROOT_CA);
     }
-
-    #[test]
-    fn parse_chain() {}
 }

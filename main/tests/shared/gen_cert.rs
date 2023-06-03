@@ -78,6 +78,7 @@ pub fn valid() -> OffsetDateTime {
     OffsetDateTime::from_unix_timestamp(16_734_790_789).unwrap()
 }
 
+#[allow(dead_code)]
 pub fn expired() -> OffsetDateTime {
     OffsetDateTime::from_unix_timestamp(1_683_145_489).unwrap()
 }

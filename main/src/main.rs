@@ -37,7 +37,7 @@ async fn main() -> eyre::Result<()> {
     let mut stdout = std::io::stdout();
     match cli.command {
         Commands::Run(args) => {
-            let config = Config::from(args);
+            let config = Config::try_from(args)?;
             let Some(certs): Option<Signed<pem::Pem>> = run(&mut InstantAcme {}, &mut stdout, &config, debug).await? else {
                 return Ok(());
             };

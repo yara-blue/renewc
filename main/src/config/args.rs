@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand, ValueHint};
-use std::path::PathBuf;
-use std::str::FromStr;
 use time::macros::format_description;
+use std::path::{PathBuf, Path};
+use std::str::FromStr;
 
 use super::Output;
 
@@ -97,11 +97,11 @@ pub struct RenewArgs {
 
     // the options in the Output struct are added at the end
     #[clap(flatten)]
-    pub output_config: OutputConfig,
+    pub output_config: OutputArgs,
 }
 
 #[derive(Parser, Debug, Clone)]
-pub struct OutputConfig {
+pub struct OutputArgs {
     /// How to store the output, encoding and ways to split
     /// the file between files.
     #[clap(long, short, value_enum, default_value_t = Output::PemSeperateKey)]
@@ -111,7 +111,8 @@ pub struct OutputConfig {
     /// certificate possibly with its private key and/or chain
     /// (depending on the selected Output option).
     ///
-    /// Note: The file extension depends on the chosen format.
+    /// Note: The correct file extension is added automatically 
+    /// if left unspecified. It depends on the chosen output format.
     #[clap(long, short, value_hint=ValueHint::FilePath)]
     pub certificate_path: PathBuf,
 
@@ -123,7 +124,8 @@ pub struct OutputConfig {
     /// certificate-path's dir and the file name will be the shortest
     /// part of the domain(s).
     ///
-    /// Note: The file extension depends on the chosen format.
+    /// Note: The correct file extension is added automatically 
+    /// if left unspecified. It depends on the chosen output format.
     #[clap(long, value_hint=ValueHint::FilePath)]
     pub key_path: Option<PathBuf>,
 
@@ -135,8 +137,20 @@ pub struct OutputConfig {
     /// certificate-path's dir and the file name will be the shortest
     /// part of the domain(s).
     ///
-    /// Note: The file extension depends on the chosen format.
     /// Note: Can not be used when the format is set to Der.
+    /// Note: The correct file extension is added automatically 
+    /// if left unspecified
     #[clap(long, value_hint=ValueHint::FilePath)]
     pub chain_path: Option<PathBuf>,
+}
+
+impl OutputArgs {
+    #[must_use] pub fn test(dir: &Path) -> Self {
+        Self {
+            output: Output::default(),
+            certificate_path: dir.to_owned(),
+            key_path: None,
+            chain_path: None,
+        }
+    }
 }

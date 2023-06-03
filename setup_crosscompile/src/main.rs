@@ -48,17 +48,15 @@ fn main() {
     musl_compilers.insert("arm-unknown-linux-musleabihf", "arm-linux-musleabihf-cross");
 
     let target_arch = env::args().nth(1).expect("needs arch as argument");
-    let compiler_name = musl_compilers.get(target_arch.as_str()).expect(&format!(
-        "unsupported arch: {target_arch}\nvalid options are: {:?}",
-        musl_compilers.keys().collect::<Vec<_>>()
-    ));
+    let compiler_name = musl_compilers.get(target_arch.as_str()).unwrap_or_else(|| panic!("unsupported arch: {target_arch}\nvalid options are: {:?}",
+        musl_compilers.keys().collect::<Vec<_>>()));
 
     let dir = PathBuf::from("../compilers");
     if !dir.is_dir() {
         fs::create_dir(&dir).unwrap();
     }
 
-    if !dir.join(&compiler_name).is_dir() {
+    if !dir.join(compiler_name).is_dir() {
         download_compiler(dir, compiler_name);
     }
 }

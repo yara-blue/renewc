@@ -1,6 +1,6 @@
 [package]
 name = "renewc"
-version = "0.2.5"
+version = "0.2.6"
 authors = ["David Kleingeld <opensource@davidsk.dev>"]
 edition = "2021"
 description = "Certificate renewal, with advanced diagnostics without installing anything"
@@ -12,8 +12,7 @@ keywords = ["cli", "certificate", "acme"]
 categories = ["command-line-utilities"]
 
 [dependencies]
-# instant-acme = { version = "^0.3.2" }
-instant-acme = { git = "https://github.com/instant-labs/instant-acme", branch = "http-client-bounds" }
+instant-acme = { version = "^0.3.2" }
 x509-parser = "0.15"
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
@@ -43,6 +42,7 @@ yasna = "0.5"
 async-trait = "0.1"
 data-encoding = "2.4"
 pem = "2"
+strum = { version = "0.24.1", features = ["derive"] }
 
 [dev-dependencies]
 libc = "0.2"
