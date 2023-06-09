@@ -21,8 +21,8 @@ use paths::{CertPath, name};
 /// a client needs to check if our signed certificate is authentic. Our
 /// certificates private key.
 pub enum Output {
-    /// Use PEM encoding. Store the chain, the signed certificate and the private
-    /// key in the same file. File extension will be 'pem'.
+    /// Use PEM encoding. Store the signed certificate, the chain and the private
+    /// key in the same file in that order. File extension will be 'pem'.
     ///
     /// Amongst others needed by: Haproxy
     Pem,

@@ -13,7 +13,7 @@ use crate::config::{Encoding, Output, OutputConfig};
 use crate::Config;
 
 #[instrument(level = "debug", skip(certificate))]
-fn write_cert(
+fn write_signed(
     encoding: Encoding,
     certificate: impl PemItem,
     operation: Operation,
@@ -64,9 +64,15 @@ fn write_key(
     }
 }
 
-#[instrument(level = "debug", skip(chain))]
-fn write_chain<P: PemItem>(encoding: Encoding, chain: Vec<P>, path: &Path) -> eyre::Result<()> {
+fn write_chain<P: PemItem>(
+    encoding: Encoding,
+    chain: Vec<P>,
+    operation: Operation,
+) -> eyre::Result<()> {
     if encoding == Encoding::DER {
+        let Operation::Create(path) = operation else {
+            unreachable!("appending to der files makes no sense")
+        };
         for (i, cert) in chain.into_iter().enumerate() {
             let bytes = cert.der().into_bytes();
             let path = path.with_file_name(format!("{i}_chain.der"));
@@ -84,9 +90,25 @@ fn write_chain<P: PemItem>(encoding: Encoding, chain: Vec<P>, path: &Path) -> ey
     )
     .flatten()
     .collect();
-    let mut file = fs::File::create(path)?;
-    file.write_all(&bytes)
-        .wrap_err("could not create certificate chain file")
+
+    match operation {
+        Operation::Append(path) => {
+            let mut file = fs::OpenOptions::new()
+                .append(true)
+                .open(path)
+                .wrap_err("could not append to chain file")
+                .with_note(|| format!("path: {path:?}"))?;
+            file.write_all(&bytes)
+                .wrap_err("could not write to chain file")
+        }
+        Operation::Create(path) => {
+            let mut file = fs::File::create(path)
+                .wrap_err("could not create chain file")
+                .with_note(|| format!("path: {path:?}"))?;
+            file.write_all(&bytes)
+                .wrap_err("could not create certificate chain file")
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -118,23 +140,23 @@ pub fn on_disk<P: PemItem>(config: &Config, signed: Signed<P>) -> eyre::Result<(
 
     match config.output_config.output {
         Output::Pem => {
-            write_chain(encoding, chain, cert_path)?;
-            write_cert(encoding, certificate, Append(cert_path))?;
+            write_signed(encoding, certificate, Create(cert_path))?;
+            write_chain(encoding, chain, Append(cert_path))?;
             write_key(encoding, private_key, Append(cert_path))?;
         }
         Output::PemSeperateKey => {
-            write_chain(encoding, chain, cert_path)?;
-            write_cert(encoding, certificate, Append(cert_path))?;
+            write_chain(encoding, chain, Create(cert_path))?;
+            write_signed(encoding, certificate, Append(cert_path))?;
             write_key(encoding, private_key, Create(key_path))?;
         }
         Output::PemSeperateChain => {
-            write_chain(encoding, chain, chain_path)?;
-            write_cert(encoding, certificate, Create(cert_path))?;
+            write_chain(encoding, chain, Create(chain_path))?;
+            write_signed(encoding, certificate, Create(cert_path))?;
             write_key(encoding, private_key, Append(cert_path))?;
         }
         Output::PemAllSeperate | Output::Der => {
-            write_chain(encoding, chain, chain_path)?;
-            write_cert(encoding, certificate, Create(cert_path))?;
+            write_chain(encoding, chain, Create(chain_path))?;
+            write_signed(encoding, certificate, Create(cert_path))?;
             write_key(encoding, private_key, Create(key_path))?;
         }
     }

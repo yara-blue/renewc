@@ -72,7 +72,6 @@ mod tests {
         let acme = TestAcme::new(valid());
         let cert: Signed<Pem> = acme.renew(&Config::test(42, &dir.path().join("test_cert")), true).await.unwrap();
 
-        dbg!(&cert.private_key);
         let private_key = String::from_utf8(cert.private_key.into_bytes()).unwrap();
         assert!(!private_key.is_empty());
         assert!(private_key.contains("END PRIVATE KEY"));
