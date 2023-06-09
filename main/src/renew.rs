@@ -1,12 +1,12 @@
 use std::io::Read;
 use std::string::String;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use color_eyre::eyre::{self, Context};
 use color_eyre::Help;
 use rcgen::{Certificate, CertificateParams, DistinguishedName};
 use tokio::time::sleep;
-use tracing::{debug, error};
+use tracing::{debug, error, info};
 
 use crate::cert::format::PemItem;
 use crate::cert::Signed;
@@ -112,8 +112,11 @@ async fn wait_for_order_rdy<'a>(
         order.set_challenge_ready(url).await.unwrap();
     }
 
-    let mut tries = 0u8;
+    let first_attempt = Instant::now();
     let mut delay = Duration::from_millis(250);
+    const MAX_DELAY: Duration = Duration::from_secs(10);
+    let mut attempt = 0;
+    info!("waiting for certificate authority to verify our challange");
     let state = loop {
         order
             .refresh()
@@ -128,13 +131,20 @@ async fn wait_for_order_rdy<'a>(
         };
 
         delay *= 2;
-        tries += 1;
+        attempt += 1;
         debug!(
-            tries,
-            "order is not ready (status: {status:?}), waiting {delay:?}"
+            attempt,
+            "order is not ready (status: {status:?}), waiting {delay:?} before retrying"
         );
 
-        if tries >= 5 {
+        const INFO_DELAY: Duration = Duration::from_secs(2);
+        if first_attempt.elapsed() >= INFO_DELAY {
+            info!(
+                "certificate authority is taking longer then expected, waiting {} more seconds",
+                (MAX_DELAY - INFO_DELAY).as_secs()
+            )
+        }
+        if first_attempt.elapsed() >= MAX_DELAY {
             break Err(eyre::eyre!("order is not ready in time"))
                 .with_note(|| format!("last order status: {status:?}"));
         }

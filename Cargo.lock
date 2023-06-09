@@ -1450,7 +1450,6 @@ dependencies = [
  "haproxy-config",
  "hyper",
  "instant-acme",
- "is-terminal",
  "itertools",
  "libc",
  "libproc",
