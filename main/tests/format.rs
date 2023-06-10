@@ -31,7 +31,7 @@ async fn der_and_pem_equal() {
     {
         config.output_config.output = dbg!(format);
         store::on_disk(&config, original.clone(), &mut TestPrinter).unwrap();
-        let loaded = load::from_disk(&config).unwrap().unwrap();
+        let loaded = load::from_disk(&config, &mut TestPrinter).unwrap().unwrap();
 
         assert_eq!(
             loaded, original,
