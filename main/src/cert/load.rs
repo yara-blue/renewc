@@ -1,4 +1,4 @@
-use std::io::ErrorKind;
+use std::io::{ErrorKind, Write};
 
 use crate::config::{Encoding, OutputConfig};
 use crate::Config;
@@ -12,9 +12,12 @@ use super::{MaybeSigned, Signed};
 use super::io::read_any_file;
 
 // TODO: remove Option, report errors upstream as warnings <03-05-23, dvdsk>
-#[instrument(level = "debug", skip(config), ret)]
-pub fn from_disk<P: PemItem>(config: &Config) -> eyre::Result<Option<Signed<P>>> {
-    let Some(MaybeSigned { certificate, private_key, mut chain }) = load_certificate(config).wrap_err("Failed to load certificates from disk")? else {
+#[instrument(level = "debug", skip(config, stdout), ret)]
+pub fn from_disk<P: PemItem>(
+    config: &Config,
+    stdout: &mut impl Write,
+) -> eyre::Result<Option<Signed<P>>> {
+    let Some(MaybeSigned { certificate, private_key, mut chain }) = load_certificate(&config.output_config).wrap_err("Failed to load certificates from disk")? else {
         return Ok(None);
     };
 
@@ -30,8 +33,9 @@ pub fn from_disk<P: PemItem>(config: &Config) -> eyre::Result<Option<Signed<P>>>
     }
 
     if chain.is_empty() {
-        tracing::info!("Certificate chain from disk is empty");
-        return Ok(None);
+        tracing::info!("Certificate chain in certificates currently on disk not found.");
+        write!(stdout, "Found existing certificate however could not find a certificate chain. This can be a problem for some applications. Renewal will create a chain file, can proceed without problems and is recommended.").unwrap();
+        chain = Vec::new();
     }
 
     Ok(Some(Signed {
@@ -80,9 +84,7 @@ fn load_seperate_chain<P: PemItem>(config: &Config) -> eyre::Result<Vec<P>> {
 #[instrument(level = "debug", skip(config), err)]
 fn load_seperate_private_key<P: PemItem>(config: &Config) -> eyre::Result<Option<P>> {
     let OutputConfig {
-        output,
-        key_path,
-        ..
+        output, key_path, ..
     } = &config.output_config;
     let encoding = Encoding::from(output);
 
@@ -96,13 +98,11 @@ fn load_seperate_private_key<P: PemItem>(config: &Config) -> eyre::Result<Option
     }))
 }
 
-#[instrument(level = "debug", skip(config), ret)]
-fn load_certificate<P: PemItem>(config: &Config) -> eyre::Result<Option<MaybeSigned<P>>> {
+#[instrument(level = "debug", ret)]
+fn load_certificate<P: PemItem>(config: &OutputConfig) -> eyre::Result<Option<MaybeSigned<P>>> {
     let OutputConfig {
-        output,
-        cert_path,
-        ..
-    } = &config.output_config;
+        output, cert_path, ..
+    } = &config;
 
     let Some(bytes) = read_any_file(cert_path.as_path())? else {
         return Ok(None);

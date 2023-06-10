@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use super::format::PemItem;
 use super::{load, Signed};
 use crate::config;
@@ -19,8 +21,11 @@ pub struct Info {
 }
 
 impl Info {
-    pub fn from_disk(config: &config::Config) -> eyre::Result<Option<Self>> {
-        let Some(signed) = load::from_disk::<pem::Pem>(config)? else {
+    pub fn from_disk(
+        config: &config::Config,
+        stdout: &mut impl Write,
+    ) -> eyre::Result<Option<Self>> {
+        let Some(signed) = load::from_disk::<pem::Pem>(config, stdout)? else {
             return Ok(None);
         };
         let info = analyze(signed)?;
