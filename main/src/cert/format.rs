@@ -3,8 +3,8 @@ use color_eyre::eyre::{self, bail, Context};
 use pem::Pem;
 
 impl PemItem for Pem {
-    fn into_bytes(self) -> Vec<u8> {
-        pem::encode(&self).into_bytes()
+    fn as_bytes(&self) -> Vec<u8> {
+        pem::encode(self).into_bytes()
     }
 
     fn from_pem(pem_encoded: impl AsRef<[u8]>, label: Label) -> eyre::Result<Self> {
@@ -36,7 +36,7 @@ impl PemItem for Pem {
 
 pub trait PemItem: Sized {
     #[must_use]
-    fn into_bytes(self) -> Vec<u8>;
+    fn as_bytes(&self) -> Vec<u8>;
 
     fn from_pem(encoded: impl AsRef<[u8]>, label: Label) -> eyre::Result<Self>
     where
@@ -118,6 +118,6 @@ mod tests {
         let der = Pem::from_pem(ROOT_CA, Label::Certificate).unwrap().der();
         assert_ne!(der.clone().into_bytes(), ROOT_CA);
         let pem: Pem = der.to_pem(Label::Certificate);
-        assert_eq!(pem.into_bytes(), ROOT_CA);
+        assert_eq!(pem.as_bytes(), ROOT_CA);
     }
 }
