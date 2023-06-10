@@ -7,6 +7,9 @@ use renewc::{run, Config};
 mod shared;
 use shared::gen_cert;
 use shared::TestAcme;
+use shared::TestPrinter;
+use tracing::info;
+
 
 #[tokio::test]
 async fn production_does_not_overwrite_valid_production() {
@@ -16,18 +19,18 @@ async fn production_does_not_overwrite_valid_production() {
     let mut acme = TestAcme::new(gen_cert::valid());
     let dir = tempfile::tempdir().unwrap();
 
-    let mut config = Config::test(42, &dir.path().join("test"));
+    let mut config = Config::test(42, &dir.path());
     config.output_config.output = Output::Pem;
     config.production = true;
 
     // run to place still valid cert
-    let mut stdout = std::io::stdout();
-    let certs = run::<Pem>(&mut acme, &mut stdout, &config, true)
+    let certs = run::<Pem>(&mut acme, &mut TestPrinter, &config, true)
         .await
         .unwrap()
-        .unwrap();
-    cert::store::on_disk(&config, certs).unwrap();
+        .expect("should return certificate, since none exists before it");
+    cert::store::on_disk(&config, certs, &mut TestPrinter).unwrap();
 
+    info!("test run starts now");
     // second run encounters the still valid cert and errors out
     config.production = true;
     let mut output = Vec::new();
@@ -57,12 +60,11 @@ async fn staging_does_not_overwrite_production() {
     config.production = true;
 
     // run to place still valid cert
-    let mut stdout = std::io::stdout();
-    let certs = run::<Pem>(&mut acme, &mut stdout, &config, true)
+    let certs = run::<Pem>(&mut acme, &mut TestPrinter, &config, true)
         .await
         .unwrap()
         .unwrap();
-    cert::store::on_disk(&config, certs).unwrap();
+    cert::store::on_disk(&config, certs, &mut TestPrinter).unwrap();
 
     // second run encounters the still valid cert and errors out
     config.production = false;
@@ -103,13 +105,12 @@ async fn staging_overwrites_expired_production() {
     config.output_config.output = Output::Pem;
     config.production = true;
 
-    // run to place still valid cert
-    let mut stdout = std::io::stdout();
-    let certs = run::<Pem>(&mut acme, &mut stdout, &config, true)
+    // run to place expired cert
+    let certs = run::<Pem>(&mut acme, &mut TestPrinter, &config, true)
         .await
         .unwrap()
         .unwrap();
-    cert::store::on_disk(&config, certs).unwrap();
+    cert::store::on_disk(&config, certs, &mut TestPrinter).unwrap();
 
     let mut acme = TestAcme::new(gen_cert::valid());
     config.production = false;

@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use color_eyre::eyre;
 use renewc::cert::format::PemItem;
 use renewc::cert::Signed;
@@ -20,13 +22,28 @@ impl TestAcme {
 
 #[async_trait::async_trait]
 impl renewc::ACME for TestAcme {
-    async fn renew<P: PemItem>(
+    async fn renew<P: PemItem, W: Write + Send>(
         &self,
         config: &renewc::Config,
+        _stdout: &mut W,
         _debug: bool,
     ) -> eyre::Result<Signed<P>> {
         let combined = generate_cert_with_chain(self.cert_expires, !config.production);
         Ok(combined)
+    }
+}
+
+pub struct TestPrinter;
+
+impl Write for TestPrinter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let string = String::from_utf8_lossy(buf);
+        print!("{string}");
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
     }
 }
 
@@ -70,9 +87,16 @@ mod tests {
     async fn acme_test_impl_pem_has_private_key() {
         let dir = tempdir().unwrap();
         let acme = TestAcme::new(valid());
-        let cert: Signed<Pem> = acme.renew(&Config::test(42, &dir.path().join("test_cert")), true).await.unwrap();
+        let cert: Signed<Pem> = acme
+            .renew(
+                &Config::test(42, &dir.path().join("test_cert")),
+                &mut TestPrinter,
+                true,
+            )
+            .await
+            .unwrap();
 
-        let private_key = String::from_utf8(cert.private_key.into_bytes()).unwrap();
+        let private_key = String::from_utf8(cert.private_key.as_bytes()).unwrap();
         assert!(!private_key.is_empty());
         assert!(private_key.contains("END PRIVATE KEY"));
         assert!(
