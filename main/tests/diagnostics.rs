@@ -4,6 +4,7 @@ use pem::Pem;
 use tempfile::tempdir;
 
 mod shared;
+use shared::TestPrinter;
 
 #[cfg(target_os = "linux")]
 #[tokio::test]
@@ -24,7 +25,7 @@ async fn haproxy_binds_port() {
     let mut config = Config::test(bound_port, &dir.path().join("test_cert"));
     config.diagnostics.haproxy.path = path;
 
-    let err = run::<Pem>(&mut InstantAcme {}, &mut std::io::stdout(), &config, true)
+    let err = run::<Pem>(&mut InstantAcme {}, &mut TestPrinter, &config, true)
         .await
         .unwrap_err();
     let test = format!("{err:?}");
@@ -45,7 +46,7 @@ async fn insufficent_permissions() {
     let dir = tempdir().unwrap();
     let config = Config::test(42, &dir.path().join("test_cert"));
 
-    let err = run::<Pem>(&mut InstantAcme {}, &mut std::io::stdout(), &config, true)
+    let err = run::<Pem>(&mut InstantAcme {}, &mut TestPrinter, &config, true)
         .await
         .unwrap_err();
     let test = format!("{err:?}");

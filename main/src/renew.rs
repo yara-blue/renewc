@@ -1,11 +1,11 @@
-use std::io::Read;
+use std::io::{Read, Write};
 use std::string::String;
 use std::time::Duration;
 
 use color_eyre::eyre::{self, Context};
 use color_eyre::Help;
 use rcgen::{Certificate, CertificateParams, DistinguishedName};
-use tokio::time::sleep;
+use tokio::time::{sleep, sleep_until, Instant};
 use tracing::{debug, error};
 
 use crate::cert::format::PemItem;
@@ -100,11 +100,22 @@ async fn prepare_challenge(order: &mut Order) -> eyre::Result<Vec<Http01Challeng
     Ok(challenges)
 }
 
+trait TimeLeft {
+    fn duration_until(&self) -> Duration;
+}
+
+impl TimeLeft for Instant {
+    fn duration_until(&self) -> Duration {
+        Instant::now().saturating_duration_since(*self)
+    }
+}
+
 // Exponentially back off until the order becomes ready or invalid.
 #[tracing::instrument(skip_all)]
 async fn wait_for_order_rdy<'a>(
     order: &'a mut Order,
     challenges: &[Http01Challenge],
+    stdout: &mut impl Write,
     debug: bool,
 ) -> eyre::Result<&'a OrderState> {
     // Let the server know we're ready to accept the challenges.
@@ -112,8 +123,12 @@ async fn wait_for_order_rdy<'a>(
         order.set_challenge_ready(url).await.unwrap();
     }
 
-    let mut tries = 0u8;
+    const MAX_DURATION: Duration = Duration::from_secs(10);
+    let mut next_attempt = Instant::now();
+    let deadline = Instant::now() + MAX_DURATION;
+    let mut print_info = Some(Instant::now() + Duration::from_secs(2));
     let mut delay = Duration::from_millis(250);
+    let mut attempt = 0;
     let state = loop {
         order
             .refresh()
@@ -127,18 +142,30 @@ async fn wait_for_order_rdy<'a>(
             other => other,
         };
 
-        delay *= 2;
-        tries += 1;
-        debug!(
-            tries,
-            "order is not ready (status: {status:?}), waiting {delay:?}"
-        );
-
-        if tries >= 5 {
+        if Instant::now() > deadline {
             break Err(eyre::eyre!("order is not ready in time"))
                 .with_note(|| format!("last order status: {status:?}"));
         }
-        sleep(delay).await;
+        delay *= 2;
+        attempt += 1;
+        next_attempt = deadline.min(next_attempt + delay);
+
+        debug!(
+            attempt,
+            "order is not ready (status: {status:?}), waiting {delay:?} before retrying"
+        );
+
+        // None is smaller then all Some
+        if print_info.is_some_and(|p| next_attempt > p) {
+            print_info = None; // only print info once
+            writeln!(
+                stdout,
+                "certificate authority is taking longer then expected, waiting {} more seconds",
+                deadline.duration_until().as_secs()
+            )
+            .unwrap();
+        }
+        sleep_until(next_attempt).await;
     };
 
     if debug && state.is_err() {
@@ -170,7 +197,11 @@ fn prepare_sign_request(names: &[String]) -> Result<(Certificate, Vec<u8>), rcge
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn renew<P: PemItem>(config: &Config, debug: bool) -> eyre::Result<Signed<P>> {
+pub async fn renew<P: PemItem>(
+    config: &Config,
+    stdout: &mut impl Write,
+    debug: bool,
+) -> eyre::Result<Signed<P>> {
     let account = account(config).await?;
     let mut order = order(&account, &config.domains)
         .await
@@ -183,7 +214,14 @@ pub async fn renew<P: PemItem>(config: &Config, debug: bool) -> eyre::Result<Sig
     diagnostics::reachable::server(config, &challenges)
         .await
         .wrap_err("Domain does not route to this application")?;
-    let ready = wait_for_order_rdy(&mut order, &challenges, debug);
+    write!(
+        stdout,
+        "waiting: certificate authority is verifing we own the domain"
+    )
+    .unwrap();
+    stdout.flush().unwrap();
+
+    let ready = wait_for_order_rdy(&mut order, &challenges, stdout, debug);
     let state = tokio::select!(
         res = ready => res?,
         e = server => {
@@ -196,6 +234,13 @@ pub async fn renew<P: PemItem>(config: &Config, debug: bool) -> eyre::Result<Sig
         return Err(eyre::eyre!("order is invalid"))
             .suggestion("is the challenge server reachable?");
     }
+    writeln!(stdout, ", done").unwrap();
+    write!(
+        stdout,
+        "waiting: certificate authority is signing our certificate"
+    )
+    .unwrap();
+    stdout.flush().unwrap();
 
     let names: Vec<String> = challenges.into_iter().map(|ch| ch.id).collect();
     let (cert, csr) = prepare_sign_request(&names)?;
@@ -208,6 +253,7 @@ pub async fn renew<P: PemItem>(config: &Config, debug: bool) -> eyre::Result<Sig
         }
     };
 
+    writeln!(stdout, ", done").unwrap();
     Signed::from_key_and_fullchain(cert.serialize_private_key_pem(), full_chain_pem)
 }
 
@@ -215,7 +261,12 @@ pub struct InstantAcme;
 
 #[async_trait::async_trait]
 impl super::ACME for InstantAcme {
-    async fn renew<P: PemItem>(&self, config: &Config, debug: bool) -> eyre::Result<Signed<P>> {
-        renew(config, debug).await
+    async fn renew<P: PemItem, W: Write + Send>(
+        &self,
+        config: &Config,
+        stdout: &mut W,
+        debug: bool,
+    ) -> eyre::Result<Signed<P>> {
+        renew(config, stdout, debug).await
     }
 }

@@ -11,8 +11,8 @@ pub mod advise;
 pub mod cert;
 pub mod config;
 pub mod diagnostics;
-pub mod renew;
 pub mod install;
+pub mod renew;
 
 use advise::CheckResult;
 pub use config::Config;
@@ -22,9 +22,10 @@ use owo_colors::OwoColorize;
 /// by passing the ACME implentation we can test other functionality.
 #[async_trait::async_trait]
 pub trait ACME {
-    async fn renew<P: PemItem>(
+    async fn renew<P: PemItem, W: Write + Send>(
         &self,
         config: &Config,
+        stdout: &mut W,
         debug: bool,
     ) -> eyre::Result<cert::Signed<P>>;
 }
@@ -41,16 +42,16 @@ fn info(stdout: &mut impl Write, s: &str) {
 
 pub async fn run<P: PemItem>(
     acme_impl: &mut impl ACME,
-    stdout: &mut impl Write,
+    stdout: &mut (impl Write + Send),
     config: &Config,
     debug: bool,
 ) -> eyre::Result<Option<cert::Signed<P>>> {
     if config.force {
-        let signed = acme_impl.renew(config, debug).await?;
+        let signed = acme_impl.renew(config, stdout, debug).await?;
         return Ok(Some(signed));
     }
 
-    match CertInfo::from_disk(config).map(|cert| advise::given_existing(config, &cert, stdout)) {
+    match CertInfo::from_disk(config, stdout).map(|cert| advise::given_existing(config, &cert, stdout)) {
         Ok(CheckResult::Refuse {
             status: Some(status),
             warning,
@@ -84,6 +85,6 @@ pub async fn run<P: PemItem>(
         }
     }
 
-    let signed = acme_impl.renew(config, debug).await?;
+    let signed = acme_impl.renew(config, stdout, debug).await?;
     Ok(Some(signed))
 }

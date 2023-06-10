@@ -41,7 +41,8 @@ async fn main() -> eyre::Result<()> {
             let Some(certs): Option<Signed<pem::Pem>> = run(&mut InstantAcme {}, &mut stdout, &config, debug).await? else {
                 return Ok(());
             };
-            cert::store::on_disk(&config, certs).wrap_err("Could not write out certificates")?;
+            cert::store::on_disk(&config, certs, &mut stdout)
+                .wrap_err("Could not write out certificates")?;
             if let Some(service) = &config.reload {
                 install::reload(service)?;
             }

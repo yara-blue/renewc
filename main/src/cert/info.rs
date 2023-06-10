@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use super::format::PemItem;
 use super::{load, Signed};
 use crate::config;
@@ -19,14 +21,18 @@ pub struct Info {
 }
 
 impl Info {
-    pub fn from_disk(config: &config::Config) -> eyre::Result<Option<Self>> {
-        let Some(signed) = load::from_disk::<pem::Pem>(config)? else {
+    pub fn from_disk(
+        config: &config::Config,
+        stdout: &mut impl Write,
+    ) -> eyre::Result<Option<Self>> {
+        let Some(signed) = load::from_disk::<pem::Pem>(config, stdout)? else {
             return Ok(None);
         };
         let info = analyze(signed)?;
         Ok(Some(info))
     }
 
+    /// how far before the expiration date to renew a certificate
     #[instrument(ret, skip(self))]
     pub fn renew_period(&self) -> Duration {
         let mut rng = rand::rngs::StdRng::seed_from_u64(self.seed);
@@ -53,32 +59,27 @@ impl Info {
 
 /// returns number of days until the first certificate in the chain
 /// expires and whether any certificate is from STAGING
+#[instrument(ret)]
 pub fn analyze(signed: Signed<impl PemItem>) -> eyre::Result<Info> {
-    let mut staging = false;
-    let mut expires_in = Duration::MAX;
-    let mut expires_at = u64::MAX;
-
-    let cert = signed.certificate.into_bytes();
+    let cert = signed.certificate.as_bytes();
     let cert = Pem::iter_from_buffer(&cert).next().unwrap()?;
     let cert = Pem::parse_x509(&cert)?;
 
-    staging |= cert
+    let staging = cert
         .issuer()
         .iter_organization()
         .map(|o| o.as_str().unwrap())
         .any(|s| s.contains("STAGING"));
-    expires_in = expires_in.min(
-        cert.validity()
-            .time_to_expiration()
-            .unwrap_or(Duration::ZERO),
-    );
-    expires_at = expires_at.min(
-        cert.validity()
-            .not_after
-            .timestamp()
-            .try_into()
-            .expect("got negative timestamp from x509 certificate, this is a bug"),
-    );
+    let expires_in = cert
+        .validity()
+        .time_to_expiration()
+        .unwrap_or(Duration::ZERO);
+    let expires_at = cert
+        .validity()
+        .not_after
+        .timestamp()
+        .try_into()
+        .expect("got negative timestamp from x509 certificate, this is a bug");
 
     Ok(Info {
         staging,

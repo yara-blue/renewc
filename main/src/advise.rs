@@ -116,8 +116,7 @@ pub fn given_existing(config: &Config, cert: &Option<Info>, stdout: &mut impl Wr
 
 #[must_use]
 fn exit_requested(w: &mut impl Write, config: &Config, question: &str) -> bool {
-    use is_terminal::IsTerminal;
-
+    use std::io::IsTerminal;
     info!(w, "{}", question);
 
     if config.non_interactive || !std::io::stdin().is_terminal() {

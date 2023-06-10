@@ -1,8 +1,9 @@
 [package]
 name = "renewc"
-version = "0.2.6"
+version = "0.3.0"
 authors = ["David Kleingeld <opensource@davidsk.dev>"]
 edition = "2021"
+rust-version = "1.70"
 description = "Certificate renewal, with advanced diagnostics without installing anything"
 license = "GNUv3"
 readme = "README.md"
@@ -32,7 +33,6 @@ hyper = { version = "0.14", features = ["client"] }
 itertools = "0.10"
 
 haproxy-config = "0.4"
-is-terminal = "0.4"
 rand = "0.8"
 # supports-color feature ends up enabling atty which has a RUSTSEC 
 # advisory against it. For now colors will ben enabled always.
@@ -42,7 +42,7 @@ yasna = "0.5"
 async-trait = "0.1"
 data-encoding = "2.4"
 pem = "2"
-strum = { version = "0.24.1", features = ["derive"] }
+strum = { version = "0.24", features = ["derive"] }
 
 [dev-dependencies]
 libc = "0.2"

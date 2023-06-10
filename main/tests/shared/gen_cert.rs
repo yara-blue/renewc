@@ -23,7 +23,7 @@ fn ca_cert(is_staging: bool) -> Certificate {
 pub fn client_cert(valid_till: OffsetDateTime) -> Certificate {
     let subject_alt_names = vec!["example.org".to_string()];
     let mut params = CertificateParams::new(subject_alt_names);
-    params.not_after = valid_till;
+    params.not_after = dbg!(valid_till);
     Certificate::from_params(params).unwrap()
 }
 
@@ -65,7 +65,7 @@ pub fn generate_cert_with_chain<P: PemItem>(
 pub fn write_single_chain<P: PemItem>(dir: &TempDir, signed: Signed<P>) -> PathBuf {
     let path = dir.path().join("cert.pem");
     let bytes: Vec<u8> = Itertools::intersperse(
-        signed.chain.into_iter().map(P::into_bytes),
+        signed.chain.iter().map(P::as_bytes),
         "\r\n".as_bytes().to_vec(),
     )
     .flatten()
@@ -78,7 +78,9 @@ pub fn valid() -> OffsetDateTime {
     OffsetDateTime::from_unix_timestamp(16_734_790_789).unwrap()
 }
 
-#[allow(dead_code)]
+// not actually dead, modules in integration tests 
+// give compile warnings if code is not used in each integration test file
+#[allow(dead_code)] 
 pub fn expired() -> OffsetDateTime {
     OffsetDateTime::from_unix_timestamp(1_683_145_489).unwrap()
 }

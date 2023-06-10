@@ -1,7 +1,7 @@
 use color_eyre::{eyre, Help};
+use std::fmt::Display;
 use std::path::{Path, PathBuf};
 use tracing::warn;
-
 
 use super::{Encoding, Output};
 
@@ -61,9 +61,6 @@ pub(super) fn fix_extension(encoding: Encoding, path: &Path) -> eyre::Result<Pat
 pub struct CertPath(PathBuf);
 
 impl CertPath {
-    pub fn as_path(&self) -> &Path {
-        &self.0
-    }
     pub fn new(output: &Output, cert_path: &Path, name: &str) -> eyre::Result<Self> {
         let encoding = Encoding::from(output);
 
@@ -79,9 +76,6 @@ impl CertPath {
 pub struct KeyPath(PathBuf);
 
 impl KeyPath {
-    pub fn as_path(&self) -> &Path {
-        &self.0
-    }
     pub fn new(
         output: &Output,
         cert_path: &Path,
@@ -100,10 +94,6 @@ impl KeyPath {
 pub struct ChainPath(PathBuf);
 
 impl ChainPath {
-    pub fn as_path(&self) -> &Path {
-        &self.0
-    }
-
     pub fn new(
         output: &Output,
         cert_path: &Path,
@@ -118,6 +108,25 @@ impl ChainPath {
     }
 }
 
+macro_rules! impl_path_struct {
+    ($struct:ident) => {
+        impl Display for $struct {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_fmt(format_args!("{}", self.0.display()))
+            }
+        }
+
+        impl $struct {
+            pub fn as_path(&self) -> &Path {
+                &self.0
+            }
+        }
+    };
+}
+
+impl_path_struct!(ChainPath);
+impl_path_struct!(CertPath);
+impl_path_struct!(KeyPath);
 
 #[cfg(test)]
 mod tests {

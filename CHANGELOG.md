@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2023-06-11
+
+### Added
+ - Print a short summary including paths after writing files to disk
+
+### Changes
+ - PEM output option now follows [rfc4346](https://www.rfc-editor.org/rfc/rfc4346#section-7.4.2) certificate lists order
+ - Challenge verification may take longer now, user is informed in if it takes long.
+
+### Fixes
+ - Full paths to output files are no longer miss their parent directory if it contained a dot
+
 ## [0.2.6] - 2023-06-03
 
 ### Added
@@ -14,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.5] - 2023-06-02
 
 ### Fixes
- - Continue y/n no longer continues when chosing n
+ - Continue y/n no longer continues when choosing n
 
 ## [0.2.4] - 2023-06-02
 
