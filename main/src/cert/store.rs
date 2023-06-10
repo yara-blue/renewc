@@ -19,7 +19,7 @@ fn write_signed(
     operation: Operation,
 ) -> eyre::Result<()> {
     let bytes = match encoding {
-        Encoding::PEM => certificate.into_bytes(),
+        Encoding::PEM => certificate.as_bytes(),
         Encoding::DER => certificate.der().into_bytes(),
     };
     match operation {
@@ -43,7 +43,7 @@ fn write_key(
     operation: Operation,
 ) -> eyre::Result<()> {
     let bytes = match encoding {
-        Encoding::PEM => private_key.into_bytes(),
+        Encoding::PEM => private_key.as_bytes(),
         Encoding::DER => private_key.der().into_bytes(),
     };
 
@@ -85,7 +85,7 @@ fn write_chain<P: PemItem>(
     }
 
     let bytes: Vec<u8> = Itertools::intersperse(
-        chain.into_iter().map(P::into_bytes),
+        chain.iter().map(P::as_bytes),
         "\n".as_bytes().to_vec(),
     )
     .flatten()
@@ -117,8 +117,12 @@ enum Operation<'a> {
     Create(&'a Path),
 }
 
-#[instrument(level = "debug", skip(config, signed), ret)]
-pub fn on_disk<P: PemItem>(config: &Config, signed: Signed<P>) -> eyre::Result<()> {
+#[instrument(level = "debug", skip(config, signed, stdout), ret)]
+pub fn on_disk<P: PemItem>(
+    config: &Config,
+    signed: Signed<P>,
+    stdout: &mut impl Write,
+) -> eyre::Result<()> {
     use Operation::{Append, Create};
     let OutputConfig {
         output,
@@ -127,10 +131,6 @@ pub fn on_disk<P: PemItem>(config: &Config, signed: Signed<P>) -> eyre::Result<(
         chain_path,
     } = &config.output_config;
 
-    let cert_path = cert_path.as_path();
-    let key_path = key_path.as_path();
-    let chain_path = chain_path.as_path();
-
     let encoding = Encoding::from(output);
     let Signed {
         certificate,
@@ -138,28 +138,100 @@ pub fn on_disk<P: PemItem>(config: &Config, signed: Signed<P>) -> eyre::Result<(
         chain,
     } = signed;
 
+    let chain_len = chain.len();
     match config.output_config.output {
         Output::Pem => {
-            write_signed(encoding, certificate, Create(cert_path))?;
-            write_chain(encoding, chain, Append(cert_path))?;
-            write_key(encoding, private_key, Append(cert_path))?;
+            write_signed(encoding, certificate, Create(cert_path.as_path()))?;
+            write_chain(encoding, chain, Append(cert_path.as_path()))?;
+            write_key(encoding, private_key, Append(cert_path.as_path()))?;
         }
         Output::PemSeperateKey => {
-            write_chain(encoding, chain, Create(cert_path))?;
-            write_signed(encoding, certificate, Append(cert_path))?;
-            write_key(encoding, private_key, Create(key_path))?;
+            write_signed(encoding, certificate, Create(cert_path.as_path()))?;
+            write_chain(encoding, chain, Append(cert_path.as_path()))?;
+            write_key(encoding, private_key, Create(key_path.as_path()))?;
         }
         Output::PemSeperateChain => {
-            write_chain(encoding, chain, Create(chain_path))?;
-            write_signed(encoding, certificate, Create(cert_path))?;
-            write_key(encoding, private_key, Append(cert_path))?;
+            write_chain(encoding, chain, Create(chain_path.as_path()))?;
+            write_signed(encoding, certificate, Create(cert_path.as_path()))?;
+            write_key(encoding, private_key, Append(cert_path.as_path()))?;
         }
         Output::PemAllSeperate | Output::Der => {
-            write_chain(encoding, chain, Create(chain_path))?;
-            write_signed(encoding, certificate, Create(cert_path))?;
-            write_key(encoding, private_key, Create(key_path))?;
+            write_chain(encoding, chain, Create(chain_path.as_path()))?;
+            write_signed(encoding, certificate, Create(cert_path.as_path()))?;
+            write_key(encoding, private_key, Create(key_path.as_path()))?;
         }
     }
 
+    print_status(stdout, &config.output_config, chain_len);
+
     Ok(())
+}
+
+fn print_status(stdout: &mut impl Write, config: &OutputConfig, chain_len: usize) {
+    let OutputConfig {
+        output,
+        cert_path,
+        key_path,
+        chain_path,
+    } = config;
+
+    let der_chain_files: String = (0..chain_len)
+        .into_iter()
+        .map(|i| format!("\t- {i}_chain.der\n"))
+        .collect();
+    let n_der_files = 2 + chain_len;
+
+    match output {
+        Output::Pem => writeln!(
+            stdout,
+            "created a single pem file:
+    - {cert_path} 
+    containing in order from top to bottom:
+        - signed certificate
+        - certificate chain
+        - private key"
+        ),
+        Output::PemSeperateKey => writeln!(
+            stdout,
+            "created two pem files:
+    - {cert_path}, 
+    containing in order from top to bottom:
+        - signed certificate
+        - certificate chain
+    - {key_path}
+    containing the signed certificates private key"
+        ),
+        Output::PemSeperateChain => writeln!(
+            stdout,
+            "created two pem files:
+    - {cert_path}, 
+    containing in order from top to bottom:
+        - signed certificate
+        - its private key
+    - {chain_path}
+    containing the certificate chain"
+        ),
+        Output::PemAllSeperate => writeln!(
+            stdout,
+            "created three pem files:
+    - {cert_path}, 
+    containing the signed certificate
+    - {chain_path}
+    containing the certificate chain
+    - {key_path}
+    containing the signed certificates private key"
+        ),
+        Output::Der => writeln!(
+            stdout,
+            "created {n_der_files} der files:
+    - {cert_path}, 
+    containing the signed certificate
+    - {key_path}
+    containing the signed certificates private key
+
+    - chain files each containing part of the certificate chain:
+    {der_chain_files}"
+        ),
+    }
+    .unwrap()
 }
