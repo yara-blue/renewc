@@ -4,10 +4,7 @@ use tracing::instrument;
 
 #[instrument(level = "debug", ret)]
 pub(crate) fn derive_path(cert_path: &Path, name: &str, ty: &str, extension: &str) -> PathBuf {
-    let mut path = dir(cert_path);
-    path.set_file_name(format!("{name}_{ty}"));
-    path.set_extension(extension);
-    path
+    dir(cert_path).join(&format!("{name}_{ty}")).with_extension(extension)
 }
 
 pub fn name(domains: &[impl AsRef<str>]) -> eyre::Result<String> {
