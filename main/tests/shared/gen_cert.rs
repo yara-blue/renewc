@@ -23,7 +23,7 @@ fn ca_cert(is_staging: bool) -> Certificate {
 pub fn client_cert(valid_till: OffsetDateTime) -> Certificate {
     let subject_alt_names = vec!["example.org".to_string()];
     let mut params = CertificateParams::new(subject_alt_names);
-    params.not_after = dbg!(valid_till);
+    params.not_after = valid_till;
     Certificate::from_params(params).unwrap()
 }
 

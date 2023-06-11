@@ -118,7 +118,7 @@ pub struct Config {
     pub(crate) domains: Vec<String>,
     pub(crate) email: Vec<String>,
     pub production: bool,
-    pub(crate) port: u16,
+    pub port: u16,
     pub output_config: OutputConfig,
     pub reload: Option<String>,
     pub(crate) renew_early: bool,

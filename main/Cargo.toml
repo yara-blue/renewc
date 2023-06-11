@@ -1,6 +1,6 @@
 [package]
 name = "renewc"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["David Kleingeld <opensource@davidsk.dev>"]
 edition = "2021"
 rust-version = "1.70"
@@ -43,6 +43,7 @@ async-trait = "0.1"
 data-encoding = "2.4"
 pem = "2"
 strum = { version = "0.24", features = ["derive"] }
+local-ip-address = "0.5.3"
 
 [dev-dependencies]
 libc = "0.2"

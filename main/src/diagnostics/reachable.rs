@@ -4,7 +4,7 @@ use std::time::Duration;
 use color_eyre::{eyre, Help};
 use hyper::{body, Body, Response, StatusCode, Uri};
 use tokio::time::timeout;
-use tracing::debug;
+use tracing::{debug, instrument};
 
 use crate::config::Config;
 use crate::renew::server::Http01Challenge;
@@ -21,14 +21,15 @@ async fn check_response(resp: Response<Body>, key_auth: &str, domain: &str) -> e
         StatusCode::SERVICE_UNAVAILABLE | StatusCode::NOT_FOUND => {
             Err(eyre::eyre!(
                 "Could not reach {APP} via {domain}"
-            )
+            ))
             .note("Another server is getting traffic for external port 80")
-            .suggestion(format!("Check if port 80 is forwarded to a port on this machine. If it is configure {APP} to use that port with the `--port` option. If not forward port 80 to this machine")))
+            .suggestion(format!("Check if port 80 is forwarded to a port on this machine. If it is configure {APP} to use that port with the `--port` option. If not forward port 80 to this machine")).with_local_ip_note()
         }
         _ => unreachable!("got incorrect status code: {resp:?}"),
     }
 }
 
+#[instrument(ret, skip(key_auth, path))]
 async fn check(path: &str, domain: &str, key_auth: &str) -> eyre::Result<()> {
     let url = format!("http://{domain}{path}");
     debug!("checking: {url}");
@@ -40,9 +41,11 @@ async fn check(path: &str, domain: &str, key_auth: &str) -> eyre::Result<()> {
         Ok(Err(e)) if e.is_timeout() || e.is_connect() => {
             Err(eyre::eyre!("Could not reach {APP} via {domain}"))
                 .suggestion("Forward port 80 to this machine")
+                .with_local_ip_note()
         }
         Err(_) => Err(eyre::eyre!("Could not reach {APP} via {domain}"))
-            .suggestion("Forward port 80 to this machine"),
+            .suggestion("Forward port 80 to this machine")
+            .with_local_ip_note(),
         Ok(Err(e)) => unreachable!("reqwest error: {e:?}"),
     }
 }
@@ -61,4 +64,19 @@ pub async fn server(config: &Config, challanges: &[Http01Challenge]) -> eyre::Re
     }
 
     Ok(())
+}
+
+trait WithLocalIp {
+    fn with_local_ip_note(self) -> Self;
+}
+
+impl<T> WithLocalIp for eyre::Result<T> {
+    fn with_local_ip_note(self) -> Self {
+        match local_ip_address::local_ip() {
+            Ok(ip) => self.with_note(|| format!("This machines local IP adress: {ip:?}")),
+            Err(e) => self.with_warning(|| {
+                format!("Failed to be helpfull and find this machines local IP error: {e:?}")
+            }),
+        }
+    }
 }
