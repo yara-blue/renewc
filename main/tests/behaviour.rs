@@ -10,7 +10,6 @@ use shared::TestAcme;
 use shared::TestPrinter;
 use tracing::info;
 
-
 #[tokio::test]
 async fn production_does_not_overwrite_valid_production() {
     shared::setup_color_eyre();

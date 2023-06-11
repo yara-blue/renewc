@@ -54,3 +54,23 @@ async fn insufficent_permissions() {
     assert!(test.contains("You normally need sudo to attach to ports below 1025"));
     assert!(test.contains("port: 42"));
 }
+
+#[tokio::test]
+async fn port_forward_suggestion_includes_ip() {
+    shared::setup_color_eyre();
+    shared::setup_tracing();
+
+    let dir = tempfile::tempdir().unwrap();
+    // port 1119 is assigned to a use by the IANA 
+    // and should not route to the current machine
+    let config = Config::test(1119, &dir.path());
+    let err = run::<Pem>(&mut InstantAcme {}, &mut TestPrinter, &config, true)
+        .await
+        .unwrap_err();
+
+    let test = format!("{err:?}");
+    assert!(
+        test.contains("This machines local IP adress:"),
+        "\n\n***********error was:\n\n {test}\n\n************\n"
+    );
+}

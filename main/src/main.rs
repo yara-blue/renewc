@@ -38,7 +38,8 @@ async fn main() -> eyre::Result<()> {
     match cli.command {
         Commands::Run(args) => {
             let config = Config::try_from(args)?;
-            let Some(certs): Option<Signed<pem::Pem>> = run(&mut InstantAcme {}, &mut stdout, &config, debug).await? else {
+            let Some(certs): Option<Signed<pem::Pem>> = 
+            run(&mut InstantAcme {}, &mut stdout, &config, debug).await? else {
                 return Ok(());
             };
             cert::store::on_disk(&config, certs, &mut stdout)
