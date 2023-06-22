@@ -30,7 +30,7 @@ time = { version = "0.3", features = ["rand", "parsing"] }
 netstat2 = "0.9"
 libproc = "0.13"
 hyper = { version = "0.14", features = ["client"] }
-itertools = "0.10"
+itertools = "0.11"
 
 haproxy-config = "0.4"
 rand = "0.8"
