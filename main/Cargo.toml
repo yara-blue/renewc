@@ -28,7 +28,7 @@ log = "0.4"
 color-eyre = "0.6"
 time = { version = "0.3", features = ["rand", "parsing"] }
 netstat2 = "0.9"
-libproc = "0.13"
+libproc = "0.14"
 hyper = { version = "0.14", features = ["client"] }
 itertools = "0.11"
 
