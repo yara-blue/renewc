@@ -1319,6 +1319,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "pem"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64c94164abe2135d777f6d89799f7ceadc9b45390f44bc361e32cd8854f1a125"
+dependencies = [
+ "base64",
+ "serde",
+]
+
+[[package]]
 name = "percent-encoding"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1434,7 +1444,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "450ee1cd6d9069b7941a235c06fa482d78a17ad0ba475dfceae5252b6bf7bdc9"
 dependencies = [
  "botan",
- "pem",
+ "pem 2.0.1",
  "ring",
  "time",
  "yasna",
@@ -1510,7 +1520,7 @@ dependencies = [
  "nix 0.26.2",
  "os_pipe",
  "owo-colors",
- "pem",
+ "pem 3.0.0",
  "proctitle",
  "rand",
  "rcgen",
