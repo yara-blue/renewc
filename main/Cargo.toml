@@ -41,7 +41,7 @@ owo-colors = { version = "3.5" }
 yasna = "0.5"
 async-trait = "0.1"
 data-encoding = "2.4"
-pem = "2"
+pem = "3"
 strum = { version = "0.25", features = ["derive"] }
 local-ip-address = "0.5.4"
 
