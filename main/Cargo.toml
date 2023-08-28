@@ -51,6 +51,6 @@ proctitle = "0.1"
 fork = "0.1"
 rcgen = "0.11"
 os_pipe = "1.1"
-nix = { version = "0.26", features = ["fs"] }
+nix = { version = "0.27", features = ["fs"] }
 tempfile = "3"
 shared_memory = "0.12"
