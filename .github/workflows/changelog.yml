@@ -13,7 +13,7 @@ jobs:
       github.event.pull_request.user.type != 'Bot'
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Changelog check
         uses: Zomzog/changelog-checker@v1.3.0
         with:
