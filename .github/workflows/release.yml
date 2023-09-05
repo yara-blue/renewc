@@ -23,7 +23,7 @@ jobs:
           - arm-unknown-linux-musleabihf
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
@@ -62,7 +62,7 @@ jobs:
           - armv7-unknown-linux-musleabihf
           - arm-unknown-linux-musleabihf
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Download the binaries
       uses: actions/download-artifact@v3
     - name: find tag
