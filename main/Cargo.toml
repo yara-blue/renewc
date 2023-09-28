@@ -43,7 +43,7 @@ async-trait = "0.1"
 data-encoding = "2.4"
 pem = "3"
 strum = { version = "0.25", features = ["derive"] }
-local-ip-address = "0.5.4"
+local-ip-address = "0.5.6"
 
 [dev-dependencies]
 libc = "0.2"
