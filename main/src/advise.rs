@@ -62,7 +62,11 @@ impl CheckResult {
     }
 }
 
-pub fn given_existing(config: &Config, cert: &Option<Info>, stdout: &mut impl Write) -> CheckResult {
+pub fn given_existing(
+    config: &Config,
+    cert: &Option<Info>,
+    stdout: &mut impl Write,
+) -> CheckResult {
     let Some(cert) = cert else {
         return CheckResult::NoCert;
     };
@@ -103,7 +107,7 @@ pub fn given_existing(config: &Config, cert: &Option<Info>, stdout: &mut impl Wr
             let status = format!(
                 "Production cert not yet due for renewal, expires in: {} days, {} hours",
                 cert.expires_in.whole_days(),
-                cert.expires_in.whole_hours()
+                cert.expires_in.whole_hours() % 24,
             );
             if config.renew_early {
                 CheckResult::accept(status)
