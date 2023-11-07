@@ -11,9 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixes
  - Number of hours in diagnostic message no longer add the number of days*24 that was just printed before them
 
-### Added
- - Note the current machines local IP when the challenge server is not reachable
-
 ## [0.3.1] - 2023-06-11
 
 ### Added
