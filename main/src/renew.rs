@@ -37,7 +37,7 @@ async fn account(config: &Config) -> Result<Account, acme::Error> {
         .map(|addr| format!("mailto:{addr}"))
         .collect();
 
-    Account::create(
+    let (account, _account_credentials) = Account::create(
         &NewAccount {
             contact: contact
                 .iter()
@@ -50,7 +50,8 @@ async fn account(config: &Config) -> Result<Account, acme::Error> {
         url,
         None,
     )
-    .await
+    .await?;
+    Ok(account)
 }
 
 #[tracing::instrument(skip_all)]
