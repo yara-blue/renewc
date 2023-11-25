@@ -34,8 +34,8 @@ Currently *renewc* can investigate and advise these situations:
 *looks at HAProxy's configs and tells you what port to use instead*
  - Using a port below 1025 without sudo:  
 *advices to call *renewc* using sudo*
- - When the new certificate would miss domains valid in a current certificate:  
-*warns user and blocks for input*
+ - When domains miss that are valid in an already present certificate:  
+*warns user and ask what to do*
 
 
 We hope to expand this list in the near future, PRs are welcome.
