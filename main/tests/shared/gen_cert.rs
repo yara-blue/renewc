@@ -20,9 +20,8 @@ fn ca_cert(is_staging: bool) -> Certificate {
     Certificate::from_params(params).unwrap()
 }
 
-pub fn client_cert(valid_till: OffsetDateTime) -> Certificate {
-    let subject_alt_names = vec!["example.org".to_string()];
-    let mut params = CertificateParams::new(subject_alt_names);
+pub fn client_cert(valid_till: OffsetDateTime, domains: &[String]) -> Certificate {
+    let mut params = CertificateParams::new(domains);
     params.not_after = valid_till;
     Certificate::from_params(params).unwrap()
 }
@@ -32,6 +31,7 @@ pub fn client_cert(valid_till: OffsetDateTime) -> Certificate {
 pub fn generate_cert_with_chain<P: PemItem>(
     valid_till: OffsetDateTime,
     is_staging: bool,
+    domains: &[String],
 ) -> Signed<P> {
     let root_ca_cert = ca_cert(is_staging);
     let root_ca = root_ca_cert.serialize_pem().unwrap();
@@ -41,7 +41,7 @@ pub fn generate_cert_with_chain<P: PemItem>(
         .serialize_pem_with_signer(&root_ca_cert)
         .unwrap();
 
-    let client = client_cert(valid_till);
+    let client = client_cert(valid_till, domains);
     let client_cert = client
         .serialize_pem_with_signer(&intermediate_ca_cert)
         .unwrap();

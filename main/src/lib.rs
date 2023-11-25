@@ -51,7 +51,9 @@ pub async fn run<P: PemItem>(
         return Ok(Some(signed));
     }
 
-    match CertInfo::from_disk(config, stdout).map(|cert| advise::given_existing(config, &cert, stdout)) {
+    match CertInfo::from_disk(config, stdout)
+        .map(|cert| advise::given_existing(config, &cert, stdout))
+    {
         Ok(CheckResult::Refuse {
             status: Some(status),
             warning,
@@ -71,6 +73,9 @@ pub async fn run<P: PemItem>(
             info(stdout, &status);
         }
         Ok(CheckResult::NoCert) => (),
+        Ok(CheckResult::Warn { warning }) => {
+            warn(stdout, warning)
+        }
         Err(e) => {
             writeln!(stdout, "Warning: renew advise impossible").unwrap();
             for (i, err) in e.chain().enumerate() {

@@ -115,7 +115,7 @@ impl OutputConfig {
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct Config {
-    pub(crate) domains: Vec<String>,
+    pub domains: Vec<String>,
     pub(crate) email: Vec<String>,
     pub production: bool,
     pub port: u16,
