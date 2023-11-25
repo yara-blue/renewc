@@ -8,12 +8,13 @@ use color_eyre::eyre;
 use rand::{self, Rng, SeedableRng};
 use time::Duration;
 use tracing::instrument;
-use x509_parser::prelude::Pem;
+use x509_parser::prelude::{GeneralName, Pem};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Info {
     pub staging: bool,
     pub expires_in: Duration,
+    pub names: Vec<String>,
     // unix timestamp of expiration time
     // used to seed rng such that each randomness
     // only changes with a renewed certificate
@@ -80,10 +81,28 @@ pub fn analyze(signed: Signed<impl PemItem>) -> eyre::Result<Info> {
         .timestamp()
         .try_into()
         .expect("got negative timestamp from x509 certificate, this is a bug");
+    let names = cert
+        .subject_alternative_name()?
+        .map(|s| {
+            s.value
+                .general_names
+                .iter()
+                .filter_map(unwrap_dns)
+                .collect()
+        })
+        .unwrap_or_default();
 
     Ok(Info {
         staging,
         expires_in,
         seed: expires_at,
+        names,
     })
+}
+
+fn unwrap_dns(name: &GeneralName) -> Option<String> {
+    match name {
+        GeneralName::DNSName(s) => Some(s.to_string()),
+        _other => None,
+    }
 }

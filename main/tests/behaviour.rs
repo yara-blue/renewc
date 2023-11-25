@@ -158,3 +158,44 @@ async fn corrupt_existing_does_not_crash() {
         "stdout did not start with:\n\t{text:#?}\ninstead it was:\n\t{output:#?}"
     );
 }
+
+#[tokio::test]
+async fn warn_about_missing_name() {
+    shared::setup_color_eyre();
+    shared::setup_tracing();
+
+    let dir = tempfile::tempdir().unwrap();
+    let mut acme = TestAcme::new(gen_cert::expired());
+
+    let mut config = Config::test(42, &dir.path().join("test_cert"));
+    config.output_config.output = Output::Pem;
+    config.domains = ["example.org", "subdomain.example.org", "other.domain"]
+        .into_iter()
+        .map(str::to_string)
+        .collect();
+
+    // run to place expired cert
+    let certs = run::<Pem>(&mut acme, &mut TestPrinter, &config, true)
+        .await
+        .unwrap()
+        .unwrap();
+    cert::store::on_disk(&config, certs, &mut TestPrinter).unwrap();
+
+    let mut acme = TestAcme::new(gen_cert::valid());
+    config.domains = vec![String::from("example.org"), String::from("other.domain")];
+    let mut output = Vec::new();
+    let _cert = run::<Pem>(&mut acme, &mut output, &config, true)
+        .await
+        .unwrap();
+
+    let output = String::from_utf8(output).unwrap();
+    let text = format!(
+        "{}",
+        "Certificate will not be valid for (sub)domain that is currently valid, that (sub)domain is: subdomain.example.org".green()
+    );
+    let start = &text[..text.len() - 5]; // remove color end char
+    assert!(
+        dbg!(&output).starts_with(dbg!(start)),
+        "stdout did not start with:\n\t{start:#?}\ninstead it was:\n\t{output:#?}"
+    );
+}

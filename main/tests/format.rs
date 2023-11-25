@@ -16,7 +16,11 @@ async fn der_and_pem_equal() {
     let dir = tempfile::tempdir().unwrap();
 
     let valid_till = OffsetDateTime::now_utc();
-    let original: Signed<Pem> = gen_cert::generate_cert_with_chain(valid_till, false);
+    let original: Signed<Pem> = gen_cert::generate_cert_with_chain(
+        valid_till,
+        false,
+        &vec![String::from("testdomain.org")],
+    );
 
     let mut config = Config::test(42, &dir.path());
     config.production = false;
@@ -27,8 +31,7 @@ async fn der_and_pem_equal() {
         Output::PemSeperateChain,
         Output::PemAllSeperate,
         Output::Der,
-    ]
-    {
+    ] {
         config.output_config.output = dbg!(format);
         store::on_disk(&config, original.clone(), &mut TestPrinter).unwrap();
         let loaded = load::from_disk(&config, &mut TestPrinter).unwrap().unwrap();

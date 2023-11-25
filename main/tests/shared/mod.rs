@@ -16,7 +16,9 @@ pub struct TestAcme {
 
 impl TestAcme {
     pub fn new(cert_expires: OffsetDateTime) -> Self {
-        Self { cert_expires }
+        Self {
+            cert_expires,
+        }
     }
 }
 
@@ -28,7 +30,7 @@ impl renewc::ACME for TestAcme {
         _stdout: &mut W,
         _debug: bool,
     ) -> eyre::Result<Signed<P>> {
-        let combined = generate_cert_with_chain(self.cert_expires, !config.production);
+        let combined = generate_cert_with_chain(self.cert_expires, !config.production, &config.domains);
         Ok(combined)
     }
 }
