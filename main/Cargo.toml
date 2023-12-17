@@ -23,7 +23,7 @@ axum = "0.6"
 tower = "0.4"
 tower-http = { version = "0.4", features = ["trace"] }
 tokio = { version = "1", features = ["time", "macros", "rt-multi-thread"] }
-rcgen = "0.11"
+rcgen = "0.12"
 log = "0.4"
 color-eyre = "0.6"
 time = { version = "0.3", features = ["rand", "parsing"] }
@@ -49,7 +49,7 @@ local-ip-address = "0.5.6"
 libc = "0.2"
 proctitle = "0.1"
 fork = "0.1"
-rcgen = "0.11"
+rcgen = "0.12"
 os_pipe = "1.1"
 nix = { version = "0.27", features = ["fs"] }
 tempfile = "3"
