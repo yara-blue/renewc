@@ -235,30 +235,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "630be753d4e58660abd17930c71b647fe46c27ea6b63cc59e1e3851406972e42"
 
 [[package]]
-name = "botan"
-version = "0.10.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "892c489ddae46dd4748fff8b41ad1fb17d405892fb6978ef470441eddb2df4ef"
-dependencies = [
- "botan-sys",
-]
-
-[[package]]
-name = "botan-src"
-version = "0.21903.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "beb7bc6140fe563408b7ac7593897bbd589a284887a1d7a55f106df008a5d0a5"
-
-[[package]]
-name = "botan-sys"
-version = "0.10.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8f94a43f34344aabf27d50838a2b38aa8aad7c7d1e941e8abb015f608c972b1"
-dependencies = [
- "botan-src",
-]
-
-[[package]]
 name = "bumpalo"
 version = "3.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1298,19 +1274,9 @@ checksum = "9fa00462b37ead6d11a82c9d568b26682d78e0477dc02d1966c013af80969739"
 
 [[package]]
 name = "pem"
-version = "2.0.1"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b13fe415cdf3c8e44518e18a7c95a13431d9bdf6d15367d82b23c377fdd441a"
-dependencies = [
- "base64",
- "serde",
-]
-
-[[package]]
-name = "pem"
-version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64c94164abe2135d777f6d89799f7ceadc9b45390f44bc361e32cd8854f1a125"
+checksum = "1b8fcc794035347fb64beda2d3b462595dd2753e3f268d89c5aae77e8cf2c310"
 dependencies = [
  "base64",
  "serde",
@@ -1427,13 +1393,12 @@ dependencies = [
 
 [[package]]
 name = "rcgen"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "450ee1cd6d9069b7941a235c06fa482d78a17ad0ba475dfceae5252b6bf7bdc9"
+checksum = "5d918c80c5a4c7560db726763020bd16db179e4d5b828078842274a443addb5d"
 dependencies = [
- "botan",
- "pem 2.0.1",
- "ring 0.16.20",
+ "pem",
+ "ring 0.17.3",
  "time",
  "yasna",
 ]
@@ -1488,7 +1453,7 @@ checksum = "436b050e76ed2903236f032a59761c1eb99e1b0aead2c257922771dab1fc8c78"
 
 [[package]]
 name = "renewc"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "async-trait",
  "axum",
@@ -1508,7 +1473,7 @@ dependencies = [
  "nix 0.27.0",
  "os_pipe",
  "owo-colors",
- "pem 3.0.0",
+ "pem",
  "proctitle",
  "rand",
  "rcgen",
