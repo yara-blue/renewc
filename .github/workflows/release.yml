@@ -79,7 +79,7 @@ jobs:
     - name: changelog as release body
       run: cat CHANGELOG.md | awk '/^## /{if (++c == 2) {exit}} c == 1' | tail -n +2 > ${{ github.workspace }}-CHANGELOG.txt
     - name: Release
-      uses: "softprops/action-gh-release@v1"
+      uses: "softprops/action-gh-release@v2"
       with:
         body_path: ${{ github.workspace }}-CHANGELOG.txt
         prerelease: false
