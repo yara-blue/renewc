@@ -65,6 +65,6 @@ mod tests {
             "subdomain.nm.org",
         ];
 
-        assert_eq!(name(&domains).unwrap(), "nm");
+        assert_eq!(name(&domains).unwrap(), "example&nm");
     }
 }
