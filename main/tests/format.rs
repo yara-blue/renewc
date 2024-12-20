@@ -26,7 +26,7 @@ async fn der_and_pem_equal() {
     config.production = false;
 
     for format in [
-        Output::Pem,
+        Output::PemSingleFile,
         Output::PemSeperateKey,
         Output::PemSeperateChain,
         Output::PemAllSeperate,

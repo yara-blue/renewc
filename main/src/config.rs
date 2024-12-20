@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::path::Path;
 
 use color_eyre::eyre;
@@ -24,21 +25,21 @@ use paths::{name, CertPath};
 pub enum Output {
     /// Use PEM encoding. Store the signed certificate, the chain and the private
     /// key in the same file in that order. File extension will be 'pem'.
-    ///
-    /// Amongst others needed by: Haproxy
-    Pem,
+    /// format expected by: Haproxy
+    PemSingleFile,
 
     /// Use PEM encoding. Store the signed certificate and certificate chain in the
     /// same file in that order. Keep the private key in another.
     /// File extensions will be 'pem'.
-    ///
-    /// Amongst others needed by: Nginx and Apache
+    /// format expected by: Nginx and Apache
     #[default]
     PemSeperateKey,
+
     /// Use PEM encoding. Store the signed certificate and private key in the
     /// same file in that order. The chain is stored in another file.
     /// File extensions will be 'pem'.
     PemSeperateChain,
+
     /// Use PEM encoding. Store the signed certificate, private key and chain
     /// all in their own file. File extensions will be 'pem'.
     PemAllSeperate,
@@ -55,6 +56,18 @@ pub enum Output {
     PKCS12SeperateChain,
     #[cfg(feature = "derchain")]
     PKCS12AllSeperate,
+}
+
+impl Display for Output {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Output::PemSingleFile => f.write_str("pem-single-file"),
+            Output::PemSeperateKey => f.write_str("pem-seperate-key"),
+            Output::PemSeperateChain => f.write_str("pem-seperate-chain"),
+            Output::PemAllSeperate => f.write_str("pem-all-seperate"),
+            Output::Der => f.write_str("der"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter)]
@@ -79,7 +92,7 @@ impl Encoding {
 impl From<&Output> for Encoding {
     fn from(output: &Output) -> Self {
         match output {
-            Output::Pem
+            Output::PemSingleFile
             | Output::PemSeperateKey
             | Output::PemSeperateChain
             | Output::PemAllSeperate => Encoding::PEM,

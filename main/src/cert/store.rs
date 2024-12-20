@@ -140,7 +140,7 @@ pub fn on_disk<P: PemItem>(
 
     let chain_len = chain.len();
     match config.output_config.output {
-        Output::Pem => {
+        Output::PemSingleFile => {
             write_signed(encoding, certificate, Create(cert_path.as_path()))?;
             write_chain(encoding, chain, Append(cert_path.as_path()))?;
             write_key(encoding, private_key, Append(cert_path.as_path()))?;
@@ -182,7 +182,7 @@ fn print_status(stdout: &mut impl Write, config: &OutputConfig, chain_len: usize
     let n_der_files = 2 + chain_len;
 
     match output {
-        Output::Pem => writeln!(
+        Output::PemSingleFile => writeln!(
             stdout,
             "created a single pem file:
     - {cert_path} 

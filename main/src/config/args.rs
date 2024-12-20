@@ -44,10 +44,6 @@ pub struct InstallArgs {
     #[clap(long, default_value = "04:00")]
     pub time: Time,
 
-    /// where to install the binary
-    #[clap(long)]
-    pub(crate) location: Option<PathBuf>,
-
     #[clap(flatten)]
     pub run: RenewArgs,
 }

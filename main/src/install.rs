@@ -4,6 +4,62 @@ use service_install::{install_system, tui};
 
 use renewc::config::InstallArgs;
 
+fn format_args(args: InstallArgs) -> Vec<String> {
+    let mut res = Vec::new();
+    let args = args.run;
+
+    for domain in args.domain {
+        res.push("--domain".to_string());
+        res.push(domain);
+    }
+
+    for email in args.email {
+        res.push("--email".to_string());
+        res.push(email);
+    }
+
+    if args.production {
+        res.extend(["--production".to_string()]);
+    }
+
+    res.extend(["--port".to_string(), args.port.to_string()]);
+    if let Some(reload) = args.reload {
+        res.extend(["--reload".to_string(), reload]);
+    }
+    if args.renew_early {
+        res.push("--renew-early".to_string());
+    }
+    if args.force {
+        res.push("--force".to_string());
+    }
+    if args.overwrite_production {
+        res.push("--overwrite-production".to_string());
+    }
+    if args.debug {
+        res.push("--debug".to_string());
+    }
+    let args = args.output_config;
+    res.extend(["--output".to_string(), args.output.to_string()]);
+
+    let format = |p: &std::path::Path| {
+        p.to_str()
+            .expect("only utf8 is supported for arguments")
+            .to_string()
+    };
+    res.extend([
+        "--certificate-path".to_string(),
+        format(&args.certificate_path),
+    ]);
+    if let Some(key_path) = args.key_path {
+        res.extend(["--key-path".to_string(), format(&key_path)]);
+    }
+    if let Some(chain_path) = args.chain_path {
+        res.extend(["--chain-path".to_string(), format(&chain_path)]);
+    }
+
+    res
+}
+
 pub fn perform(args: InstallArgs) -> eyre::Result<()> {
     let schedule = Schedule::Daily(args.time.0);
     let steps = install_system!()
@@ -11,6 +67,7 @@ pub fn perform(args: InstallArgs) -> eyre::Result<()> {
         .wrap_err("Could not get path to current exe")?
         .name(env!("CARGO_PKG_NAME"))
         .on_schedule(schedule)
+        .args(format_args(args))
         .prepare_install()
         .wrap_err("Could not prepare installation")?;
     tui::install::start(steps, true).wrap_err("Installation failed")?;

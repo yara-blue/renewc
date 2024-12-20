@@ -19,7 +19,7 @@ async fn production_does_not_overwrite_valid_production() {
     let dir = tempfile::tempdir().unwrap();
 
     let mut config = Config::test(42, &dir.path());
-    config.output_config.output = Output::Pem;
+    config.output_config.output = Output::PemSingleFile;
     config.production = true;
 
     // run to place still valid cert
@@ -55,7 +55,7 @@ async fn staging_does_not_overwrite_production() {
     let dir = tempfile::tempdir().unwrap();
 
     let mut config = Config::test(42, &dir.path().join("test_cert"));
-    config.output_config.output = Output::Pem;
+    config.output_config.output = Output::PemSingleFile;
     config.production = true;
 
     // run to place still valid cert
@@ -101,7 +101,7 @@ async fn staging_overwrites_expired_production() {
     let mut acme = TestAcme::new(gen_cert::expired());
 
     let mut config = Config::test(42, &dir.path().join("test_cert"));
-    config.output_config.output = Output::Pem;
+    config.output_config.output = Output::PemSingleFile;
     config.production = true;
 
     // run to place expired cert
@@ -138,7 +138,7 @@ async fn corrupt_existing_does_not_crash() {
     let dir = tempfile::tempdir().unwrap();
 
     let mut config = Config::test(42, &dir.path().join("test_cert"));
-    config.output_config.output = Output::Pem;
+    config.output_config.output = Output::PemSingleFile;
     config.production = true;
 
     let corrupt_data = "-----BEGIN CERTIFisrtens-----\r\n 128972184ienst\r\n-----END";
@@ -168,7 +168,7 @@ async fn warn_about_missing_name() {
     let mut acme = TestAcme::new(gen_cert::expired());
 
     let mut config = Config::test(42, &dir.path().join("test_cert"));
-    config.output_config.output = Output::Pem;
+    config.output_config.output = Output::PemSingleFile;
     config.domains = ["example.org", "subdomain.example.org", "other.domain"]
         .into_iter()
         .map(str::to_string)
