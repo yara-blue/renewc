@@ -13,44 +13,46 @@ keywords = ["cli", "certificate", "acme"]
 categories = ["command-line-utilities"]
 
 [dependencies]
-instant-acme = { version = "0.4" }
+instant-acme = { version = "0.7" }
 x509-parser = "0.15"
+service-install = "0.4.5"
+
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-error = "0.2"
 clap = { version = "4", features = ["derive"] }
-axum = "0.6"
-tower = "0.4"
-tower-http = { version = "0.4", features = ["trace"] }
+axum = "0.7"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["trace"] }
 tokio = { version = "1", features = ["time", "macros", "rt-multi-thread"] }
 rcgen = "0.12"
 log = "0.4"
 color-eyre = "0.6"
 time = { version = "0.3", features = ["rand", "parsing"] }
-netstat2 = "0.9"
+netstat2 = "0.11"
 libproc = "0.14"
-hyper = { version = "0.14", features = ["client"] }
-itertools = "0.12"
+reqwest = { version = "0.12.9", default-features=false, features = [] }
+itertools = "0.13"
 
 haproxy-config = "0.4"
 rand = "0.8"
-# supports-color feature ends up enabling atty which has a RUSTSEC 
-# advisory against it. For now colors will ben enabled always.
-# owo-colors = { version = "3.5", features = ["supports-colors"] }
-owo-colors = { version = "3.5" }
+owo-colors = { version = "4.1", features = ["supports-colors"] }
 yasna = "0.5"
 async-trait = "0.1"
 data-encoding = "2.5"
 pem = "3"
 strum = { version = "0.25", features = ["derive"] }
-local-ip-address = "0.5.6"
+local-ip-address = "0.6"
+
+[features]
+derchain = []
 
 [dev-dependencies]
 libc = "0.2"
 proctitle = "0.1"
-fork = "0.1"
+fork = "0.2"
 rcgen = "0.12"
 os_pipe = "1.1"
-nix = { version = "0.27", features = ["fs"] }
+nix = { version = "0.29", features = ["fs"] }
 tempfile = "3"
 shared_memory = "0.12"

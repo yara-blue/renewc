@@ -12,6 +12,8 @@ use color_eyre::eyre;
 use tracing::{error, debug};
 
 use std::collections::HashMap;
+use std::future::IntoFuture;
+use std::net::SocketAddr;
 use std::sync::Arc;
 
 use crate::config::Config;
@@ -41,10 +43,10 @@ async fn challenge(
     key_auth.clone()
 }
 
-pub fn run(
+pub async fn run(
     config: &Config,
     challenges: &[Http01Challenge],
-) -> eyre::Result<JoinHandle<Result<(), hyper::Error>>> {
+) -> eyre::Result<JoinHandle<Result<(), std::io::Error>>> {
     let key_auth: HashMap<_, _> = challenges
         .iter()
         .map(|c| (c.token.clone(), c.key_auth.clone()))
@@ -59,10 +61,10 @@ pub fn run(
                 .layer(Extension(shared_state)),
         );
 
-    let addr = ([0, 0, 0, 0], config.port).into();
-    let server = axum::Server::try_bind(&addr)
-        .map_err(|e| diagnostics::cant_bind_port(config, e))?
-        .serve(app.into_make_service());
+    let addr: SocketAddr = ([0, 0, 0, 0], config.port).into();
+    let listener = tokio::net::TcpListener::bind(addr).await
+        .map_err(|e| diagnostics::cant_bind_port(config, e))?;
+    let server = axum::serve(listener, app).into_future();
 
     Ok(tokio::spawn(server))
 }

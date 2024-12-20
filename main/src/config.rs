@@ -11,32 +11,32 @@ use self::paths::{ChainPath, KeyPath};
 mod args;
 mod paths;
 pub use args::{Commands, InstallArgs, OutputArgs};
-use paths::{CertPath, name};
+use paths::{name, CertPath};
 
 #[derive(clap::ValueEnum, Debug, Clone, Copy, Default, PartialEq, Eq)]
 /// How to store the output.
 ///
-/// After a certificate has been issued we have three outputs. 
-///  - The signed certificate for our domain(s). 
+/// After a certificate has been issued we have three outputs.
+///  - The signed certificate for our domain(s).
 ///  - A certificate chain, it contains all the certificates
-///    a client needs to check if our signed certificate is authentic. 
+///    a client needs to check if our signed certificate is authentic.
 ///  - Our certificates private key.
 pub enum Output {
     /// Use PEM encoding. Store the signed certificate, the chain and the private
-    /// key in the same file in that order. File extension will be 'pem'. 
+    /// key in the same file in that order. File extension will be 'pem'.
     ///
     /// Amongst others needed by: Haproxy
     Pem,
 
     /// Use PEM encoding. Store the signed certificate and certificate chain in the
-    /// same file in that order. Keep the private key in another. 
+    /// same file in that order. Keep the private key in another.
     /// File extensions will be 'pem'.
     ///
     /// Amongst others needed by: Nginx and Apache
     #[default]
     PemSeperateKey,
     /// Use PEM encoding. Store the signed certificate and private key in the
-    /// same file in that order. The chain is stored in another file. 
+    /// same file in that order. The chain is stored in another file.
     /// File extensions will be 'pem'.
     PemSeperateChain,
     /// Use PEM encoding. Store the signed certificate, private key and chain
@@ -120,6 +120,7 @@ pub struct Config {
     pub production: bool,
     pub port: u16,
     pub output_config: OutputConfig,
+    /// reload an external systemd service
     pub reload: Option<String>,
     pub(crate) renew_early: bool,
     pub(crate) overwrite_production: bool,

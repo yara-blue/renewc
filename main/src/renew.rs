@@ -189,7 +189,7 @@ async fn wait_for_order_rdy<'a>(
 // If the order is ready, we can provision the certificate.
 // Use the rcgen library to create a Certificate Signing Request.
 #[tracing::instrument(skip_all)]
-fn prepare_sign_request(names: &[String]) -> Result<(Certificate, Vec<u8>), rcgen::RcgenError> {
+fn prepare_sign_request(names: &[String]) -> Result<(Certificate, Vec<u8>), rcgen::Error> {
     let mut params = CertificateParams::new(names);
     params.distinguished_name = DistinguishedName::new();
     let cert = Certificate::from_params(params).unwrap();
@@ -211,7 +211,7 @@ pub async fn renew<P: PemItem>(
 
     let challenges = prepare_challenge(&mut order).await?;
 
-    let server = server::run(config, &challenges)?;
+    let server = server::run(config, &challenges).await?;
     diagnostics::reachable::server(config, &challenges)
         .await
         .wrap_err("Domain does not route to this application")?;

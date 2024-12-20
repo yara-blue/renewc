@@ -19,7 +19,7 @@ fn insufficent_permission(port: u16) -> bool {
     port <= 1024 && !root()
 }
 
-pub(crate) fn cant_bind_port(config: &config::Config, e: hyper::Error) -> Report {
+pub(crate) fn cant_bind_port(config: &config::Config, e: std::io::Error) -> Report {
     match build_report(&config.diagnostics, e, config.port) {
         Ok(r) => r,
         Err(r) => r.wrap_err("Could not deduce cause of error"),

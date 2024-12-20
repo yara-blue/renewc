@@ -6,7 +6,10 @@ use tracing::warn;
 
 use renewc::config::Commands;
 use renewc::renew::InstantAcme;
-use renewc::{cert, install, run};
+use renewc::{cert, run};
+
+mod install;
+mod systemd;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -38,14 +41,16 @@ async fn main() -> eyre::Result<()> {
     match cli.command {
         Commands::Run(args) => {
             let config = Config::try_from(args)?;
-            let Some(certs): Option<Signed<pem::Pem>> = 
-            run(&mut InstantAcme {}, &mut stdout, &config, debug).await? else {
+            let Some(certs): Option<Signed<pem::Pem>> =
+                run(&mut InstantAcme {}, &mut stdout, &config, debug).await?
+            else {
                 return Ok(());
             };
             cert::store::on_disk(&config, certs, &mut stdout)
                 .wrap_err("Could not write out certificates")?;
             if let Some(service) = &config.reload {
-                install::reload(service)?;
+                systemd::systemctl(&["reload"], service)
+                    .wrap_err_with(|| "Could not reload ".to_owned() + service)?
             }
         }
         Commands::Install(args) => {

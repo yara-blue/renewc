@@ -11,7 +11,6 @@ pub mod advise;
 pub mod cert;
 pub mod config;
 pub mod diagnostics;
-pub mod install;
 pub mod renew;
 
 use advise::CheckResult;
@@ -19,7 +18,7 @@ pub use config::Config;
 use owo_colors::OwoColorize;
 
 /// during integration testing we do not want to hit lets encrypts backend
-/// by passing the ACME implentation we can test other functionality.
+/// by passing the ACME implementation we can test other functionality.
 #[async_trait::async_trait]
 pub trait ACME {
     async fn renew<P: PemItem, W: Write + Send>(

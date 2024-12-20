@@ -42,7 +42,7 @@ impl FromStr for Time {
 pub struct InstallArgs {
     /// time at which refresh should run
     #[clap(long, default_value = "04:00")]
-    pub(crate) time: Time,
+    pub time: Time,
 
     /// where to install the binary
     #[clap(long)]
