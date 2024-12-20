@@ -172,6 +172,7 @@ pub fn on_disk<P: PemItem>(
 }
 
 fn print_status(stdout: &mut impl Write, config: &OutputConfig, chain_len: usize) {
+    use std::fmt::Write;
     let OutputConfig {
         output,
         cert_path,
@@ -179,10 +180,10 @@ fn print_status(stdout: &mut impl Write, config: &OutputConfig, chain_len: usize
         chain_path,
     } = config;
 
-    let der_chain_files: String = (0..chain_len)
-        .into_iter()
-        .map(|i| format!("\t- {i}_chain.der\n"))
-        .collect();
+    let der_chain_files: String = (0..chain_len).fold(String::new(), |mut output, i| {
+        writeln!(output, "\t- {i}_chain.der").expect("can not fail");
+        output
+    });
     let n_der_files = 2 + chain_len;
 
     match output {

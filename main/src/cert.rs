@@ -22,7 +22,10 @@ impl<P: PemItem> std::fmt::Debug for MaybeSigned<P> {
             .field("certificate", &"hidden to prevent security leaks")
             .field(
                 "private_key",
-                &self.private_key.as_ref().map(|_| "hidden to prevent security leaks"),
+                &self
+                    .private_key
+                    .as_ref()
+                    .map(|_| "hidden to prevent security leaks"),
             )
             .field(
                 "chain",
@@ -136,7 +139,7 @@ where
             .transpose()
             .wrap_err("failed to extract private key")?;
 
-        const DELIMITER: &'static str = "-----END CERTIFICATE-----";
+        const DELIMITER: &str = "-----END CERTIFICATE-----";
         let post_signed_cert = pem.find(DELIMITER).map(|i| i + DELIMITER.len());
         let chain = post_signed_cert
             .map(|i| pem.split_off(i))

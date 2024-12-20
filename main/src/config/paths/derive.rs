@@ -8,7 +8,7 @@ use tracing::instrument;
 #[instrument(level = "debug", ret)]
 pub(crate) fn derive_path(cert_path: &Path, name: &str, ty: &str, extension: &str) -> PathBuf {
     dir(cert_path)
-        .join(&format!("{name}{ty}"))// ty is sometimes optional
+        .join(format!("{name}{ty}"))// ty is sometimes optional
         .with_extension(extension)
 }
 

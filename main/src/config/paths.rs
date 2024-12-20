@@ -56,7 +56,7 @@ pub(super) fn fix_extension(encoding: Encoding, path: &Path) -> eyre::Result<Pat
         }
     }
 
-    return Ok(push_extension(path, encoding.extension()));
+    Ok(push_extension(path, encoding.extension()))
 }
 
 #[derive(Debug, Clone)]
