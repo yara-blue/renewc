@@ -28,9 +28,11 @@ pub enum Output {
     /// Note: format expected by: Haproxy
     PemSingleFile,
 
-    /// Use PEM encoding. Store the signed certificate and certificate chain in the
-    /// same file in that order. Keep the private key in another.
+    /// Use PEM encoding. Store the signed certificate and certificate chain
+    /// in the same file in that order. Keep the private key in another file.
     /// File extensions will be 'pem'.
+    /// Note: If the file is auto generated the first will end in `_chain` the
+    /// second in `_key`.
     /// Note: format expected by: Nginx and Apache
     #[default]
     PemSeperateKey,
@@ -38,14 +40,20 @@ pub enum Output {
     /// Use PEM encoding. Store the signed certificate and private key in the
     /// same file in that order. The chain is stored in another file.
     /// File extensions will be 'pem'.
+    /// Note: If the file is auto generated the first will end in `_cert` the
+    /// second in `_chain`.
     PemSeperateChain,
 
     /// Use PEM encoding. Store the signed certificate, private key and chain
     /// all in their own file. File extensions will be 'pem'.
+    /// Note: If the file names are auto generated these will end in
+    /// `_cert`, `_key` and `_chain`.
     PemAllSeperate,
 
     /// Use DER encoding. Store each certificate of the chain, the signed certificate
     /// and its private key in their own file. File extensions will be 'der'.
+    /// Note: If the file names are auto generated these will end in
+    /// `_cert`, `_key` and `_chain`.
     Der,
 
     // these still need implementing, lets not show them in the help text
