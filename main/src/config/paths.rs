@@ -27,16 +27,18 @@ pub(super) fn fix_extension(encoding: Encoding, path: &Path) -> eyre::Result<Pat
     use strum::IntoEnumIterator;
 
     let Some(extention) = path.extension() else {
-        return Ok(path.with_extension(encoding.extension()))
+        return Ok(path.with_extension(encoding.extension()));
     };
 
     let Some(extension) = extention.to_str() else {
         // non utf8 extension can be a valid path still but it is
         // unlikely (name.<non_utf>) could be a valid file path
-        warn!("Path contains non utf8 extension. While not a problem 
+        warn!(
+            "Path contains non utf8 extension. While not a problem 
               when renewing certificates it can cause issues loading the
-              certificate in another application.");
-        return Ok(push_extension(path, encoding.extension()))
+              certificate in another application."
+        );
+        return Ok(push_extension(path, encoding.extension()));
     };
 
     if extention == encoding.extension() {
@@ -64,8 +66,14 @@ impl CertPath {
     pub fn new(output: &Output, cert_path: &Path, name: &str) -> eyre::Result<Self> {
         let encoding = Encoding::from(output);
 
+        let content_description = match output {
+            Output::PemSingleFile => "",
+            Output::PemAllSeperate | Output::Der | Output::PKCS12AllSeperate => "_cert",
+            _ => unreachable!("should not be called when output is: {output}"),
+        };
+
         Ok(CertPath(if cert_path.is_dir() {
-            derive_path(cert_path, name, "cert", encoding.extension())
+            derive_path(cert_path, name, content_description, encoding.extension())
         } else {
             fix_extension(encoding, cert_path)?
         }))
@@ -84,7 +92,7 @@ impl KeyPath {
     ) -> eyre::Result<Self> {
         let encoding = Encoding::from(output);
         Ok(KeyPath(match chain_path {
-            None => derive_path(cert_path, name, "chain", encoding.extension()),
+            None => derive_path(cert_path, name, "_chain", encoding.extension()),
             Some(path) => fix_extension(encoding, &path)?,
         }))
     }
@@ -102,7 +110,7 @@ impl ChainPath {
     ) -> eyre::Result<Self> {
         let encoding = Encoding::from(output);
         Ok(ChainPath(match chain_path {
-            None => derive_path(cert_path, name, "key", encoding.extension()),
+            None => derive_path(cert_path, name, "_key", encoding.extension()),
             Some(path) => fix_extension(encoding, &path)?,
         }))
     }

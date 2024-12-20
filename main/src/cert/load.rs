@@ -17,7 +17,13 @@ pub fn from_disk<P: PemItem>(
     config: &Config,
     stdout: &mut impl Write,
 ) -> eyre::Result<Option<Signed<P>>> {
-    let Some(MaybeSigned { certificate, private_key, mut chain }) = load_certificate(&config.output_config).wrap_err("Failed to load certificates from disk")? else {
+    let Some(MaybeSigned {
+        certificate,
+        private_key,
+        mut chain,
+    }) = load_certificate(&config.output_config)
+        .wrap_err("Failed to load certificates from disk")?
+    else {
         return Ok(None);
     };
 
@@ -78,6 +84,10 @@ fn load_seperate_chain<P: PemItem>(config: &Config) -> eyre::Result<Vec<P>> {
             };
             P::chain_from_pem(bytes)
         }
+
+        Encoding::PKCS12 => {
+            todo!()
+        }
     }
 }
 
@@ -95,6 +105,7 @@ fn load_seperate_private_key<P: PemItem>(config: &Config) -> eyre::Result<Option
     Ok(Some(match encoding {
         Encoding::PEM => P::from_pem(bytes, Label::PrivateKey)?,
         Encoding::DER => Der::from_bytes(bytes).to_pem(Label::PrivateKey),
+        Encoding::PKCS12 => todo!(),
     }))
 }
 
@@ -118,5 +129,6 @@ fn load_certificate<P: PemItem>(config: &OutputConfig) -> eyre::Result<Option<Ma
             private_key: None,
             chain: Vec::new(),
         })),
+        Encoding::PKCS12 => todo!(),
     }
 }

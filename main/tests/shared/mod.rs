@@ -22,7 +22,6 @@ impl TestAcme {
     }
 }
 
-#[async_trait::async_trait]
 impl renewc::ACME for TestAcme {
     async fn renew<P: PemItem, W: Write + Send>(
         &self,

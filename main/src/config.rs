@@ -25,13 +25,13 @@ use paths::{name, CertPath};
 pub enum Output {
     /// Use PEM encoding. Store the signed certificate, the chain and the private
     /// key in the same file in that order. File extension will be 'pem'.
-    /// format expected by: Haproxy
+    /// Note: format expected by: Haproxy
     PemSingleFile,
 
     /// Use PEM encoding. Store the signed certificate and certificate chain in the
     /// same file in that order. Keep the private key in another.
     /// File extensions will be 'pem'.
-    /// format expected by: Nginx and Apache
+    /// Note: format expected by: Nginx and Apache
     #[default]
     PemSeperateKey,
 
@@ -48,13 +48,14 @@ pub enum Output {
     /// and its private key in their own file. File extensions will be 'der'.
     Der,
 
-    #[cfg(feature = "derchain")]
+    // these still need implementing, lets not show them in the help text
+    #[clap(skip)]
     PKCS12,
-    #[cfg(feature = "derchain")]
+    #[clap(skip)]
     PKCS12SeperateKey,
-    #[cfg(feature = "derchain")]
+    #[clap(skip)]
     PKCS12SeperateChain,
-    #[cfg(feature = "derchain")]
+    #[clap(skip)]
     PKCS12AllSeperate,
 }
 
@@ -66,6 +67,10 @@ impl Display for Output {
             Output::PemSeperateChain => f.write_str("pem-seperate-chain"),
             Output::PemAllSeperate => f.write_str("pem-all-seperate"),
             Output::Der => f.write_str("der"),
+            Output::PKCS12 => f.write_str("pkcs12"),
+            Output::PKCS12SeperateKey => f.write_str("pkcs12-seperate-key"),
+            Output::PKCS12SeperateChain => f.write_str("pkcs12-seperate-chain"),
+            Output::PKCS12AllSeperate => f.write_str("pkcs12-all-seperate"),
         }
     }
 }
@@ -74,7 +79,6 @@ impl Display for Output {
 pub enum Encoding {
     PEM,
     DER,
-    #[cfg(feature = "derchain")]
     PKCS12,
 }
 
@@ -83,7 +87,6 @@ impl Encoding {
         match self {
             Encoding::PEM => "pem",
             Encoding::DER => "der",
-            #[cfg(feature = "derchain")]
             Encoding::PKCS12 => "pkcs12",
         }
     }
@@ -97,6 +100,10 @@ impl From<&Output> for Encoding {
             | Output::PemSeperateChain
             | Output::PemAllSeperate => Encoding::PEM,
             Output::Der => Encoding::DER,
+            Output::PKCS12
+            | Output::PKCS12SeperateKey
+            | Output::PKCS12SeperateChain
+            | Output::PKCS12AllSeperate => Encoding::PKCS12,
         }
     }
 }

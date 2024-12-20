@@ -37,15 +37,11 @@ itertools = "0.13"
 haproxy-config = "0.4"
 rand = "0.8"
 owo-colors = { version = "4.1", features = ["supports-colors"] }
-yasna = "0.5"
-async-trait = "0.1"
+yasna = "0.5" # DER encoding
 data-encoding = "2.5"
 pem = "3"
 strum = { version = "0.25", features = ["derive"] }
 local-ip-address = "0.6"
-
-[features]
-derchain = []
 
 [dev-dependencies]
 libc = "0.2"

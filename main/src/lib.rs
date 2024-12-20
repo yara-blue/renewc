@@ -19,7 +19,6 @@ use owo_colors::OwoColorize;
 
 /// during integration testing we do not want to hit lets encrypts backend
 /// by passing the ACME implementation we can test other functionality.
-#[async_trait::async_trait]
 pub trait ACME {
     async fn renew<P: PemItem, W: Write + Send>(
         &self,
@@ -72,9 +71,7 @@ pub async fn run<P: PemItem>(
             info(stdout, &status);
         }
         Ok(CheckResult::NoCert) => (),
-        Ok(CheckResult::Warn { warning }) => {
-            warn(stdout, warning)
-        }
+        Ok(CheckResult::Warn { warning }) => warn(stdout, warning),
         Err(e) => {
             writeln!(stdout, "Warning: renew advise impossible").unwrap();
             for (i, err) in e.chain().enumerate() {

@@ -260,7 +260,6 @@ pub async fn renew<P: PemItem>(
 
 pub struct InstantAcme;
 
-#[async_trait::async_trait]
 impl super::ACME for InstantAcme {
     async fn renew<P: PemItem, W: Write + Send>(
         &self,

@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand, ValueHint};
-use time::macros::format_description;
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use time::macros::format_description;
 
 use super::Output;
 
@@ -103,30 +103,30 @@ pub struct OutputArgs {
     #[clap(long, short, value_enum, default_value_t = Output::PemSeperateKey)]
     pub output: Output,
 
-    /// Path including file name where to output the signed
-    /// certificate possibly with its private key and/or chain
+    /// Path optionally including file name where to output the signed
+    /// certificate possibly including its private key and/or chain
     /// (depending on the selected Output option).
     ///
-    /// Note: The correct file extension is added automatically 
+    /// Note: The correct file extension is added automatically
     /// if left unspecified. It depends on the chosen output format.
     #[clap(long, short, value_hint=ValueHint::FilePath)]
     pub certificate_path: PathBuf,
 
-    /// Path including file name where to output the certificates
-    /// private key. Used when it is stored seperate from the other
+    /// Path optionally including file name where to output the certificates
+    /// private key. Used when it is stored separate from the other
     /// output.
     ///
     /// If left unspecified this will default to the
     /// certificate-path's dir and the file name will be the shortest
     /// part of the domain(s).
     ///
-    /// Note: The correct file extension is added automatically 
+    /// Note: The correct file extension is added automatically
     /// if left unspecified. It depends on the chosen output format.
     #[clap(long, value_hint=ValueHint::FilePath)]
     pub key_path: Option<PathBuf>,
 
-    /// Path including file name where to output the certificates chain.
-    /// Used when it is stored seperate from the other output. If left
+    /// Path optionally including file name where to output the certificates
+    /// chain. Used when it is stored separate from the other output. If left
     /// unspecified it is deduced from the certificate-path.
     ///
     /// If left unspecified this will default to the
@@ -134,14 +134,16 @@ pub struct OutputArgs {
     /// part of the domain(s).
     ///
     /// Note: Can not be used when the format is set to Der.
-    /// Note: The correct file extension is added automatically 
+    ///
+    /// Note: The correct file extension is added automatically
     /// if left unspecified
     #[clap(long, value_hint=ValueHint::FilePath)]
     pub chain_path: Option<PathBuf>,
 }
 
 impl OutputArgs {
-    #[must_use] pub fn test(dir: &Path) -> Self {
+    #[must_use]
+    pub fn test(dir: &Path) -> Self {
         Self {
             output: Output::default(),
             certificate_path: dir.to_owned(),

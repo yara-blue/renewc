@@ -21,6 +21,7 @@ fn write_signed(
     let bytes = match encoding {
         Encoding::PEM => certificate.as_bytes(),
         Encoding::DER => certificate.der().into_bytes(),
+        Encoding::PKCS12 => todo!(),
     };
     match operation {
         Operation::Append(path) => {
@@ -45,6 +46,7 @@ fn write_key(
     let bytes = match encoding {
         Encoding::PEM => private_key.as_bytes(),
         Encoding::DER => private_key.der().into_bytes(),
+        Encoding::PKCS12 => todo!(),
     };
 
     match operation {
@@ -84,12 +86,10 @@ fn write_chain<P: PemItem>(
         return Ok(());
     }
 
-    let bytes: Vec<u8> = Itertools::intersperse(
-        chain.iter().map(P::as_bytes),
-        "\n".as_bytes().to_vec(),
-    )
-    .flatten()
-    .collect();
+    let bytes: Vec<u8> =
+        Itertools::intersperse(chain.iter().map(P::as_bytes), "\n".as_bytes().to_vec())
+            .flatten()
+            .collect();
 
     match operation {
         Operation::Append(path) => {
@@ -160,6 +160,10 @@ pub fn on_disk<P: PemItem>(
             write_signed(encoding, certificate, Create(cert_path.as_path()))?;
             write_key(encoding, private_key, Create(key_path.as_path()))?;
         }
+        Output::PKCS12 => todo!(),
+        Output::PKCS12SeperateKey => todo!(),
+        Output::PKCS12SeperateChain => todo!(),
+        Output::PKCS12AllSeperate => todo!(),
     }
 
     print_status(stdout, &config.output_config, chain_len);
@@ -232,6 +236,10 @@ fn print_status(stdout: &mut impl Write, config: &OutputConfig, chain_len: usize
     - chain files each containing part of the certificate chain:
     {der_chain_files}"
         ),
+        Output::PKCS12 => todo!(),
+        Output::PKCS12SeperateKey => todo!(),
+        Output::PKCS12SeperateChain => todo!(),
+        Output::PKCS12AllSeperate => todo!(),
     }
     .unwrap()
 }
