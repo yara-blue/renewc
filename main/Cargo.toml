@@ -11,6 +11,7 @@ homepage = "https://github.com/dvdsk/renewc"
 repository = "https://github.com/dvdsk/renewc"
 keywords = ["cli", "certificate", "acme"]
 categories = ["command-line-utilities"]
+default-run = "renewc"
 
 [dependencies]
 instant-acme = { version = "0.7" }
