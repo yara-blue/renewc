@@ -66,10 +66,10 @@ impl CertPath {
     pub fn new(output: &Output, cert_path: &Path, name: &str) -> eyre::Result<Self> {
         let encoding = Encoding::from(output);
 
-        let content_description = match output {
-            Output::PemSingleFile => "",
-            Output::PemAllSeperate | Output::Der | Output::PKCS12AllSeperate => "_cert",
-            _ => unreachable!("should not be called when output is: {output}"),
+        let content_description = if let Output::PemSingleFile = output {
+            ""
+        } else {
+            "_cert"
         };
 
         Ok(CertPath(if cert_path.is_dir() {
