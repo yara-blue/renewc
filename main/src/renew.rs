@@ -21,6 +21,8 @@ use acme::{
 use instant_acme as acme;
 use server::Http01Challenge;
 
+use super::ACME;
+
 // Create a new account. This will generate a fresh ECDSA key for you.
 // Alternatively, restore an account from serialized credentials by
 // using `Account::from_credentials()`.
@@ -260,7 +262,7 @@ pub async fn renew<P: PemItem>(
 
 pub struct InstantAcme;
 
-impl super::ACME for InstantAcme {
+impl ACME for InstantAcme {
     async fn renew<P: PemItem, W: Write + Send>(
         &self,
         config: &Config,

@@ -87,6 +87,33 @@ pub async fn run<P: PemItem>(
         }
     }
 
+    let staging_config = Config {
+        production: false,
+        ..config.clone()
+    };
+    if config.production {
+        info(
+            stdout,
+            "check if the request can complete against the staging envirement",
+        );
+        let mut stdout = IndentedStdout(stdout);
+        let _pre_run: cert::Signed<P> =
+            acme_impl.renew(&staging_config, &mut stdout, debug).await?;
+    }
     let signed = acme_impl.renew(config, stdout, debug).await?;
     Ok(Some(signed))
+}
+
+struct IndentedStdout<'a>(&'a mut (dyn Write + Send));
+
+impl<'a> Write for IndentedStdout<'a> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let buf = String::from_utf8_lossy(buf).to_string();
+        let indented = buf.replace("\n", "\n\t");
+        self.0.write(indented.as_bytes())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.0.flush()
+    }
 }
