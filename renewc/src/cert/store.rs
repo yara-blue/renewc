@@ -10,7 +10,7 @@ use itertools::Itertools;
 use tracing::{instrument, warn};
 
 use crate::config::{Encoding, Output, OutputConfig};
-use crate::Config;
+use crate::{Config, IndentedOut};
 
 #[instrument(level = "debug", skip(certificate))]
 fn write_signed(
@@ -121,7 +121,7 @@ enum Operation<'a> {
 pub fn on_disk<P: PemItem>(
     config: &Config,
     signed: Signed<P>,
-    stdout: &mut impl Write,
+    stdout: &mut (impl Write + Send),
 ) -> eyre::Result<()> {
     use Operation::{Append, Create};
     let OutputConfig {
@@ -138,6 +138,7 @@ pub fn on_disk<P: PemItem>(
         chain,
     } = signed;
 
+    crate::info(stdout, "succeeded, storing on disk");
     let chain_len = chain.len();
     match config.output_config.output {
         Output::PemSingleFile => {
@@ -166,7 +167,8 @@ pub fn on_disk<P: PemItem>(
         Output::PKCS12AllSeperate => todo!(),
     }
 
-    print_status(stdout, &config.output_config, chain_len);
+    let mut stdout = IndentedOut::new(stdout);
+    print_status(&mut stdout, &config.output_config, chain_len);
 
     Ok(())
 }

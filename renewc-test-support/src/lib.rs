@@ -30,7 +30,7 @@ impl renewc::ACME for TestAcme {
         writeln!(stdout, "generating certificate").expect("printing should not fail");
         let combined =
             generate_cert_with_chain(self.cert_expires, !config.production, &config.domains);
-        // writeln!(stdout, "TestAcme, no signing certificate").expect("printing should not fail");
+        writeln!(stdout, "TestAcme, not signing certificate").expect("printing should not fail");
         Ok(combined)
     }
 }

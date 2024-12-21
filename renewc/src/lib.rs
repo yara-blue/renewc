@@ -5,6 +5,7 @@ use std::io::Write;
 
 use cert::format::PemItem;
 use cert::info::Info as CertInfo;
+use cert::Signed;
 use color_eyre::eyre;
 
 pub mod advise;
@@ -26,7 +27,7 @@ pub trait ACME {
         config: &Config,
         stdout: &mut W,
         debug: bool,
-    ) -> eyre::Result<cert::Signed<P>>;
+    ) -> eyre::Result<Signed<P>>;
 }
 
 fn warn(stdout: &mut impl Write, s: &str) {
@@ -44,7 +45,7 @@ pub async fn run<P: PemItem>(
     stdout: &mut (impl Write + Send),
     config: &Config,
     debug: bool,
-) -> eyre::Result<Option<cert::Signed<P>>> {
+) -> eyre::Result<Option<Signed<P>>> {
     if config.force {
         let signed = acme_impl.renew(config, stdout, debug).await?;
         return Ok(Some(signed));
@@ -92,14 +93,13 @@ pub async fn run<P: PemItem>(
         ..config.clone()
     };
     if config.production {
-        info(
-            stdout,
-            "first checking if request can succeed by using staging environment",
-        );
+        info(stdout, "checking if request can succeed using staging");
         let mut stdout = IndentedOut::new(stdout);
-        let _: cert::Signed<P> = acme_impl.renew(&staging_config, &mut stdout, debug).await?;
+        let _: Signed<P> = acme_impl.renew(&staging_config, &mut stdout, debug).await?;
     }
-    let signed = acme_impl.renew(config, stdout, debug).await?;
+    info(stdout, "requesting production certificate");
+    let mut stdout = IndentedOut::new(stdout);
+    let signed = acme_impl.renew(config, &mut stdout, debug).await?;
     Ok(Some(signed))
 }
 
@@ -109,8 +109,6 @@ struct IndentedOut<'a> {
 
 impl<'a> IndentedOut<'a> {
     fn new(out: &'a mut (dyn Write + Send)) -> Self {
-        out.write("\t".as_bytes())
-            .expect("out should support normal log amounts of data");
         Self { out }
     }
 }
@@ -118,8 +116,21 @@ impl<'a> IndentedOut<'a> {
 impl<'a> Write for IndentedOut<'a> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let buf = String::from_utf8_lossy(buf).to_string();
-        let indented = buf.replace("\n", "\n\t");
+
+        // leave line ends at end alone, it might need to be followed by not indented text
+        let indented = if let Some(without_last_char) = buf.strip_suffix('\n') {
+            let mut without_last_char = without_last_char.replace("\n", "\n\t");
+            without_last_char.push('\n');
+            without_last_char
+        } else {
+            buf.replace("\n", "\n\t")
+        };
+        // correct for last line end not being followed by tab
+        self.out
+            .write("\t".as_bytes())
+            .expect("out should support normal log amounts of data");
         self.out.write(indented.as_bytes())?;
+
         // if we return from write(indented) the returned len is larger then
         // what the calling code expects which can make it crash
         Ok(buf.len())

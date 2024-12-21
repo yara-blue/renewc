@@ -219,13 +219,11 @@ async fn run_against_staging_first() {
         .unwrap();
 
     let output = String::from_utf8(output).unwrap();
-    let header =
-        "\u{1b}[32mfirst checking if request can succeed by using staging environment\u{1b}[39m";
+    let header = "\u{1b}[32mchecking if request can succeed using staging\u{1b}[39m";
     let indented = output
         .strip_prefix(header)
         .expect("header informing of staging should be the first");
     assert_eq!(
-        indented,
-        "\n\tgenerating certificate\n\tgenerating certificate\n"
+        indented,"\n\tgenerating certificate\n\tTestAcme, not signing certificate\n\u{1b}[32mrequesting production certificate\u{1b}[39m\n\tgenerating certificate\n\tTestAcme, not signing certificate\n"
     );
 }

@@ -214,6 +214,7 @@ pub async fn renew<P: PemItem>(
     let challenges = prepare_challenge(&mut order).await?;
 
     let server = server::run(config, &challenges).await?;
+    let mut server = tokio::spawn(server);
     diagnostics::reachable::server(config, &challenges)
         .await
         .wrap_err("Domain does not route to this application")?;
@@ -227,7 +228,7 @@ pub async fn renew<P: PemItem>(
     let ready = wait_for_order_rdy(&mut order, &challenges, stdout, debug);
     let state = tokio::select!(
         res = ready => res?,
-        e = server => {
+        e = (&mut server) => {
             e.expect("server should never panic").wrap_err("Challenge server ran into problem")?;
             unreachable!("server never returns ok");
         }
@@ -256,6 +257,7 @@ pub async fn renew<P: PemItem>(
         }
     };
 
+    server.abort();
     writeln!(stdout, ", done").unwrap();
     Signed::from_key_and_fullchain(cert.serialize_private_key_pem(), full_chain_pem)
 }

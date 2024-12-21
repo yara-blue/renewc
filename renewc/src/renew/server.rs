@@ -4,15 +4,14 @@ use axum::extract::Path;
 use axum::routing::get;
 use axum::{Extension, Router};
 
-use tokio::task::JoinHandle;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 
 use color_eyre::eyre;
-use tracing::{error, debug};
+use tracing::{debug, error};
 
 use std::collections::HashMap;
-use std::future::IntoFuture;
+use std::future::{Future, IntoFuture};
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -46,7 +45,7 @@ async fn challenge(
 pub async fn run(
     config: &Config,
     challenges: &[Http01Challenge],
-) -> eyre::Result<JoinHandle<Result<(), std::io::Error>>> {
+) -> eyre::Result<impl Future<Output = Result<(), std::io::Error>>> {
     let key_auth: HashMap<_, _> = challenges
         .iter()
         .map(|c| (c.token.clone(), c.key_auth.clone()))
@@ -62,9 +61,11 @@ pub async fn run(
         );
 
     let addr: SocketAddr = ([0, 0, 0, 0], config.port).into();
-    let listener = tokio::net::TcpListener::bind(addr).await
+    let listener = tokio::net::TcpListener::bind(addr)
+        .await
         .map_err(|e| diagnostics::cant_bind_port(config, e))?;
     let server = axum::serve(listener, app).into_future();
 
-    Ok(tokio::spawn(server))
+    // this needs to shutdown when done not keep going cause then next call to run will have port in use, maybe even graceful shutdown? see: https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs
+    Ok(server)
 }

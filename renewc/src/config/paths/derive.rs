@@ -34,7 +34,7 @@ pub fn name(domains: &[impl AsRef<str>]) -> eyre::Result<String> {
         .collect::<Result<Vec<_>, _>>()?
         .into_iter()
         .unique()
-        .join("&"))
+        .join("+"))
 }
 
 pub(super) fn dir(cert_path: &Path) -> PathBuf {
