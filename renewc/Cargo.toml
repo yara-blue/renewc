@@ -1,6 +1,6 @@
 [package]
 name = "renewc"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["David Kleingeld <opensource@davidsk.dev>"]
 edition = "2021"
 rust-version = "1.70"
