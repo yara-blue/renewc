@@ -117,14 +117,14 @@ impl<'a> IndentedOut<'a> {
     }
 }
 
-impl<'a> Write for IndentedOut<'a> {
+impl Write for IndentedOut<'_> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let buf = String::from_utf8_lossy(buf).to_string();
 
         if self.need_leading_tab {
             // correct for last line end not being followed by tab
             self.out
-                .write("\t".as_bytes())
+                .write_all("\t".as_bytes())
                 .expect("out should support normal log amounts of data");
         }
 
@@ -138,7 +138,7 @@ impl<'a> Write for IndentedOut<'a> {
             self.need_leading_tab = false;
             buf.replace("\n", "\n\t")
         };
-        self.out.write(indented.as_bytes())?;
+        self.out.write_all(indented.as_bytes())?;
 
         // if we return from write(indented) the returned len is larger then
         // what the calling code expects which can make it crash
