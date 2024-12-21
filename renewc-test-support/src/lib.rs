@@ -5,7 +5,7 @@ use renewc::cert::format::PemItem;
 use renewc::cert::Signed;
 use time::OffsetDateTime;
 
-use self::gen_cert::{generate_cert_with_chain, valid};
+use self::gen_cert::generate_cert_with_chain;
 
 pub mod gen_cert;
 pub mod port_binder;
@@ -78,6 +78,7 @@ pub fn setup_tracing() {
 
 #[cfg(test)]
 mod tests {
+    use gen_cert::valid;
     use pem::Pem;
     use renewc::{Config, ACME};
     use tempfile::tempdir;

@@ -1907,25 +1907,20 @@ dependencies = [
  "clap",
  "color-eyre",
  "data-encoding",
- "fork",
  "haproxy-config",
  "instant-acme",
  "itertools 0.13.0",
- "libc",
  "libproc",
  "local-ip-address",
  "log",
  "netstat2",
- "nix 0.29.0",
- "os_pipe",
  "owo-colors 4.1.0",
  "pem",
- "proctitle",
  "rand",
  "rcgen",
+ "renewc-test-support",
  "reqwest",
  "service-install",
- "shared_memory",
  "strum",
  "tempfile",
  "time",
@@ -1937,6 +1932,29 @@ dependencies = [
  "tracing-subscriber",
  "x509-parser",
  "yasna",
+]
+
+[[package]]
+name = "renewc-test-support"
+version = "0.1.0"
+dependencies = [
+ "color-eyre",
+ "fork",
+ "itertools 0.13.0",
+ "libc",
+ "nix 0.29.0",
+ "os_pipe",
+ "pem",
+ "proctitle",
+ "rcgen",
+ "renewc",
+ "shared_memory",
+ "tempfile",
+ "time",
+ "tokio",
+ "tracing",
+ "tracing-error",
+ "tracing-subscriber",
 ]
 
 [[package]]

@@ -1,18 +1,17 @@
+use pem::Pem;
 use renewc::renew::InstantAcme;
 use renewc::{run, Config};
-use pem::Pem;
 use tempfile::tempdir;
 
-mod shared;
-use shared::TestPrinter;
+use renewc_test_support::TestPrinter;
 
 #[cfg(target_os = "linux")]
 #[tokio::test]
 async fn haproxy_binds_port() {
-    shared::setup_color_eyre();
-    shared::setup_tracing();
+    renewc_test_support::setup_color_eyre();
+    renewc_test_support::setup_tracing();
 
-    let mut port_user = shared::port_binder::spawn("haproxy");
+    let mut port_user = renewc_test_support::port_binder::spawn("haproxy");
     let bound_port = port_user.port();
 
     let dir = tempdir().unwrap();
@@ -40,8 +39,8 @@ async fn haproxy_binds_port() {
 
 #[tokio::test]
 async fn insufficent_permissions() {
-    shared::setup_color_eyre();
-    shared::setup_tracing();
+    renewc_test_support::setup_color_eyre();
+    renewc_test_support::setup_tracing();
 
     let dir = tempdir().unwrap();
     let config = Config::test(42, &dir.path().join("test_cert"));
@@ -57,11 +56,11 @@ async fn insufficent_permissions() {
 
 #[tokio::test]
 async fn port_forward_suggestion_includes_ip() {
-    shared::setup_color_eyre();
-    shared::setup_tracing();
+    renewc_test_support::setup_color_eyre();
+    renewc_test_support::setup_tracing();
 
     let dir = tempfile::tempdir().unwrap();
-    // port 1119 is assigned to a use by the IANA 
+    // port 1119 is assigned to a use by the IANA
     // and should not route to the current machine
     let config = Config::test(1119, &dir.path());
     let err = run::<Pem>(&mut InstantAcme {}, &mut TestPrinter, &config, true)

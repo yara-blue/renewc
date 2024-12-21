@@ -1,6 +1,18 @@
 [workspace]
 resolver = "2"
 members = [
-	"main",
+	"main", "renewc-test-support",
 	"setup_crosscompile"
 ]
+
+[workspace.dependencies]
+tokio = { version = "1", features = ["time", "macros", "rt-multi-thread"] }
+tracing = { version = "0.1" }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-error = "0.2"
+
+color-eyre = "0.6"
+time = { version = "0.3", features = ["rand", "parsing"] }
+pem = "3"
+tempfile = "3"
+rcgen = "0.12"

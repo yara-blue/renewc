@@ -4,16 +4,15 @@ use renewc::cert;
 use renewc::config::Output;
 use renewc::{run, Config};
 
-mod shared;
-use shared::gen_cert;
-use shared::TestAcme;
-use shared::TestPrinter;
+use renewc_test_support::gen_cert;
+use renewc_test_support::TestAcme;
+use renewc_test_support::TestPrinter;
 use tracing::info;
 
 #[tokio::test]
 async fn production_does_not_overwrite_valid_production() {
-    shared::setup_color_eyre();
-    shared::setup_tracing();
+    renewc_test_support::setup_color_eyre();
+    renewc_test_support::setup_tracing();
 
     let mut acme = TestAcme::new(gen_cert::valid());
     let dir = tempfile::tempdir().unwrap();
@@ -48,8 +47,8 @@ async fn production_does_not_overwrite_valid_production() {
 
 #[tokio::test]
 async fn staging_does_not_overwrite_production() {
-    shared::setup_color_eyre();
-    shared::setup_tracing();
+    renewc_test_support::setup_color_eyre();
+    renewc_test_support::setup_tracing();
 
     let mut acme = TestAcme::new(gen_cert::valid());
     let dir = tempfile::tempdir().unwrap();
@@ -94,8 +93,8 @@ async fn staging_does_not_overwrite_production() {
 
 #[tokio::test]
 async fn staging_overwrites_expired_production() {
-    shared::setup_color_eyre();
-    shared::setup_tracing();
+    renewc_test_support::setup_color_eyre();
+    renewc_test_support::setup_tracing();
 
     let dir = tempfile::tempdir().unwrap();
     let mut acme = TestAcme::new(gen_cert::expired());
@@ -132,8 +131,8 @@ async fn staging_overwrites_expired_production() {
 
 #[tokio::test]
 async fn corrupt_existing_does_not_crash() {
-    shared::setup_color_eyre();
-    shared::setup_tracing();
+    renewc_test_support::setup_color_eyre();
+    renewc_test_support::setup_tracing();
 
     let dir = tempfile::tempdir().unwrap();
 
@@ -161,8 +160,8 @@ async fn corrupt_existing_does_not_crash() {
 
 #[tokio::test]
 async fn warn_about_missing_name() {
-    shared::setup_color_eyre();
-    shared::setup_tracing();
+    renewc_test_support::setup_color_eyre();
+    renewc_test_support::setup_tracing();
 
     let dir = tempfile::tempdir().unwrap();
     let mut acme = TestAcme::new(gen_cert::expired());

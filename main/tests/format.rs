@@ -2,16 +2,15 @@ use pem::Pem;
 use renewc::cert::{load, store, Signed};
 use renewc::Config;
 
-mod shared;
 use renewc::config::Output;
-use shared::gen_cert;
-use shared::TestPrinter;
+use renewc_test_support::gen_cert;
+use renewc_test_support::TestPrinter;
 use time::OffsetDateTime;
 
 #[tokio::test]
 async fn der_and_pem_equal() {
-    shared::setup_color_eyre();
-    shared::setup_tracing();
+    renewc_test_support::setup_color_eyre();
+    renewc_test_support::setup_tracing();
 
     let dir = tempfile::tempdir().unwrap();
 
