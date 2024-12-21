@@ -105,11 +105,15 @@ pub async fn run<P: PemItem>(
 
 struct IndentedOut<'a> {
     out: &'a mut (dyn Write + Send),
+    need_leading_tab: bool,
 }
 
 impl<'a> IndentedOut<'a> {
     fn new(out: &'a mut (dyn Write + Send)) -> Self {
-        Self { out }
+        Self {
+            out,
+            need_leading_tab: true,
+        }
     }
 }
 
@@ -117,18 +121,23 @@ impl<'a> Write for IndentedOut<'a> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let buf = String::from_utf8_lossy(buf).to_string();
 
+        if self.need_leading_tab {
+            // correct for last line end not being followed by tab
+            self.out
+                .write("\t".as_bytes())
+                .expect("out should support normal log amounts of data");
+        }
+
         // leave line ends at end alone, it might need to be followed by not indented text
         let indented = if let Some(without_last_char) = buf.strip_suffix('\n') {
             let mut without_last_char = without_last_char.replace("\n", "\n\t");
+            self.need_leading_tab = true;
             without_last_char.push('\n');
             without_last_char
         } else {
+            self.need_leading_tab = false;
             buf.replace("\n", "\n\t")
         };
-        // correct for last line end not being followed by tab
-        self.out
-            .write("\t".as_bytes())
-            .expect("out should support normal log amounts of data");
         self.out.write(indented.as_bytes())?;
 
         // if we return from write(indented) the returned len is larger then

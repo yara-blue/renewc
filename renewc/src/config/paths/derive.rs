@@ -8,7 +8,7 @@ use tracing::instrument;
 #[instrument(level = "debug", ret)]
 pub(crate) fn derive_path(cert_path: &Path, name: &str, ty: &str, extension: &str) -> PathBuf {
     dir(cert_path)
-        .join(format!("{name}{ty}"))// ty is sometimes optional
+        .join(format!("{name}{ty}")) // ty is sometimes optional
         .with_extension(extension)
 }
 
@@ -27,14 +27,15 @@ fn second_level_domain(full_domain: &str) -> eyre::Result<&str> {
 }
 
 pub fn name(domains: &[impl AsRef<str>]) -> eyre::Result<String> {
-    Ok(domains
+    let mut name_parts = domains
         .iter()
         .map(AsRef::as_ref)
         .map(second_level_domain)
-        .collect::<Result<Vec<_>, _>>()?
-        .into_iter()
-        .unique()
-        .join("+"))
+        .collect::<Result<Vec<_>, _>>()?;
+    name_parts.sort_unstable();
+    name_parts.dedup();
+
+    Ok(name_parts.into_iter().join("+"))
 }
 
 pub(super) fn dir(cert_path: &Path) -> PathBuf {
@@ -65,6 +66,6 @@ mod tests {
             "subdomain.nm.org",
         ];
 
-        assert_eq!(name(&domains).unwrap(), "example&nm");
+        assert_eq!(name(&domains).unwrap(), "example+nm");
     }
 }
