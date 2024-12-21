@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-renewc = { path = "../main" }
+renewc = { path = "../renewc" }
 
 tokio.workspace = true
 tracing.workspace = true

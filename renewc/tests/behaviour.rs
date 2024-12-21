@@ -198,3 +198,34 @@ async fn warn_about_missing_name() {
         "stdout did not start with:\n\t{start:#?}\ninstead it was:\n\t{output:#?}"
     );
 }
+
+#[tokio::test]
+async fn run_against_staging_first() {
+    renewc_test_support::setup_color_eyre();
+    renewc_test_support::setup_tracing();
+
+    let dir = tempfile::tempdir().unwrap();
+
+    let mut acme = TestAcme::new(gen_cert::valid());
+
+    let mut config = Config::test(42, &dir.path().join("test_cert"));
+    config.output_config.output = Output::PemSingleFile;
+    config.production = true;
+    config.domains = vec![String::from("example.org"), String::from("other.domain")];
+
+    let mut output = Vec::new();
+    let _cert = run::<Pem>(&mut acme, &mut output, &config, true)
+        .await
+        .unwrap();
+
+    let output = String::from_utf8(output).unwrap();
+    let header =
+        "\u{1b}[32mfirst checking if request can succeed by using staging environment\u{1b}[39m";
+    let indented = output
+        .strip_prefix(header)
+        .expect("header informing of staging should be the first");
+    assert_eq!(
+        indented,
+        "\n\tgenerating certificate\n\tgenerating certificate\n"
+    );
+}

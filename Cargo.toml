@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-	"main", "renewc-test-support",
+	"renewc", "renewc-test-support",
 	"setup_crosscompile"
 ]
 

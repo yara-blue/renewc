@@ -22,6 +22,7 @@ pub struct Info {
 }
 
 impl Info {
+    #[instrument(skip_all)]
     pub fn from_disk(
         config: &config::Config,
         stdout: &mut impl Write,

@@ -16,9 +16,7 @@ pub struct TestAcme {
 
 impl TestAcme {
     pub fn new(cert_expires: OffsetDateTime) -> Self {
-        Self {
-            cert_expires,
-        }
+        Self { cert_expires }
     }
 }
 
@@ -26,10 +24,13 @@ impl renewc::ACME for TestAcme {
     async fn renew<P: PemItem, W: Write + Send>(
         &self,
         config: &renewc::Config,
-        _stdout: &mut W,
+        stdout: &mut W,
         _debug: bool,
     ) -> eyre::Result<Signed<P>> {
-        let combined = generate_cert_with_chain(self.cert_expires, !config.production, &config.domains);
+        writeln!(stdout, "generating certificate").expect("printing should not fail");
+        let combined =
+            generate_cert_with_chain(self.cert_expires, !config.production, &config.domains);
+        // writeln!(stdout, "TestAcme, no signing certificate").expect("printing should not fail");
         Ok(combined)
     }
 }

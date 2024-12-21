@@ -94,26 +94,38 @@ pub async fn run<P: PemItem>(
     if config.production {
         info(
             stdout,
-            "check if the request can complete against the staging envirement",
+            "first checking if request can succeed by using staging environment",
         );
-        let mut stdout = IndentedStdout(stdout);
-        let _pre_run: cert::Signed<P> =
-            acme_impl.renew(&staging_config, &mut stdout, debug).await?;
+        let mut stdout = IndentedOut::new(stdout);
+        let _: cert::Signed<P> = acme_impl.renew(&staging_config, &mut stdout, debug).await?;
     }
     let signed = acme_impl.renew(config, stdout, debug).await?;
     Ok(Some(signed))
 }
 
-struct IndentedStdout<'a>(&'a mut (dyn Write + Send));
+struct IndentedOut<'a> {
+    out: &'a mut (dyn Write + Send),
+}
 
-impl<'a> Write for IndentedStdout<'a> {
+impl<'a> IndentedOut<'a> {
+    fn new(out: &'a mut (dyn Write + Send)) -> Self {
+        out.write("\t".as_bytes())
+            .expect("out should support normal log amounts of data");
+        Self { out }
+    }
+}
+
+impl<'a> Write for IndentedOut<'a> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let buf = String::from_utf8_lossy(buf).to_string();
         let indented = buf.replace("\n", "\n\t");
-        self.0.write(indented.as_bytes())
+        self.out.write(indented.as_bytes())?;
+        // if we return from write(indented) the returned len is larger then
+        // what the calling code expects which can make it crash
+        Ok(buf.len())
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        self.0.flush()
+        self.out.flush()
     }
 }

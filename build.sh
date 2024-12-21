@@ -12,10 +12,10 @@ if [ $# -gt 0 ]; then
 	cd setup_crosscompile
 	# pass target for which we want to set up crosscompiler
 	cargo r -- $1 
-	cd ../main
+	cd ../renewc
 	cargo b --target $1 --release
 else
-	cd main
+	cd renewc
 	cargo b --release
 fi 
 
