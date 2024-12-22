@@ -16,7 +16,7 @@ default-run = "renewc"
 [dependencies]
 instant-acme = { version = "0.7" }
 x509-parser = "0.15"
-service-install = "0.4.5"
+service-install = "0.5.2"
 
 tracing.workspace = true
 tracing-subscriber.workspace = true 

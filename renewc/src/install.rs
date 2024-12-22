@@ -1,4 +1,5 @@
 use color_eyre::eyre::{self, Context};
+use renewc::name;
 use service_install::schedule::Schedule;
 use service_install::{install_system, tui};
 
@@ -62,10 +63,11 @@ fn format_args(args: InstallArgs) -> Vec<String> {
 
 pub fn perform(args: InstallArgs) -> eyre::Result<()> {
     let schedule = Schedule::Daily(args.time.0);
+
     let steps = install_system!()
         .current_exe()
         .wrap_err("Could not get path to current exe")?
-        .name(env!("CARGO_PKG_NAME"))
+        .service_name(service_name(&args)?)
         .on_schedule(schedule)
         .args(format_args(args))
         .prepare_install()
@@ -75,11 +77,24 @@ pub fn perform(args: InstallArgs) -> eyre::Result<()> {
     Ok(())
 }
 
+fn service_name(args: &InstallArgs) -> eyre::Result<String> {
+    Ok(if let Some(service_name) = &args.service_name {
+        service_name.to_owned()
+    } else {
+        format!(
+            "{}{}",
+            env!("CARGO_PKG_NAME"),
+            name(&args.run.domain)
+                .wrap_err("could not figure out certificate file name")
+                .wrap_err("Could not generate service name")?
+        )
+    })
+}
+
 pub fn undo() -> eyre::Result<()> {
     let _ = install_system!()
         .current_exe()
         .wrap_err("Could not get path to current exe")?
-        .name(env!("CARGO_PKG_NAME"))
         .prepare_remove()
         .wrap_err("Could not prepare for removal")?
         .remove()

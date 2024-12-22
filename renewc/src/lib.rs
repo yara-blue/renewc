@@ -16,6 +16,7 @@ pub mod renew;
 
 use advise::CheckResult;
 pub use config::Config;
+pub use config::name;
 use owo_colors::OwoColorize;
 
 /// during integration testing we do not want to hit lets encrypts backend

@@ -7,7 +7,7 @@ use super::{Encoding, Output};
 
 mod derive;
 use derive::derive_path;
-pub(super) use derive::name;
+pub use derive::name;
 
 fn push_extension(path: &Path, extension: &'static str) -> PathBuf {
     assert!(!extension.starts_with('.'));

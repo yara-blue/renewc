@@ -44,6 +44,11 @@ pub struct InstallArgs {
     #[clap(long, default_value = "04:00")]
     pub time: Time,
 
+    /// optional: name for the service, only applies if systemd is used
+    /// by default the service is named: `renewc_<domains seperated by +>`
+    #[clap(long)]
+    pub service_name: Option<String>,
+
     #[clap(flatten)]
     pub run: RenewArgs,
 }

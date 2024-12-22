@@ -12,7 +12,8 @@ use self::paths::{ChainPath, KeyPath};
 mod args;
 mod paths;
 pub use args::{Commands, InstallArgs, OutputArgs};
-use paths::{name, CertPath};
+use paths::CertPath;
+pub use paths::name;
 
 #[derive(clap::ValueEnum, Debug, Clone, Copy, Default, PartialEq, Eq)]
 /// How to store the output.
