@@ -67,6 +67,7 @@ pub fn perform(args: InstallArgs) -> eyre::Result<()> {
     let steps = install_system!()
         .current_exe()
         .wrap_err("Could not get path to current exe")?
+        .overwrite_existing(true)
         .service_name(service_name(&args)?)
         .on_schedule(schedule)
         .args(format_args(args))
