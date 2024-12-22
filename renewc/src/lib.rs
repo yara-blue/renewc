@@ -15,8 +15,8 @@ pub mod diagnostics;
 pub mod renew;
 
 use advise::CheckResult;
-pub use config::Config;
 pub use config::name;
+pub use config::Config;
 use owo_colors::OwoColorize;
 
 /// during integration testing we do not want to hit lets encrypts backend
@@ -95,10 +95,12 @@ pub async fn run<P: PemItem>(
     };
     if config.production {
         info(stdout, "checking if request can succeed using staging");
-        let mut stdout = IndentedOut::new(stdout);
-        let _: Signed<P> = acme_impl.renew(&staging_config, &mut stdout, debug).await?;
+        {
+            let mut stdout = IndentedOut::new(stdout);
+            let _: Signed<P> = acme_impl.renew(&staging_config, &mut stdout, debug).await?;
+        }
+        info(stdout, "requesting production certificate");
     }
-    info(stdout, "requesting production certificate");
     let mut stdout = IndentedOut::new(stdout);
     let signed = acme_impl.renew(config, &mut stdout, debug).await?;
     Ok(Some(signed))

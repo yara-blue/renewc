@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
  - install: pass in a name for the generated service. If no name is passed in
    one is generated.
+### Fixed
+ - incorrect status message on non production certificate
 
 ## [0.5.0] - 2024-12-21
 
