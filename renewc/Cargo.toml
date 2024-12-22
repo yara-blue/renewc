@@ -16,7 +16,8 @@ default-run = "renewc"
 [dependencies]
 instant-acme = { version = "0.7" }
 x509-parser = "0.15"
-service-install = "0.5.2"
+# service-install = "0.5.2"
+service-install = { path = "/home/david/Documents/service-install" }
 
 tracing.workspace = true
 tracing-subscriber.workspace = true 

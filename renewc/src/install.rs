@@ -6,7 +6,7 @@ use service_install::{install_system, tui};
 use renewc::config::InstallArgs;
 
 fn format_args(args: InstallArgs) -> Vec<String> {
-    let mut res = Vec::new();
+    let mut res = vec!["run".to_string()];
     let args = args.run;
 
     for domain in args.domain {
@@ -83,7 +83,7 @@ fn service_name(args: &InstallArgs) -> eyre::Result<String> {
         service_name.to_owned()
     } else {
         format!(
-            "{}{}",
+            "{}_{}",
             env!("CARGO_PKG_NAME"),
             name(&args.run.domain)
                 .wrap_err("could not figure out certificate file name")
@@ -93,12 +93,12 @@ fn service_name(args: &InstallArgs) -> eyre::Result<String> {
 }
 
 pub fn undo() -> eyre::Result<()> {
-    let _ = install_system!()
+    let steps = install_system!()
         .current_exe()
         .wrap_err("Could not get path to current exe")?
         .prepare_remove()
-        .wrap_err("Could not prepare for removal")?
-        .remove()
-        .map_err(|e| eyre::eyre!(e).wrap_err("failed to remove"))?;
+        .wrap_err("Could not prepare for removal")?;
+    tui::removal::start(steps).wrap_err("Removal failed")?;
+
     Ok(())
 }

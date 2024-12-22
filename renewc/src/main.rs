@@ -1,8 +1,9 @@
+use std::io::Write;
+
 use clap::Parser;
 use color_eyre::eyre::{self, Context};
 use renewc::cert::Signed;
 use renewc::Config;
-use tracing::warn;
 
 use renewc::config::Commands;
 use renewc::renew::InstantAcme;
@@ -49,21 +50,47 @@ async fn main() -> eyre::Result<()> {
             cert::store::on_disk(&config, certs, &mut stdout)
                 .wrap_err("Could not write out certificates")?;
             if let Some(service) = &config.reload {
+                renewc::info!(&mut stdout, "reloading systemd service: {}", service);
                 systemd::systemctl(&["reload"], service)
                     .wrap_err_with(|| "Could not reload ".to_owned() + service)?
             }
         }
         Commands::Install(args) => {
+            let question = "Missing `--production` argument, certificates produced by \
+                            service or job will not be valid";
             if !args.run.production {
-                warn!("Installing service that runs against staging-environment, certificates will not be valid");
+                if exit_requested(&mut stdout, &question) {
+                    return Ok(());
+                }
             }
-            install::perform(args).wrap_err("failed to install")?;
+            install::perform(args)?;
         }
         Commands::Uninstall => {
             install::undo().wrap_err("failed to uninstall")?;
         }
     }
     Ok(())
+}
+
+#[must_use]
+fn exit_requested(w: &mut impl std::io::Write, question: &str) -> bool {
+    use std::io::IsTerminal;
+    renewc::warn!(w, "{}", question);
+
+    if !std::io::stdin().is_terminal() {
+        renewc::error!(w, "Need user confirmation however no user input possible");
+        return true; // user cant confirm
+    }
+
+    renewc::warn!(w, "Continue? y/n");
+    let mut buf = String::new();
+    std::io::stdin().read_line(&mut buf).unwrap();
+    if let Some('y') = buf.chars().next() {
+        false
+    } else {
+        renewc::info!(w, "Quitting, user requested exit");
+        true
+    }
 }
 
 #[allow(clippy::missing_panics_doc)]

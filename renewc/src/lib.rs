@@ -31,16 +31,6 @@ pub trait ACME {
     ) -> eyre::Result<Signed<P>>;
 }
 
-fn warn(stdout: &mut impl Write, s: &str) {
-    let s = s.red().to_string() + "\n";
-    stdout.write_all(s.as_bytes()).unwrap();
-}
-
-fn info(stdout: &mut impl Write, s: &str) {
-    let s = s.green().to_string() + "\n";
-    stdout.write_all(s.as_bytes()).unwrap();
-}
-
 pub async fn run<P: PemItem>(
     acme_impl: &mut impl ACME,
     stdout: &mut (impl Write + Send),
@@ -59,26 +49,26 @@ pub async fn run<P: PemItem>(
             status: Some(status),
             warning,
         }) => {
-            info(stdout, &status);
-            warn(stdout, warning);
+            info!(stdout, "{status}");
+            warn!(stdout, "{warning}");
             return Ok(None);
         }
         Ok(CheckResult::Refuse {
             status: None,
             warning,
         }) => {
-            warn(stdout, warning);
+            warn!(stdout, "{warning}");
             return Ok(None);
         }
         Ok(CheckResult::Accept { status }) => {
-            info(stdout, &status);
+            info!(stdout, "{status}");
         }
         Ok(CheckResult::NoCert) => (),
-        Ok(CheckResult::Warn { warning }) => warn(stdout, warning),
+        Ok(CheckResult::Warn { warning }) => warn!(stdout, "{warning}"),
         Err(e) => {
-            writeln!(stdout, "Warning: renew advise impossible").unwrap();
+            warn!(stdout, "Warning: renew advise impossible");
             for (i, err) in e.chain().enumerate() {
-                advise::warn!(stdout, "   {i}: {err}");
+                warn!(stdout, "   {i}: {err}");
             }
             writeln!(
                 stdout,
@@ -94,12 +84,14 @@ pub async fn run<P: PemItem>(
         ..config.clone()
     };
     if config.production {
-        info(stdout, "checking if request can succeed using staging");
+        info!(stdout, "checking if request can succeed using staging");
         {
             let mut stdout = IndentedOut::new(stdout);
             let _: Signed<P> = acme_impl.renew(&staging_config, &mut stdout, debug).await?;
         }
-        info(stdout, "requesting production certificate");
+        info!(stdout, "requesting production certificate");
+    } else {
+        info!(stdout, "requesting staging certificate");
     }
     let mut stdout = IndentedOut::new(stdout);
     let signed = acme_impl.renew(config, &mut stdout, debug).await?;

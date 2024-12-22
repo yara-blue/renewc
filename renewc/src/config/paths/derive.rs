@@ -12,17 +12,16 @@ pub(crate) fn derive_path(cert_path: &Path, name: &str, ty: &str, extension: &st
         .with_extension(extension)
 }
 
-fn second_level_domain(full_domain: &str) -> eyre::Result<&str> {
+fn second_and_top_level_domain(full_domain: &str) -> eyre::Result<&str> {
     let last_dot = full_domain
         .rfind('.')
         .ok_or_eyre("domain has no top level domain [org/net/com etc]")
         .with_note(|| format!("domain: {}", full_domain))?;
-    let (without_top_level, _top_level) = full_domain.split_at(last_dot);
-    if let Some(last_dot) = without_top_level.rfind('.') {
-        let (_subdomains, second_level) = without_top_level.split_at(last_dot + 1);
-        Ok(second_level)
+    if let Some(second_last_dot) = full_domain[..last_dot].rfind('.') {
+        let (_, second_and_top_level) = full_domain.split_at(second_last_dot);
+        Ok(second_and_top_level)
     } else {
-        Ok(without_top_level)
+        Ok(full_domain) // only second and top level in the domain
     }
 }
 
@@ -30,7 +29,7 @@ pub fn name(domains: &[impl AsRef<str>]) -> eyre::Result<String> {
     let mut name_parts = domains
         .iter()
         .map(AsRef::as_ref)
-        .map(second_level_domain)
+        .map(second_and_top_level_domain)
         .collect::<Result<Vec<_>, _>>()?;
     name_parts.sort_unstable();
     name_parts.dedup();

@@ -138,7 +138,7 @@ pub fn on_disk<P: PemItem>(
         chain,
     } = signed;
 
-    crate::info(stdout, "succeeded, storing on disk");
+    crate::info!(stdout, "succeeded, storing on disk");
     let chain_len = chain.len();
     match config.output_config.output {
         Output::PemSingleFile => {

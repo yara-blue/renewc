@@ -22,6 +22,7 @@ macro_rules! info {
     };
 }
 
+#[macro_export]
 macro_rules! error {
     ($stream:expr, $($arg:tt)*) => {
         // writeln!($stream, "{}", format_args!($($arg)*).if_supports_color(Stream::Stdout, |text| text.green())).unwrap()
@@ -30,6 +31,7 @@ macro_rules! error {
 }
 pub use crate::info;
 pub use crate::warn;
+pub use crate::error;
 
 pub enum CheckResult {
     Refuse {
