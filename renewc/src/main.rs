@@ -16,7 +16,7 @@ mod systemd;
 #[clap(
     author,
     version,
-    about = "Certificate renewal, with advanced diagnostics without installing anything",
+    about = "Easy certificate tool: helpful diagnostics, no requirements, no installation needed",
     long_about = "This as a renewal tool that runs without install and does not need anything installed. If anything goes south during renewal it does not just report an error. It will try and find out what is wrong and give you a detailed report."
 )]
 struct Cli {

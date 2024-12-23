@@ -1,4 +1,4 @@
-> **Certificate renewal, with advanced diagnostics without installing anything**
+> **Easy certificate tool: helpful diagnostics, no requirements, no installation needed**
 
 [![Security audit](https://github.com/dvdsk/renewc/actions/workflows/schedualed-audit.yml/badge.svg)](https://github.com/dvdsk/renewc/actions/workflows/schedualed-audit.yml)
 [![Tests](https://github.com/dvdsk/renewc/actions/workflows/testing.yml/badge.svg)](https://github.com/dvdsk/renewc/actions/workflows/testing.yml)
@@ -14,7 +14,7 @@ Certificate renewal can be quite fragile. This as a renewal tool that runs witho
 ## Features 
  - Request or renews a *Let's Encrypt* certificate
  - Runs on any Linux system without any setup thanks to [musl](https://musl.libc.org/about.html)  
-  _(Given a linux kernel more recent then version 2.6.38 from 2011)_
+  _(Given a Linux kernel more recent then version 2.6.38 from 2011)_
  - Asks before dangerous actions 
     - replacing production with staging
     - not due for renewal
@@ -101,4 +101,3 @@ The resulting binary will run on **any aarch64-linux target** that is not runnin
 Did you run into a problem with your system/setup while renewing certificates? Did it take you a second to figure it out? Please make an issue, so we can see if it can be added to the diagnostics. 
 
 I welcome PRs.
-
