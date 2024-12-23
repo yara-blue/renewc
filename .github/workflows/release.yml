@@ -68,10 +68,9 @@ jobs:
     - name: find tag
       id: tag
       run: |
-          VERSION=$(grep '^version =' main/Cargo.toml | head -n 1 | awk '{print $3}' | tr -d '"' | tr -d "\n")
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          VERSION=$(grep '^version =' renewc/Cargo.toml | head -n 1 | awk '{print $3}' | tr -d '"' | tr -d "\n")
+          echo "VERSION=$VERSION" >> $ GITHUB_OUTPUT
           echo "Found version: $VERSION"
-          echo "::set-output name=version::$VERSION"
     - name: rename bins
       run: |
         suffix=`echo ${{ matrix.target }} | cut -d "-" -f 1`
@@ -80,10 +79,12 @@ jobs:
       run: cat CHANGELOG.md | awk '/^## /{if (++c == 2) {exit}} c == 1' | tail -n +2 > ${{ github.workspace }}-CHANGELOG.txt
     - name: Release
       uses: "softprops/action-gh-release@v2"
+      env:
+        VERSION: ${{ steps.tag.outputs.VERSION }}
       with:
-        body_path: ${{ github.workspace }}-CHANGELOG.txt
+        body_path: ${{ github.workspace }}CHANGELOG.txt
         prerelease: false
-        name: Release ${{ env.VERSION }}
+        name: Release ${{ steps.tag.outputs.VERSION }}
         files: |
           renewc_*
-        tag_name: ${{ env.VERSION }}
+        tag_name: ${{ steps.tag.outputs.VERSION }}
