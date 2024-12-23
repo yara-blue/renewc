@@ -29,9 +29,9 @@ macro_rules! error {
         writeln!($stream, "{}", owo_colors::OwoColorize::bright_red(&format_args!($($arg)*))).unwrap()
     };
 }
+pub use crate::error;
 pub use crate::info;
 pub use crate::warn;
-pub use crate::error;
 
 pub enum CheckResult {
     Refuse {
@@ -41,7 +41,6 @@ pub enum CheckResult {
     Accept {
         status: String,
     },
-    NoCert,
     Warn {
         warning: &'static str,
     },
@@ -69,17 +68,9 @@ impl CheckResult {
     }
 }
 
-pub fn given_existing(
-    config: &Config,
-    cert: &Option<Info>,
-    stdout: &mut impl Write,
-) -> CheckResult {
-    let Some(cert) = cert else {
-        return CheckResult::NoCert;
-    };
-
+pub fn given_existing(config: &Config, cert: Info, stdout: &mut impl Write) -> CheckResult {
     let new_domains: HashSet<_> = config.domains.iter().collect();
-    let prev_domains: HashSet<_> = cert.names.iter().collect();
+    let prev_domains: HashSet<_> = cert.domains.iter().collect();
     let missing = prev_domains.difference(&new_domains).map(|s| s.as_str());
     let n_missing = missing.clone().count();
     let missing: String = Itertools::intersperse_with(missing, || "\n\t-").collect();
@@ -91,7 +82,7 @@ pub fn given_existing(
             format!("Certificate will not be valid for (sub)domains that are currently valid, these are:\n{missing}")
         };
         if exit_requested(stdout, config, &question) {
-            return CheckResult::refuse_without_status("Not renewing, while domains are missing");
+            return CheckResult::refuse_without_status("Not renewing while domains are missing");
         }
     }
 
@@ -128,7 +119,7 @@ pub fn given_existing(
         }
         (true, false, false) => {
             let status = format!(
-                "Production cert not yet due for renewal, expires in: {} days, {} hours",
+                "cert not yet due for renewal expires in: {} days, {} hours",
                 cert.expires_in.whole_days(),
                 cert.expires_in.whole_hours() % 24,
             );

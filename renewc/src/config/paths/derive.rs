@@ -6,10 +6,9 @@ use tracing::instrument;
 
 /// ty is one of "", "_cert", "_key", "_chain"
 #[instrument(level = "debug", ret)]
-pub(crate) fn derive_path(cert_path: &Path, name: &str, ty: &str, extension: &str) -> PathBuf {
-    dir(cert_path)
-        .join(format!("{name}{ty}")) // ty is sometimes optional
-        .with_extension(extension)
+pub(crate) fn derive_path(path: &Path, name: &str, ty: &str, extension: &str) -> PathBuf {
+    let path = dir(path).join(format!("{name}{ty}")); // ty is sometimes optional
+    with_added_extension(path, extension)
 }
 
 fn second_and_top_level_domain(full_domain: &str) -> eyre::Result<&str> {
@@ -18,11 +17,18 @@ fn second_and_top_level_domain(full_domain: &str) -> eyre::Result<&str> {
         .ok_or_eyre("domain has no top level domain [org/net/com etc]")
         .with_note(|| format!("domain: {}", full_domain))?;
     if let Some(second_last_dot) = full_domain[..last_dot].rfind('.') {
-        let (_, second_and_top_level) = full_domain.split_at(second_last_dot);
+        let (_, second_and_top_level) = full_domain.split_at(second_last_dot + 1);
         Ok(second_and_top_level)
     } else {
         Ok(full_domain) // only second and top level in the domain
     }
+}
+
+#[test]
+fn test_second_and_top_level_domain() {
+    let inputs = ["davidsk.dev", "share.davidsk.dev", "matrix.davidsk.dev"];
+    let outputs = inputs.map(second_and_top_level_domain).map(Result::unwrap);
+    assert_eq!(outputs, ["davidsk.dev", "davidsk.dev", "davidsk.dev"]);
 }
 
 pub fn name(domains: &[impl AsRef<str>]) -> eyre::Result<String> {
@@ -47,6 +53,14 @@ pub(super) fn dir(cert_path: &Path) -> PathBuf {
     };
 
     dir.to_path_buf()
+}
+
+pub(crate) fn with_added_extension(path: PathBuf, extension: &str) -> PathBuf {
+    assert!(!extension.starts_with('.'));
+    let mut path = path.into_os_string();
+    path.push(".");
+    path.push(extension);
+    PathBuf::from(path)
 }
 
 #[cfg(test)]

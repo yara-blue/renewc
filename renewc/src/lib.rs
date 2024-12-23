@@ -33,69 +33,73 @@ pub trait ACME {
 
 pub async fn run<P: PemItem>(
     acme_impl: &mut impl ACME,
-    stdout: &mut (impl Write + Send),
+    out: &mut (impl Write + Send),
     config: &Config,
     debug: bool,
 ) -> eyre::Result<Option<Signed<P>>> {
     if config.force {
-        let signed = acme_impl.renew(config, stdout, debug).await?;
+        let signed = acme_impl.renew(config, out, debug).await?;
         return Ok(Some(signed));
     }
 
-    match CertInfo::from_disk(config, stdout)
-        .map(|cert| advise::given_existing(config, &cert, stdout))
-    {
-        Ok(CheckResult::Refuse {
-            status: Some(status),
-            warning,
-        }) => {
-            info!(stdout, "{status}");
-            warn!(stdout, "{warning}");
-            return Ok(None);
-        }
-        Ok(CheckResult::Refuse {
-            status: None,
-            warning,
-        }) => {
-            warn!(stdout, "{warning}");
-            return Ok(None);
-        }
-        Ok(CheckResult::Accept { status }) => {
-            info!(stdout, "{status}");
-        }
-        Ok(CheckResult::NoCert) => (),
-        Ok(CheckResult::Warn { warning }) => warn!(stdout, "{warning}"),
-        Err(e) => {
-            warn!(stdout, "Warning: renew advise impossible");
-            for (i, err) in e.chain().enumerate() {
-                warn!(stdout, "   {i}: {err}");
+    match CertInfo::from_disk(config, out) {
+        Ok(Some(cert_info)) => {
+            info!(out, "Existing certificate: {}", cert_filename(config));
+            match advise::given_existing(config, cert_info, out) {
+                CheckResult::Refuse { status, warning } => {
+                    if let Some(status) = status {
+                        info!(out, "{status}");
+                    }
+                    warn!(out, "{warning}");
+                    return Ok(None);
+                }
+                CheckResult::Accept { status } => info!(out, "{status}"),
+                CheckResult::Warn { warning } => warn!(out, "{warning}"),
             }
-            writeln!(
-                stdout,
-                "Note: {}",
-                "This might mean the previous certificate is corrupt or broken".blue()
-            )
-            .unwrap();
         }
+        Ok(None) => info!(out, "No existing certificate found"),
+        Err(e) => print_advice_error_chain(out, e),
     }
 
+    if config.production {
+        check_against_staging(out, config, acme_impl, debug).await?;
+        info!(out, "requesting production certificate");
+    } else {
+        info!(out, "requesting staging certificate");
+    }
+    let mut stdout = IndentedOut::new(out);
+    let signed = acme_impl.renew(config, &mut stdout, debug).await?;
+    Ok(Some(signed))
+}
+
+async fn check_against_staging(
+    out: &mut (impl Write + Send),
+    config: &Config,
+    acme_impl: &mut impl ACME,
+    debug: bool,
+) -> Result<(), eyre::Error> {
+    info!(out, "checking if request can succeed using staging");
     let staging_config = Config {
         production: false,
         ..config.clone()
     };
-    if config.production {
-        info!(stdout, "checking if request can succeed using staging");
-        {
-            let mut stdout = IndentedOut::new(stdout);
-            let _: Signed<P> = acme_impl.renew(&staging_config, &mut stdout, debug).await?;
-        }
-        info!(stdout, "requesting production certificate");
-    } else {
-        info!(stdout, "requesting staging certificate");
+    Ok({
+        let mut stdout = IndentedOut::new(out);
+        let _: Signed<pem::Pem> = acme_impl.renew(&staging_config, &mut stdout, debug).await?;
+    })
+}
+
+fn print_advice_error_chain(stdout: &mut (impl Write + Send), e: eyre::Error) {
+    warn!(stdout, "Warning: renew advise impossible");
+    for (i, err) in e.chain().enumerate() {
+        warn!(stdout, "   {i}: {err}");
     }
-    let mut stdout = IndentedOut::new(stdout);
-    let signed = acme_impl.renew(config, &mut stdout, debug).await?;
-    Ok(Some(signed))
+    writeln!(
+        stdout,
+        "Note: {}",
+        "This might mean the previous certificate is corrupt or broken".blue()
+    )
+    .unwrap();
 }
 
 struct IndentedOut<'a> {
@@ -143,4 +147,15 @@ impl Write for IndentedOut<'_> {
     fn flush(&mut self) -> std::io::Result<()> {
         self.out.flush()
     }
+}
+
+fn cert_filename(config: &Config) -> String {
+    config
+        .output_config
+        .cert_path
+        .as_path()
+        .file_name()
+        .expect("file name is auto generated if none was set by the user")
+        .to_string_lossy()
+        .to_string()
 }

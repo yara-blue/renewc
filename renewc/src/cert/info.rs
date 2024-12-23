@@ -14,7 +14,7 @@ use x509_parser::prelude::{GeneralName, Pem};
 pub struct Info {
     pub staging: bool,
     pub expires_in: Duration,
-    pub names: Vec<String>,
+    pub domains: Vec<String>,
     // unix timestamp of expiration time
     // used to seed rng such that each randomness
     // only changes with a renewed certificate
@@ -82,7 +82,7 @@ pub fn analyze(signed: Signed<impl PemItem>) -> eyre::Result<Info> {
         .timestamp()
         .try_into()
         .expect("got negative timestamp from x509 certificate, this is a bug");
-    let names = cert
+    let domains = cert
         .subject_alternative_name()?
         .map(|s| {
             s.value
@@ -97,7 +97,7 @@ pub fn analyze(signed: Signed<impl PemItem>) -> eyre::Result<Info> {
         staging,
         expires_in,
         seed: expires_at,
-        names,
+        domains,
     })
 }
 

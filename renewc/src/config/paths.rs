@@ -9,20 +9,6 @@ mod derive;
 use derive::derive_path;
 pub use derive::name;
 
-fn push_extension(path: &Path, extension: &'static str) -> PathBuf {
-    assert!(!extension.starts_with('.'));
-    let curr = path
-        .extension()
-        .expect("should only be called on files with an extension");
-    let new = {
-        let mut curr = curr.to_os_string();
-        curr.push(".");
-        curr.push(extension);
-        curr
-    };
-    path.with_extension(new)
-}
-
 pub(super) fn fix_extension(encoding: Encoding, path: &Path) -> eyre::Result<PathBuf> {
     use strum::IntoEnumIterator;
 
@@ -38,7 +24,7 @@ pub(super) fn fix_extension(encoding: Encoding, path: &Path) -> eyre::Result<Pat
               when renewing certificates it can cause issues loading the
               certificate in another application."
         );
-        return Ok(push_extension(path, encoding.extension()));
+        return Ok(path.to_path_buf());
     };
 
     if extention == encoding.extension() {
@@ -47,16 +33,20 @@ pub(super) fn fix_extension(encoding: Encoding, path: &Path) -> eyre::Result<Pat
 
     for wrong in Encoding::iter().map(Encoding::extension) {
         if extension == wrong {
-            return Err(eyre::eyre!("File path has wrong extension"))
-                .with_note(|| format!("extension is: \"{extension}\""))
-                .with_note(|| format!("only valid extension is {}", encoding.extension()))
-                .suggestion(
-                    "Leave out the extension, the correct extension will be added for you",
-                );
+            return Err(eyre::eyre!(
+                "File path has extension for another output format"
+            ))
+            .with_note(|| format!("the current extension is: \"{extension}\""))
+            .with_note(|| format!("the correct extension is {}", encoding.extension()))
+            .suggestion(
+                "Either leave out the extension, use the correct extension for the \
+                current output format or switch to the output format corrosponding \
+                to this extension",
+            );
         }
     }
 
-    Ok(push_extension(path, encoding.extension()))
+    Ok(path.to_path_buf())
 }
 
 #[derive(Debug, Clone)]
