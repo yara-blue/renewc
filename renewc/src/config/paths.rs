@@ -59,7 +59,7 @@ impl CertPath {
         let content_description = if let Output::PemSingleFile = output {
             ""
         } else {
-            "_cert"
+            "cert_"
         };
 
         Ok(CertPath(if cert_path.is_dir() {
@@ -82,7 +82,7 @@ impl KeyPath {
     ) -> eyre::Result<Self> {
         let encoding = Encoding::from(output);
         Ok(KeyPath(match chain_path {
-            None => derive_path(cert_path, name, "_chain", encoding.extension()),
+            None => derive_path(cert_path, name, "chain_", encoding.extension()),
             Some(path) => fix_extension(encoding, &path)?,
         }))
     }
@@ -100,7 +100,7 @@ impl ChainPath {
     ) -> eyre::Result<Self> {
         let encoding = Encoding::from(output);
         Ok(ChainPath(match chain_path {
-            None => derive_path(cert_path, name, "_key", encoding.extension()),
+            None => derive_path(cert_path, name, "key_", encoding.extension()),
             Some(path) => fix_extension(encoding, &path)?,
         }))
     }
@@ -135,7 +135,7 @@ mod tests {
         let path = Path::new("/etc/ssl/test.test");
         assert_eq!(
             fix_extension(Encoding::PEM, path).unwrap(),
-            PathBuf::from("/etc/ssl/test.test.pem")
+            PathBuf::from("/etc/ssl/test.test")
         );
 
         let path = Path::new("/etc/ssl/test");

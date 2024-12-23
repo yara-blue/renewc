@@ -119,7 +119,7 @@ pub fn given_existing(config: &Config, cert: Info, stdout: &mut impl Write) -> C
         }
         (true, false, false) => {
             let status = format!(
-                "cert not yet due for renewal expires in: {} days, {} hours",
+                "Production cert not yet due for renewal expires in: {} days, {} hours",
                 cert.expires_in.whole_days(),
                 cert.expires_in.whole_hours() % 24,
             );

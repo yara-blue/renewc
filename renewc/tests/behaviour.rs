@@ -37,7 +37,11 @@ async fn production_does_not_overwrite_valid_production() {
         .unwrap();
 
     let output = String::from_utf8(output).unwrap();
-    let text = format!("{}", "Production cert not yet due for renewal".green());
+    let text = format!(
+        "{}\n{}",
+        "Existing certificate: testdomain.org_cert.pem".green(),
+        "Production cert not yet due for renewal".green()
+    );
     let start = &text[..text.len() - 5]; // remove color end char
     assert!(
         output.starts_with(start),
@@ -151,7 +155,7 @@ async fn corrupt_existing_does_not_crash() {
         .unwrap();
 
     let output = String::from_utf8(output).unwrap();
-    let text = "Warning: renew advise impossible";
+    let text = "\u{1b}[33mWarning: renew advise impossible";
     assert!(
         output.starts_with(text),
         "stdout did not start with:\n\t{text:#?}\ninstead it was:\n\t{output:#?}"

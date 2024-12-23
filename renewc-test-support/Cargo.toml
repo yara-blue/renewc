@@ -20,7 +20,5 @@ proctitle = "0.1"
 fork = "0.2"
 rcgen.workspace = true
 pem.workspace = true
-os_pipe = "1.1"
-nix = { version = "0.29", features = ["fs"] }
 tempfile.workspace = true
 shared_memory = "0.12"

@@ -12,8 +12,8 @@ use self::paths::{ChainPath, KeyPath};
 mod args;
 mod paths;
 pub use args::{Commands, InstallArgs, OutputArgs};
-use paths::CertPath;
 pub use paths::name;
+use paths::CertPath;
 
 #[derive(clap::ValueEnum, Debug, Clone, Copy, Default, PartialEq, Eq)]
 /// How to store the output.
@@ -32,8 +32,8 @@ pub enum Output {
     /// Use PEM encoding. Store the signed certificate and certificate chain
     /// in the same file in that order. Keep the private key in another file.
     /// File extensions will be 'pem'.
-    /// Note: If the file is auto generated the first will end in `_chain` the
-    /// second in `_key`.
+    /// Note: If the file is auto generated the first will start with `chain_` the
+    /// second in `key_`.
     /// Note: format expected by: Nginx and Apache
     #[default]
     PemSeperateKey,
@@ -41,20 +41,20 @@ pub enum Output {
     /// Use PEM encoding. Store the signed certificate and private key in the
     /// same file in that order. The chain is stored in another file.
     /// File extensions will be 'pem'.
-    /// Note: If the file is auto generated the first will end in `_cert` the
-    /// second in `_chain`.
+    /// Note: If the file is auto generated the first will start with `cert_` the
+    /// second in `chain_`.
     PemSeperateChain,
 
     /// Use PEM encoding. Store the signed certificate, private key and chain
     /// all in their own file. File extensions will be 'pem'.
-    /// Note: If the file names are auto generated these will end in
-    /// `_cert`, `_key` and `_chain`.
+    /// Note: If the file names are auto generated these will start with
+    /// `cert_`, `key_` and `chain_`.
     PemAllSeperate,
 
     /// Use DER encoding. Store each certificate of the chain, the signed certificate
     /// and its private key in their own file. File extensions will be 'der'.
-    /// Note: If the file names are auto generated these will end in
-    /// `_cert`, `_key` and `_chain`.
+    /// Note: If the file names are auto generated these will start with
+    /// `cert_`, `key_` and `chain_`.
     Der,
 
     // these still need implementing, lets not show them in the help text

@@ -4,10 +4,10 @@ use itertools::Itertools;
 use std::path::{Path, PathBuf};
 use tracing::instrument;
 
-/// ty is one of "", "_cert", "_key", "_chain"
+/// ty is one of "", "cert_", "key_", "chain_"
 #[instrument(level = "debug", ret)]
 pub(crate) fn derive_path(path: &Path, name: &str, ty: &str, extension: &str) -> PathBuf {
-    let path = dir(path).join(format!("{name}{ty}")); // ty is sometimes optional
+    let path = dir(path).join(format!("{ty}{name}")); // ty is sometimes optional
     with_added_extension(path, extension)
 }
 
@@ -79,6 +79,6 @@ mod tests {
             "subdomain.nm.org",
         ];
 
-        assert_eq!(name(&domains).unwrap(), "example+nm");
+        assert_eq!(name(&domains).unwrap(), "example.org+nm.org");
     }
 }

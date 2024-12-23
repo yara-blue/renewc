@@ -1,9 +1,9 @@
 [package]
 name = "renewc"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["David Kleingeld <opensource@davidsk.dev>"]
 edition = "2021"
-rust-version = "1.70"
+rust-version = "1.81"
 description = "Certificate renewal, with advanced diagnostics without installing anything"
 license = "GNUv3"
 readme = "README.md"
@@ -15,9 +15,8 @@ default-run = "renewc"
 
 [dependencies]
 instant-acme = { version = "0.7" }
-x509-parser = "0.15"
-# service-install = "0.5.2"
-service-install = { path = "/home/david/Documents/service-install" }
+x509-parser = "0.16"
+service-install = "0.5.3"
 
 tracing.workspace = true
 tracing-subscriber.workspace = true 
@@ -43,7 +42,7 @@ yasna = "0.5" # DER encoding
 data-encoding = "2.5"
 pem.workspace = true
 rcgen.workspace = true
-strum = { version = "0.25", features = ["derive"] }
+strum = { version = "0.26", features = ["derive"] }
 local-ip-address = "0.6"
 
 [dev-dependencies]
