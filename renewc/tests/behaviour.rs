@@ -39,7 +39,7 @@ async fn production_does_not_overwrite_valid_production() {
     let output = String::from_utf8(output).unwrap();
     let text = format!(
         "{}\n{}",
-        "Existing certificate: testdomain.org_cert.pem".green(),
+        "Existing certificate: cert_testdomain.org.pem".green(),
         "Production cert not yet due for renewal".green()
     );
     let start = &text[..text.len() - 5]; // remove color end char
@@ -76,10 +76,15 @@ async fn staging_does_not_overwrite_production() {
         .unwrap();
 
     let output = String::from_utf8(output).unwrap();
-    let text = format!("{}", "Found still valid production cert".green());
-    let start = &text[..text.len() - 5]; // remove color end char
+    let text = format!(
+        "{}\n{}",
+        "Existing certificate: test_cert.pem".green(),
+        "Found still valid production cert, continuing will overwrite \
+        it with a staging certificate"
+            .green()
+    );
     assert!(
-        output.starts_with(start),
+        output.starts_with(&text),
         "stdout did not start with:\n\t{text:#?}\ninstead it was:\n\t{output:#?}"
     );
 
@@ -87,11 +92,9 @@ async fn staging_does_not_overwrite_production() {
         "{}",
         "Need user confirmation however no user input possible".bright_red()
     );
-    let end = &text[5..]; // remove color start char
-    println!("{output}");
     assert!(
-        output.contains(end),
-        "stdout did not contain:\n\t{end:#?}\ninstead it was:\n\t{output:#?}"
+        output.contains(&text),
+        "stdout did not contain:\n\t{text:#?}\ninstead it was:\n\t{output:#?}"
     );
 }
 
@@ -123,13 +126,13 @@ async fn staging_overwrites_expired_production() {
 
     let output = String::from_utf8(output).unwrap();
     let text = format!(
-        "{}",
-        "Requesting staging cert. Overwriting expired production certificate. Certificate will not be valid".green()
+        "{}\n{}",
+        "Existing certificate: test_cert.pem".green(),
+        "Requesting staging cert. Overwriting expired production certificate. Certificate will not be valid".green(),
     );
-    let start = &text[..text.len() - 5]; // remove color end char
     assert!(
-        output.starts_with(start),
-        "stdout did not start with:\n\t{start:#?}\ninstead it was:\n\t{output:#?}"
+        output.starts_with(&text),
+        "stdout did not start with:\n\t{text:#?}\ninstead it was:\n\t{output:#?}"
     );
 }
 
@@ -193,8 +196,9 @@ async fn warn_about_missing_name() {
 
     let output = String::from_utf8(output).unwrap();
     let text = format!(
-        "{}",
-        "Certificate will not be valid for (sub)domain that is currently valid, that (sub)domain is: subdomain.example.org".green()
+        "{}\n{}",
+        "Existing certificate: test_cert.pem".green(),
+        "Certificate will not be valid for (sub)domain that is currently valid, that (sub)domain is: subdomain.example.org".green(),
     );
     let start = &text[..text.len() - 5]; // remove color end char
     assert!(
@@ -223,11 +227,17 @@ async fn run_against_staging_first() {
         .unwrap();
 
     let output = String::from_utf8(output).unwrap();
-    let header = "\u{1b}[32mchecking if request can succeed using staging\u{1b}[39m";
-    let indented = output
-        .strip_prefix(header)
-        .expect("header informing of staging should be the first");
-    assert_eq!(
-        indented,"\n\tgenerating certificate\n\tTestAcme, not signing certificate\n\u{1b}[32mrequesting production certificate\u{1b}[39m\n\tgenerating certificate\n\tTestAcme, not signing certificate\n"
+    let text = format!(
+        "{}\n{}\n\t{}\n\t{}\n{}\n\t{}",
+        "No existing certificate found".green(),
+        "checking if request can succeed using staging".green(),
+        "generating certificate",
+        "TestAcme, not signing certificate",
+        "requesting production certificate".green(),
+        "generating certificate",
+    );
+    assert!(
+        output.starts_with(&text),
+        "stdout did not start with:\n\t{text:#?}\ninstead it was:\n\t{output:#?}"
     );
 }
