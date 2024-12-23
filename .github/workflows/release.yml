@@ -54,37 +54,23 @@ jobs:
     runs-on: ubuntu-latest
     needs: 
       - compile
-    strategy:
-      matrix:
-        target:
-          - x86_64-unknown-linux-musl
-          - aarch64-unknown-linux-musl
-          - armv7-unknown-linux-musleabihf
-          - arm-unknown-linux-musleabihf
     steps:
     - uses: actions/checkout@v4
     - name: Download the binaries
       uses: actions/download-artifact@v4
-    - name: find tag
-      id: tag
-      run: |
-          VERSION=$(grep '^version =' renewc/Cargo.toml | head -n 1 | awk '{print $3}' | tr -d '"' | tr -d "\n")
-          echo "VERSION=$VERSION" >> $ GITHUB_OUTPUT
-          echo "Found version: $VERSION"
     - name: rename bins
       run: |
         suffix=`echo ${{ matrix.target }} | cut -d "-" -f 1`
-        mv ${{ matrix.target }}/renewc renewc_$suffix
-    - name: changelog as release body
-      run: cat CHANGELOG.md | awk '/^## /{if (++c == 2) {exit}} c == 1' | tail -n +2 > ${{ github.workspace }}-CHANGELOG.txt
-    - name: Release
-      uses: "softprops/action-gh-release@v2"
+        mv x86_64-unknown-linux-musl/renewc renewc_x64
+        mv aarch64-unknown-linux-musl/renewc renewc_aarch64
+        mv armv7-unknown-linux-musleabihf/renewc renewc_armv7
+        mv arm-unknown-linux-musleabihf/renewc renewc_arm
+    - name: Run gh release
       env:
-        VERSION: ${{ steps.tag.outputs.VERSION }}
-      with:
-        body_path: ${{ github.workspace }}CHANGELOG.txt
-        prerelease: false
-        name: Release ${{ steps.tag.outputs.VERSION }}
-        files: |
-          renewc_*
-        tag_name: ${{ steps.tag.outputs.VERSION }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: bash
+      run: |
+        CHANGES=`cat CHANGELOG.md | awk '/^## /{if (++c == 3) exit}; {if (c>1) print}'`
+        VERSION=`grep '^version =' renewc/Cargo.toml | head -n 1 | awk '{print $3}' | tr -d '"' | tr -d "\n"`
+        TAG=`echo release-$VERSION`
+        gh release create $TAG --notes "$CHANGES" --title "Release $VERSION" renewc_*
