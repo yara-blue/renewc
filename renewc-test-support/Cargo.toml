@@ -13,7 +13,7 @@ tracing-error.workspace = true
 color-eyre.workspace = true
 
 time = { version = "0.3", features = ["rand", "parsing"] }
-itertools = "0.13"
+itertools = "0.14"
 
 libc = "0.2"
 proctitle = "0.1"
