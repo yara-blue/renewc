@@ -15,4 +15,4 @@ color-eyre = "0.6"
 time = { version = "0.3", features = ["rand", "parsing"] }
 pem = "3"
 tempfile = "3"
-rcgen = "0.12"
+rcgen = "0.14"
