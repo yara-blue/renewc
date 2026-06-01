@@ -8,124 +8,185 @@
 with lib;
 with lib.types;
 let
-  cfg = config.services.break-enforcer;
+  cfg = config.services.renewc;
 in
 {
   options = {
-    services.break-enforcer = {
-      enable = mkEnableOption "renewc";
-      work-duration = mkOption {
+    services.renewc = {
+      enable = mkEnableOption "renewc, automatic Let's Encrypt certificate renewal";
+
+      time = mkOption {
         type = types.str;
-        description = "Period after which input will be disabled. Note:
-				run help command to see the duration format";
+        default = "04:00";
+        example = "03:30";
+        description = ''
+          Time of day (HH:MM) at which the renewal check runs. renewc
+          itself decides whether a certificate is actually due for renewal
+          (it renews roughly 8 to 10 days before expiry), so it is safe and
+          recommended to run the check once a day.
+        '';
       };
-      break-duration = mkOption {
-        type = types.str;
-        description = "Length of the (short) breaks, after this period
-				input is resumed. Note: run help command to see the duration
-				format";
+
+      domains = mkOption {
+        type = listOf types.str;
+        example = [
+          "example.org"
+          "www.example.org"
+        ];
+        description = ''
+          Domain(s) to request a certificate for. To request a certificate
+          covering multiple subdomains pass multiple domains here; note the
+          base domain must be the same for all of them.
+        '';
       };
-      long-break-duration = mkOption {
+
+      email = mkOption {
+        type = listOf types.str;
+        default = [ ];
+        example = [ "you@example.org" ];
+        description = "Contact info supplied to the ACME provider.";
+      };
+
+      production = mkOption {
+        type = types.bool;
+        default = false;
+        description = ''
+          Use the Let's Encrypt production environment instead of staging.
+          See https://letsencrypt.org/docs/staging-environment/.
+        '';
+      };
+
+      port = mkOption {
+        type = types.port;
+        default = 80;
+        description = ''
+          Internal port that external port 80 should be forwarded to. renewc
+          listens on this port to answer the ACME HTTP-01 challenge.
+        '';
+      };
+
+      reload = mkOption {
         type = types.nullOr types.str;
         default = null;
-        description = "Length of the long breaks, after this period
-				input is resumed. Note: run help command to see the duration
-				format";
+        example = "haproxy.service";
+        description = "Systemd service to reload after a successful renewal.";
       };
-      work-between-long-breaks = mkOption {
-        type = types.nullOr types.str;
+
+      renewEarly = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Renew a certificate even if it is not yet due.";
+      };
+
+      force = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Ignore existing certificates and always renew.";
+      };
+
+      overwriteProduction = mkOption {
+        type = types.bool;
+        default = false;
+        description = ''
+          Request a staging certificate even if doing so would overwrite a
+          valid production certificate.
+        '';
+      };
+
+      debug = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Enable debug logging.";
+      };
+
+      output = mkOption {
+        type = types.enum [
+          "pem-single-file"
+          "pem-seperate-key"
+          "pem-seperate-chain"
+          "pem-all-seperate"
+          "der"
+        ];
+        default = "pem-seperate-key";
+        description = ''
+          How to encode and split the certificate, chain and private key
+          across files. See `renewc run --help` for a description of each
+          variant (for example `pem-single-file` is what Haproxy expects and
+          `pem-seperate-key` is what Nginx and Apache expect).
+        '';
+      };
+
+      certificatePath = mkOption {
+        type = types.path;
+        example = "/var/lib/renewc/example.org";
+        description = ''
+          Path, optionally including a file name, where the signed
+          certificate (possibly together with its private key and/or chain,
+          depending on the selected output format) is written. The correct
+          file extension is added automatically when no name is given.
+        '';
+      };
+
+      keyPath = mkOption {
+        type = types.nullOr types.path;
         default = null;
-        description = "Amount of total work time before next break will
-				be a long break. Note: run help command to see the duration
-				format";
-      };
-      break-start-lead = mkOption {
-        type = types.str;
-        description = "How long before a break starts to send a
-				notification. Note: run help command to see the duration
-				format";
-        default = "30s";
-      };
-      break-end-lead = mkOption {
-        type = types.str;
-        description = "How long before a break starts to send a
-				notification. Note: run help command to see the duration
-				format";
-        default = "5s";
-      };
-      work-reset-lead = mkOption {
-        type = types.str;
-        description = "How long before the work period resets to send a
-				notification. Note: run help command to see the duration
-				format";
-        default = "5s";
-      };
-      break-start-notify = mkOption {
-        type = listOf (types.str);
-        default = [ ];
         description = ''
-          Type of notification to get when break is about to begin.
-          Options: [audio, system, command(<command string>)].
-          The command string should be a space separated list of the program
-          to run and its arguments. Spaces in arguments are not supported.
-          Example: command(killall minecraft)'';
+          Path, optionally including a file name, where the private key is
+          written when it is stored separately from the certificate. Defaults
+          to the certificate-path's directory when unset.
+        '';
       };
-      break-end-notify = mkOption {
-        type = listOf (types.str);
-        default = [ ];
+
+      chainPath = mkOption {
+        type = types.nullOr types.path;
+        default = null;
         description = ''
-          Type of notification to get when break is about to end.
-          Options: [audio, system, command(<command string>)].
-          The command string should be a space separated list of the program
-          to run and its arguments. Spaces in arguments are not supported.
-          Example: command(killall minecraft)'';
+          Path, optionally including a file name, where the certificate chain
+          is written when it is stored separately. Defaults to being deduced
+          from the certificate-path when unset. Cannot be used with the `der`
+          output format.
+        '';
       };
-      work-reset-notify = mkOption {
-        type = listOf (types.str);
-        default = [ ];
-        description = ''
-          Type of notification to get when the work time resets.
-          Options: [audio, system, command(<command string>)].
-          The command string should be a space separated list of the program
-          to run and its arguments. Spaces in arguments are not supported.
-          Example: command(killall minecraft)'';
-      };
-      tcp-api = mkEnableOption "tcp-api";
-      status-file = mkEnableOption "status-file";
-      notifications = mkEnableOption "notifications";
     };
   };
 
   config = mkIf cfg.enable {
     systemd.services.renewc = {
-      description = "Renew certificates";
-      after = [ "network.target" ];
-      wantedBy = [ "multi-user.target" ];
+      description = "Renew TLS certificates with renewc";
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
 
       serviceConfig = {
-        Type = "simple";
-        ExecStart = ''
-          ${pkgs.renewc}/bin/renewc run \
-          --work-duration ${cfg.work-duration} \
-          --break-duration ${cfg.break-duration} \
-           ${
-             optionalString (cfg.long-break-duration != null) "--long-break-duration ${cfg.long-break-duration}"
-           } \
-           ${
-             optionalString (
-               cfg.work-between-long-breaks != null
-             ) "--work-between-long-breaks ${cfg.work-between-long-breaks}"
-           } \
-          --break-start-lead ${cfg.break-start-lead} \
-          --break-end-lead ${cfg.break-end-lead} \
-          --work-reset-lead ${cfg.work-reset-lead} \
-          ${concatMapStrings (x: "--break-start-notify " + "\"" + x + "\" ") cfg.break-start-notify} \
-          ${concatMapStrings (x: "--break-end-notify " + "\"" + x + "\" ") cfg.break-end-notify} \
-          ${concatMapStrings (x: "--work-reset-notify " + "\"" + x + "\" ") cfg.work-reset-notify} \
-          ${optionalString cfg.tcp-api "--tcp-api"} \
-          ${optionalString cfg.status-file "--status-file"} \
-          ${optionalString cfg.notifications "--notifications"}
-        '';
+        Type = "oneshot";
+        ExecStart = concatStringsSep " " (
+          [
+            "${pkgs.renewc}/bin/renewc run"
+          ]
+          ++ map (d: "--domain ${escapeShellArg d}") cfg.domains
+          ++ map (e: "--email ${escapeShellArg e}") cfg.email
+          ++ optional cfg.production "--production"
+          ++ [ "--port ${toString cfg.port}" ]
+          ++ optional (cfg.reload != null) "--reload ${escapeShellArg cfg.reload}"
+          ++ optional cfg.renewEarly "--renew-early"
+          ++ optional cfg.force "--force"
+          ++ optional cfg.overwriteProduction "--overwrite-production"
+          ++ optional cfg.debug "--debug"
+          ++ [ "--output ${cfg.output}" ]
+          ++ [ "--certificate-path ${escapeShellArg (toString cfg.certificatePath)}" ]
+          ++ optional (cfg.keyPath != null) "--key-path ${escapeShellArg (toString cfg.keyPath)}"
+          ++ optional (cfg.chainPath != null) "--chain-path ${escapeShellArg (toString cfg.chainPath)}"
+        );
+      };
+    };
+
+    systemd.timers.renewc = {
+      description = "Daily timer for renewc certificate renewal";
+      wantedBy = [ "timers.target" ];
+
+      timerConfig = {
+        OnCalendar = "*-*-* ${cfg.time}:00";
+        Persistent = true;
+        Unit = "renewc.service";
       };
     };
   };

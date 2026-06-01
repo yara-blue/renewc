@@ -70,6 +70,11 @@
       overlays.default = _: prev: {
         renewc = self.packages.${prev.system}.default;
       };
-      nixosModules.renewc = ./nix_module.nix;
+      nixosModules.default =
+        { ... }:
+        {
+          imports = [ ./nix_module.nix ];
+          nixpkgs.overlays = [ self.overlays.default ];
+        };
     };
 }
