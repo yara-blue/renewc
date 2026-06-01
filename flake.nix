@@ -40,9 +40,14 @@
             pname = cargoTOML.package.name;
             version = cargoTOML.package.version;
 
+            src = project_root;
+
             cargoLock = {
               lockFile = "${project_root}/Cargo.lock";
             };
+
+            # nix test env can not deal with the tests needing ports etc
+            doCheck = false;
 
             nativeBuildInputs = [ pkg-config ];
             buildInputs = [ openssl ];
