@@ -26,9 +26,9 @@ fn second_and_top_level_domain(full_domain: &str) -> eyre::Result<&str> {
 
 #[test]
 fn test_second_and_top_level_domain() {
-    let inputs = ["davidsk.dev", "share.davidsk.dev", "matrix.davidsk.dev"];
+    let inputs = ["yara.blue", "share.yara.blue", "matrix.yara.blue"];
     let outputs = inputs.map(second_and_top_level_domain).map(Result::unwrap);
-    assert_eq!(outputs, ["davidsk.dev", "davidsk.dev", "davidsk.dev"]);
+    assert_eq!(outputs, ["yara.blue", "yara.blue", "yara.blue"]);
 }
 
 pub fn name(domains: &[impl AsRef<str>]) -> eyre::Result<String> {

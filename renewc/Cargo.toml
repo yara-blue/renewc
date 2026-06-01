@@ -1,7 +1,7 @@
 [package]
 name = "renewc"
 version = "0.6.0"
-authors = ["David Kleingeld <opensource@davidsk.dev>"]
+authors = ["Yara <git@yara.blue>"]
 edition = "2021"
 rust-version = "1.81"
 description = "Easy certificate tool: helpful diagnostics, no requirements, no installation needed"
@@ -14,8 +14,8 @@ categories = ["command-line-utilities"]
 default-run = "renewc"
 
 [dependencies]
-instant-acme = { version = "0.7" }
-x509-parser = "0.16"
+instant-acme = { version = "0.8", default-features = false, features = ["ring", "hyper-rustls"] }
+x509-parser = "0.18"
 service-install = "0.5.3"
 
 tracing.workspace = true
@@ -23,7 +23,7 @@ tracing-subscriber.workspace = true
 tracing-error.workspace = true
 
 clap = { version = "4", features = ["derive"] }
-axum = "0.7"
+axum = "0.8"
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace"] }
 tokio.workspace = true
@@ -32,17 +32,16 @@ color-eyre.workspace = true
 time.workspace = true
 netstat2 = "0.11"
 libproc = "0.14"
-reqwest = { version = "0.12.9", default-features=false, features = [] }
-itertools = "0.13"
+reqwest = { version = "0.13.4", default-features=false, features = [] }
+itertools = "0.14"
 
 haproxy-config = "0.4"
-rand = "0.8"
+rand = "0.10"
 owo-colors = { version = "4.1", features = ["supports-colors"] }
-yasna = "0.5" # DER encoding
-data-encoding = "2.5"
+yasna = "0.6" # DER encoding
+data-encoding = "2.11"
 pem.workspace = true
-rcgen.workspace = true
-strum = { version = "0.26", features = ["derive"] }
+strum = { version = "0.28", features = ["derive"] }
 local-ip-address = "0.6"
 
 [dev-dependencies]

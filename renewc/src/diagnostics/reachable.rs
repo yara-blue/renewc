@@ -6,7 +6,7 @@ use reqwest::{Response, StatusCode};
 use tracing::{debug, instrument};
 
 use crate::config::Config;
-use crate::renew::server::Http01Challenge;
+use crate::renew::server::{KeyAuth, Token};
 
 const APP: &str = env!("CARGO_PKG_NAME");
 
@@ -49,12 +49,10 @@ async fn check(path: &str, domain: &str, key_auth: &str) -> eyre::Result<()> {
     }
 }
 
-pub async fn server(config: &Config, challanges: &[Http01Challenge]) -> eyre::Result<()> {
-    let Http01Challenge {
-        token, key_auth, ..
-    } = challanges
+pub async fn server(config: &Config, challenges: &[(Token, KeyAuth)]) -> eyre::Result<()> {
+    let (token, key_auth, ..) = challenges
         .first()
-        .expect("there is always one domain thus one challange");
+        .expect("there is always one domain thus one challenge");
 
     let path = format!("/.well-known/acme-challenge/{token}");
     // TODO: make this run concurrently <02-06-23>

@@ -2,9 +2,8 @@ use std::io::{Read, Write};
 use std::string::String;
 use std::time::Duration;
 
-use color_eyre::eyre::{self, Context};
+use color_eyre::eyre::{self, Context, OptionExt};
 use color_eyre::Help;
-use rcgen::{Certificate, CertificateParams, DistinguishedName};
 use tokio::time::{sleep, sleep_until, Instant};
 use tracing::{debug, error};
 
@@ -12,6 +11,7 @@ use crate::cert::format::PemItem;
 use crate::cert::Signed;
 use crate::config::Config;
 use crate::diagnostics;
+use crate::renew::server::{KeyAuth, Token};
 
 pub mod server;
 use acme::{
@@ -19,7 +19,6 @@ use acme::{
     Order, OrderState, OrderStatus,
 };
 use instant_acme as acme;
-use server::Http01Challenge;
 
 use super::ACME;
 
@@ -39,20 +38,21 @@ async fn account(config: &Config) -> Result<Account, acme::Error> {
         .map(|addr| format!("mailto:{addr}"))
         .collect();
 
-    let (account, _account_credentials) = Account::create(
-        &NewAccount {
-            contact: contact
-                .iter()
-                .map(String::as_str)
-                .collect::<Vec<_>>()
-                .as_slice(),
-            terms_of_service_agreed: true,
-            only_return_existing: false,
-        },
-        url,
-        None,
-    )
-    .await?;
+    let (account, _account_credentials) = Account::builder()?
+        .create(
+            &NewAccount {
+                contact: contact
+                    .iter()
+                    .map(String::as_str)
+                    .collect::<Vec<_>>()
+                    .as_slice(),
+                terms_of_service_agreed: true,
+                only_return_existing: false,
+            },
+            url.to_string(),
+            None,
+        )
+        .await?;
     Ok(account)
 }
 
@@ -62,43 +62,31 @@ async fn order(account: &Account, names: &[String]) -> Result<Order, acme::Error
         .iter()
         .map(|name| Identifier::Dns(name.into()))
         .collect::<Vec<_>>();
-    let order = account
-        .new_order(&NewOrder {
-            identifiers: &identifiers,
-        })
-        .await?;
+    let order = account.new_order(&NewOrder::new(&identifiers)).await?;
 
     Ok(order)
 }
 
 // Pick the desired challenge type and prepare the response.
 #[tracing::instrument(skip_all)]
-async fn prepare_challenge(order: &mut Order) -> eyre::Result<Vec<Http01Challenge>> {
-    let authorizations = order.authorizations().await.unwrap();
-    let mut challenges = Vec::with_capacity(authorizations.len());
-    for authz in authorizations {
+async fn prepare_challenge<'a>(order: &'a mut Order) -> eyre::Result<Vec<(Token, KeyAuth)>> {
+    let mut authorizations = order.authorizations();
+    let mut challenges = Vec::new();
+    while let Some(res) = authorizations.next().await {
+        let mut authz = res?;
         match authz.status {
             AuthorizationStatus::Pending => {}
             AuthorizationStatus::Valid => continue,
-            _ => unreachable!("got unexpected status, authorization: {authz:?}"),
+            s => unreachable!("got unexpected status: {s:?}"),
         }
 
-        // We'll use the DNS challenges for this example, but you could
-        // pick something else to use here.
         let challenge = authz
-            .challenges
-            .iter()
-            .find(|c| c.r#type == ChallengeType::Http01)
-            .ok_or_else(|| eyre::eyre!("no http01 challenge found"))?;
-
-        let Identifier::Dns(identifier) = authz.identifier;
-        let challenge = Http01Challenge {
-            url: challenge.url.clone(),
-            token: challenge.token.clone(),
-            key_auth: order.key_authorization(challenge).as_str().to_owned(),
-            id: identifier.clone(),
-        };
-        challenges.push(challenge);
+            .challenge(ChallengeType::Http01)
+            .ok_or_eyre("No http01 challenge possible")?;
+        challenges.push((
+            challenge.token.clone(),
+            challenge.key_authorization().as_str().to_string(),
+        ));
     }
     Ok(challenges)
 }
@@ -117,13 +105,14 @@ impl TimeLeft for Instant {
 #[tracing::instrument(skip_all)]
 async fn wait_for_order_rdy<'a>(
     order: &'a mut Order,
-    challenges: &[Http01Challenge],
     stdout: &mut impl Write,
     debug: bool,
 ) -> eyre::Result<&'a OrderState> {
     // Let the server know we're ready to accept the challenges.
-    for Http01Challenge { url, .. } in challenges {
-        order.set_challenge_ready(url).await.unwrap();
+    while let Some(res) = order.authorizations().next().await {
+        let mut authz = res?;
+        let mut challenge = authz.challenge(ChallengeType::Http01).unwrap();
+        challenge.set_ready().await?;
     }
 
     const MAX_DURATION: Duration = Duration::from_secs(10);
@@ -188,17 +177,6 @@ async fn wait_for_order_rdy<'a>(
     state
 }
 
-// If the order is ready, we can provision the certificate.
-// Use the rcgen library to create a Certificate Signing Request.
-#[tracing::instrument(skip_all)]
-fn prepare_sign_request(names: &[String]) -> Result<(Certificate, Vec<u8>), rcgen::Error> {
-    let mut params = CertificateParams::new(names);
-    params.distinguished_name = DistinguishedName::new();
-    let cert = Certificate::from_params(params).unwrap();
-    let csr = cert.serialize_request_der()?;
-    Ok((cert, csr))
-}
-
 #[tracing::instrument(skip_all)]
 pub async fn renew<P: PemItem>(
     config: &Config,
@@ -220,12 +198,12 @@ pub async fn renew<P: PemItem>(
         .wrap_err("Domain does not route to this application")?;
     write!(
         stdout,
-        "waiting: certificate authority is verifing we own the domain"
+        "waiting: certificate authority is verifying we own the domain"
     )
     .unwrap();
     stdout.flush().unwrap();
 
-    let ready = wait_for_order_rdy(&mut order, &challenges, stdout, debug);
+    let ready = wait_for_order_rdy(&mut order, stdout, debug);
     let state = tokio::select!(
         res = ready => res?,
         e = (&mut server) => {
@@ -246,10 +224,7 @@ pub async fn renew<P: PemItem>(
     .unwrap();
     stdout.flush().unwrap();
 
-    let names: Vec<String> = challenges.into_iter().map(|ch| ch.id).collect();
-    let (cert, csr) = prepare_sign_request(&names)?;
-
-    order.finalize(&csr).await.unwrap();
+    let private_key_pem = order.finalize().await.unwrap();
     let full_chain_pem = loop {
         match order.certificate().await? {
             Some(cert_chain_pem) => break cert_chain_pem,
@@ -259,7 +234,7 @@ pub async fn renew<P: PemItem>(
 
     server.abort();
     writeln!(stdout, ", done").unwrap();
-    Signed::from_key_and_fullchain(cert.serialize_private_key_pem(), full_chain_pem)
+    Signed::from_key_and_fullchain(private_key_pem, full_chain_pem)
 }
 
 pub struct InstantAcme;

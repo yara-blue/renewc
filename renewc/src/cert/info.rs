@@ -5,7 +5,7 @@ use super::{load, Signed};
 use crate::config;
 
 use color_eyre::eyre;
-use rand::{self, Rng, SeedableRng};
+use rand::{self, RngExt, SeedableRng};
 use time::Duration;
 use tracing::instrument;
 use x509_parser::prelude::{GeneralName, Pem};
@@ -40,7 +40,7 @@ impl Info {
         let mut rng = rand::rngs::StdRng::seed_from_u64(self.seed);
         let range = Duration::days(8)..Duration::days(10);
         let range = range.start.whole_seconds()..range.end.whole_seconds();
-        let renew_period = rng.gen_range(range);
+        let renew_period = rng.random_range(range);
         Duration::seconds(renew_period)
     }
 

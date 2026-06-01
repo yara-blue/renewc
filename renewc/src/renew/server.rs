@@ -26,8 +26,8 @@ pub struct Http01Challenge {
     pub id: String,
 }
 
-type Token = String;
-type KeyAuth = String;
+pub(crate) type Token = String;
+pub(crate) type KeyAuth = String;
 
 #[tracing::instrument(skip_all, fields(token))]
 async fn challenge(
@@ -38,22 +38,22 @@ async fn challenge(
         error!("do not have a auth key for token");
         return "Error no auth key for token".to_owned();
     };
-    debug!("got request for aut key");
+    debug!("got request for auth key");
     key_auth.clone()
 }
 
 pub async fn run(
     config: &Config,
-    challenges: &[Http01Challenge],
+    challenges: &[(Token, KeyAuth)],
 ) -> eyre::Result<impl Future<Output = Result<(), std::io::Error>>> {
     let key_auth: HashMap<_, _> = challenges
         .iter()
-        .map(|c| (c.token.clone(), c.key_auth.clone()))
+        .map(|(token, key_auth)| (token.clone(), key_auth.clone()))
         .collect();
     let shared_state = Arc::new(key_auth);
 
     let app = Router::new()
-        .route("/.well-known/acme-challenge/:token", get(challenge))
+        .route("/.well-known/acme-challenge/{token}", get(challenge))
         .layer(
             ServiceBuilder::new()
                 .layer(TraceLayer::new_for_http())
