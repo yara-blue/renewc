@@ -194,6 +194,20 @@ in
       };
     };
 
+    # allow reloading the configured systemd service
+    security.polkit.enable = mkIf (cfg.reload != null) true;
+    security.polkit.extraConfig = mkIf (cfg.reload != null) ''
+      polkit.addRule(function(action, subject) {
+        if (action.id == "org.freedesktop.systemd1.manage-units" &&
+            subject.user == ${builtins.toJSON cfg.user}) {
+          if (action.lookup("unit") == ${builtins.toJSON cfg.reload} &&
+              action.lookup("verb") == "reload") {
+            return polkit.Result.YES;
+          }
+        }
+      });
+    '';
+
     systemd.timers.renewc = {
       description = "Daily timer for renewc certificate renewal";
       wantedBy = [ "timers.target" ];
