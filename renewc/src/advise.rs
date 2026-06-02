@@ -4,7 +4,9 @@ use std::io::Write;
 use cert::info::Info;
 use itertools::Itertools;
 
-use crate::{cert, Config};
+use crate::cert::info::{CertSource, ShouldRenew};
+use crate::config::{RenewEarly, ReplaceProd, RequestTo};
+use crate::{Config, cert};
 
 #[macro_export]
 macro_rules! warn {
@@ -68,65 +70,85 @@ impl CheckResult {
     }
 }
 
-pub fn given_existing(config: &Config, cert: Info, stdout: &mut impl Write) -> CheckResult {
+pub fn given_existing(config: &Config, existing: Info, stdout: &mut impl Write) -> CheckResult {
     let new_domains: HashSet<_> = config.domains.iter().collect();
-    let prev_domains: HashSet<_> = cert.domains.iter().collect();
+    let prev_domains: HashSet<_> = existing.domains.iter().collect();
     let missing = prev_domains.difference(&new_domains).map(|s| s.as_str());
     let n_missing = missing.clone().count();
     let missing: String = Itertools::intersperse_with(missing, || "\n\t-").collect();
 
     if !missing.is_empty() {
         let question = if n_missing == 1 {
-            format!("Certificate will not be valid for (sub)domain that is currently valid, that (sub)domain is: {missing}")
+            format!(
+                "Certificate will not be valid for (sub)domain that is currently valid, that (sub)domain is: {missing}"
+            )
         } else {
-            format!("Certificate will not be valid for (sub)domains that are currently valid, these are:\n{missing}")
+            format!(
+                "Certificate will not be valid for (sub)domains that are currently valid, these are:\n{missing}"
+            )
         };
         if exit_requested(stdout, config, &question) {
             return CheckResult::refuse_without_status("Not renewing while domains are missing");
         }
     }
 
-    match (config.production, cert.staging, cert.should_renew()) {
-        (false, true, _) => {
+    match (
+        config.request_to,
+        existing.from,
+        existing.should_renew(),
+    ) {
+        (RequestTo::Staging, CertSource::Staging, _) => {
             CheckResult::accept("Requesting staging cert, certificates will not be valid")
         }
-        (false, false, _) if cert.is_expired() => {
-            CheckResult::accept("Requesting staging cert. Overwriting expired production certificate. Certificate will not be valid")
+        (RequestTo::Staging, CertSource::Production, _) if existing.is_expired() => {
+            CheckResult::accept(
+                "Requesting staging cert. Overwriting expired production certificate. Certificate will not be valid",
+            )
         }
-        (false, false, _) => {
+        (RequestTo::Staging, CertSource::Production, _) => {
             let question = "Found still valid production cert, continuing will overwrite it with a staging certificate";
-            if !config.overwrite_production && exit_requested(stdout, config, question) {
+            if let ReplaceProd::No = config.replace_production
+                && exit_requested(stdout, config, question)
+            {
                 return CheckResult::refuse_without_status("Not overwriting valid production cert");
             }
-            CheckResult::accept ("Requesting Staging cert, certificates will not be valid")
+            CheckResult::accept("Requesting Staging cert, certificates will not be valid")
         }
-        (true, true, _) => {
+        (RequestTo::Production, CertSource::Staging, _) => {
             CheckResult::accept("Requesting production cert, existing certificate is staging")
         }
-        (true, false, true) => {
-            if cert.is_expired() {
-                CheckResult::Accept{ status: format!(
-                    "Renewing production cert: existing certificate expired {} days, {} hours ago",
-                    cert.since_expired().whole_days(),
-                    cert.since_expired().whole_hours() % 24)}
+        (RequestTo::Production, CertSource::Production, ShouldRenew::Yes) => {
+            if existing.is_expired() {
+                CheckResult::Accept {
+                    status: format!(
+                        "Renewing production cert: existing certificate expired {} days, {} hours ago",
+                        existing.since_expired().whole_days(),
+                        existing.since_expired().whole_hours() % 24
+                    ),
+                }
             } else {
-                let status = format!("Renewing production cert: existing certificate expires soon: {} days, {} hours", 
-                  cert.expires_in.whole_days(),
-                  cert.expires_in.whole_hours() % 24);
+                let status = format!(
+                    "Renewing production cert: existing certificate expires soon: {} days, {} hours",
+                    existing.expires_in.whole_days(),
+                    existing.expires_in.whole_hours() % 24
+                );
 
                 CheckResult::accept(status)
             }
         }
-        (true, false, false) => {
+        (RequestTo::Production, CertSource::Production, ShouldRenew::No) => {
             let status = format!(
                 "Production cert not yet due for renewal expires in: {} days, {} hours",
-                cert.expires_in.whole_days(),
-                cert.expires_in.whole_hours() % 24,
+                existing.expires_in.whole_days(),
+                existing.expires_in.whole_hours() % 24,
             );
-            if config.renew_early {
+            if let RenewEarly::Yes = config.renew_early {
                 CheckResult::accept(status)
             } else {
-                CheckResult::refuse(status, "Quitting, you can force renewal using --renew-early")
+                CheckResult::refuse(
+                    status,
+                    "Quitting, you can force renewal using --renew-early",
+                )
             }
         }
     }

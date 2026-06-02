@@ -45,7 +45,8 @@ async fn challenge(
 pub async fn run(
     config: &Config,
     challenges: &[(Token, KeyAuth)],
-) -> eyre::Result<impl Future<Output = Result<(), std::io::Error>>> {
+    // ) -> eyre::Result<impl Future<Output = Result<(), std::io::Error>> + use<>> {
+) -> eyre::Result<impl Future<Output = Result<(), std::io::Error>> + use<>> {
     let key_auth: HashMap<_, _> = challenges
         .iter()
         .map(|(token, key_auth)| (token.clone(), key_auth.clone()))

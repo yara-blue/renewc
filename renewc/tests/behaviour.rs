@@ -1,7 +1,7 @@
 use owo_colors::OwoColorize;
 use pem::Pem;
 use renewc::cert;
-use renewc::config::Output;
+use renewc::config::{Output, RequestTo};
 use renewc::{run, Config};
 
 use renewc_test_support::gen_cert;
@@ -19,7 +19,7 @@ async fn production_does_not_overwrite_valid_production() {
 
     let mut config = Config::test(42, &dir.path());
     config.output_config.output = Output::PemSingleFile;
-    config.production = true;
+    config.request_to = RequestTo::Production;
 
     // run to place still valid cert
     let certs = run::<Pem>(&mut acme, &mut TestPrinter, &config, true)
@@ -30,7 +30,7 @@ async fn production_does_not_overwrite_valid_production() {
 
     info!("test run starts now");
     // second run encounters the still valid cert and errors out
-    config.production = true;
+    config.request_to = RequestTo::Production;
     let mut output = Vec::new();
     run::<Pem>(&mut acme, &mut output, &config, true)
         .await
@@ -59,7 +59,7 @@ async fn staging_does_not_overwrite_production() {
 
     let mut config = Config::test(42, &dir.path().join("test_cert"));
     config.output_config.output = Output::PemSingleFile;
-    config.production = true;
+    config.request_to = RequestTo::Production;
 
     // run to place still valid cert
     let certs = run::<Pem>(&mut acme, &mut TestPrinter, &config, true)
@@ -69,7 +69,7 @@ async fn staging_does_not_overwrite_production() {
     cert::store::on_disk(&config, certs, &mut TestPrinter).unwrap();
 
     // second run encounters the still valid cert and errors out
-    config.production = false;
+    config.request_to = RequestTo::Staging;
     let mut output = Vec::new();
     run::<Pem>(&mut acme, &mut output, &config, true)
         .await
@@ -108,7 +108,7 @@ async fn staging_overwrites_expired_production() {
 
     let mut config = Config::test(42, &dir.path().join("test_cert"));
     config.output_config.output = Output::PemSingleFile;
-    config.production = true;
+    config.request_to = RequestTo::Production;
 
     // run to place expired cert
     let certs = run::<Pem>(&mut acme, &mut TestPrinter, &config, true)
@@ -118,7 +118,7 @@ async fn staging_overwrites_expired_production() {
     cert::store::on_disk(&config, certs, &mut TestPrinter).unwrap();
 
     let mut acme = TestAcme::new(gen_cert::valid());
-    config.production = false;
+    config.request_to = RequestTo::Staging;
     let mut output = Vec::new();
     let _cert = run::<Pem>(&mut acme, &mut output, &config, true)
         .await
@@ -145,13 +145,13 @@ async fn corrupt_existing_does_not_crash() {
 
     let mut config = Config::test(42, &dir.path().join("test_cert"));
     config.output_config.output = Output::PemSingleFile;
-    config.production = true;
+    config.request_to = RequestTo::Staging;
 
     let corrupt_data = "-----BEGIN CERTIFisrtens-----\r\n 128972184ienst\r\n-----END";
     std::fs::write(config.output_config.cert_path.as_path(), corrupt_data).unwrap();
 
     let mut acme = TestAcme::new(gen_cert::valid());
-    config.production = false;
+    config.request_to = RequestTo::Production;
     let mut output = Vec::new();
     let _cert = run::<Pem>(&mut acme, &mut output, &config, true)
         .await
@@ -202,7 +202,7 @@ async fn warn_about_missing_name() {
     );
     let start = &text[..text.len() - 5]; // remove color end char
     assert!(
-        dbg!(&output).starts_with(dbg!(start)),
+        &output.starts_with(start),
         "stdout did not start with:\n\t{start:#?}\ninstead it was:\n\t{output:#?}"
     );
 }
@@ -218,7 +218,7 @@ async fn run_against_staging_first() {
 
     let mut config = Config::test(42, &dir.path().join("test_cert"));
     config.output_config.output = Output::PemSingleFile;
-    config.production = true;
+    config.request_to = RequestTo::Production;
     config.domains = vec![String::from("example.org"), String::from("other.domain")];
 
     let mut output = Vec::new();

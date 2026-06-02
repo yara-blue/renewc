@@ -12,8 +12,8 @@ use self::paths::{ChainPath, KeyPath};
 mod args;
 mod paths;
 pub use args::{Commands, InstallArgs, OutputArgs};
-pub use paths::name;
 use paths::CertPath;
+pub use paths::name;
 
 #[derive(clap::ValueEnum, Debug, Clone, Copy, Default, PartialEq, Eq)]
 /// How to store the output.
@@ -141,18 +141,36 @@ impl OutputConfig {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum RenewEarly {
+    Yes,
+    No,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ReplaceProd {
+    Yes,
+    No,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum RequestTo {
+    Production,
+    Staging,
+}
+
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct Config {
     pub domains: Vec<String>,
     pub(crate) email: Vec<String>,
-    pub production: bool,
+    pub request_to: RequestTo,
     pub port: u16,
     pub output_config: OutputConfig,
     /// reload an external systemd service
     pub reload: Option<String>,
-    pub(crate) renew_early: bool,
-    pub(crate) overwrite_production: bool,
+    pub(crate) renew_early: RenewEarly,
+    pub(crate) replace_production: ReplaceProd,
     /// do not ask questions
     pub non_interactive: bool,
     pub force: bool,
@@ -168,13 +186,25 @@ impl TryFrom<RenewArgs> for Config {
         Ok(Config {
             domains: args.domain,
             email: args.email,
-            production: args.production,
+            request_to: if args.production {
+                RequestTo::Production
+            } else {
+                RequestTo::Staging
+            },
             port: args.port,
             output_config,
             reload: args.reload,
             force: args.force,
-            renew_early: args.renew_early,
-            overwrite_production: args.overwrite_production,
+            renew_early: if args.renew_early {
+                RenewEarly::Yes
+            } else {
+                RenewEarly::No
+            },
+            replace_production: if args.overwrite_production {
+                ReplaceProd::Yes
+            } else {
+                ReplaceProd::No
+            },
             non_interactive: false,
             diagnostics: diagnostics::Config::default(),
         })
@@ -191,13 +221,13 @@ impl Config {
         Config {
             domains,
             email: vec!["test@testdomain.org".into()],
-            production: false,
+            request_to: RequestTo::Production,
             port,
             output_config,
             reload: None,
-            renew_early: false,
+            renew_early: RenewEarly::No,
             force: false,
-            overwrite_production: false,
+            replace_production: ReplaceProd::No,
             non_interactive: true,
             diagnostics: diagnostics::Config::test(),
         }

@@ -29,7 +29,7 @@ impl renewc::ACME for TestAcme {
     ) -> eyre::Result<Signed<P>> {
         writeln!(stdout, "generating certificate").expect("printing should not fail");
         let combined =
-            generate_cert_with_chain(self.cert_expires, !config.production, &config.domains);
+            generate_cert_with_chain(self.cert_expires, config.request_to, &config.domains);
         writeln!(stdout, "TestAcme, not signing certificate").expect("printing should not fail");
         Ok(combined)
     }

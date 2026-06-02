@@ -2,8 +2,8 @@
 name = "renewc"
 version = "0.6.0"
 authors = ["Yara <git@yara.blue>"]
-edition = "2021"
-rust-version = "1.81"
+edition = "2024"
+rust-version = "1.91"
 description = "Easy certificate tool: helpful diagnostics, no requirements, no installation needed"
 license = "GNUv3"
 readme = "README.md"

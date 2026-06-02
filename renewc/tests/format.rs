@@ -1,10 +1,10 @@
 use pem::Pem;
-use renewc::cert::{load, store, Signed};
 use renewc::Config;
+use renewc::cert::{Signed, load, store};
 
-use renewc::config::Output;
-use renewc_test_support::gen_cert;
+use renewc::config::{Output, RequestTo};
 use renewc_test_support::TestPrinter;
+use renewc_test_support::gen_cert;
 use time::OffsetDateTime;
 
 #[tokio::test]
@@ -17,12 +17,12 @@ async fn der_and_pem_equal() {
     let valid_till = OffsetDateTime::now_utc();
     let original: Signed<Pem> = gen_cert::generate_cert_with_chain(
         valid_till,
-        false,
+        RequestTo::Production,
         &vec![String::from("testdomain.org")],
     );
 
     let mut config = Config::test(42, &dir.path());
-    config.production = false;
+    config.request_to = RequestTo::Production;
 
     for format in [
         Output::PemSingleFile,

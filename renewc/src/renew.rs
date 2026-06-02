@@ -2,13 +2,13 @@ use std::io::{Read, Write};
 use std::string::String;
 use std::time::Duration;
 
-use color_eyre::eyre::{self, Context, OptionExt};
 use color_eyre::Help;
-use tokio::time::{sleep, sleep_until, Instant};
+use color_eyre::eyre::{self, Context, OptionExt};
+use tokio::time::{Instant, sleep, sleep_until};
 use tracing::{debug, error};
 
-use crate::cert::format::PemItem;
 use crate::cert::Signed;
+use crate::cert::format::PemItem;
 use crate::config::Config;
 use crate::diagnostics;
 use crate::renew::server::{KeyAuth, Token};
@@ -27,10 +27,9 @@ use super::ACME;
 // using `Account::from_credentials()`.
 #[tracing::instrument(skip_all)]
 async fn account(config: &Config) -> Result<Account, acme::Error> {
-    let url = if config.production {
-        LetsEncrypt::Production.url()
-    } else {
-        LetsEncrypt::Staging.url()
+    let url = match config.request_to {
+        crate::config::RequestTo::Production => LetsEncrypt::Production.url(),
+        crate::config::RequestTo::Staging => LetsEncrypt::Staging.url(),
     };
     let contact: Vec<_> = config
         .email
@@ -109,7 +108,8 @@ async fn wait_for_order_rdy<'a>(
     debug: bool,
 ) -> eyre::Result<&'a OrderState> {
     // Let the server know we're ready to accept the challenges.
-    while let Some(res) = order.authorizations().next().await {
+    let mut authorizations = order.authorizations();
+    while let Some(res) = authorizations.next().await {
         let mut authz = res?;
         let mut challenge = authz.challenge(ChallengeType::Http01).unwrap();
         challenge.set_ready().await?;

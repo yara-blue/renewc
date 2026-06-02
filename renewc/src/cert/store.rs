@@ -53,7 +53,11 @@ fn write_key(
     match operation {
         Operation::Append(path) => {
             // open with user: read+write, group: read, other: can't read
-            let mut file = fs::OpenOptions::new().append(true).mode(0o640).open(path)?;
+            let mut file = fs::OpenOptions::new()
+                .append(true)
+                .write(true)
+                .mode(0o640)
+                .open(path)?;
             file.write_all(&bytes)
                 .wrap_err("Could not append private key to pem file")
         }
@@ -61,6 +65,7 @@ fn write_key(
             // open with user: read+write, group: read, other: can't read
             let mut file = fs::OpenOptions::new()
                 .create(true)
+                .write(true)
                 .truncate(true)
                 .mode(0o640)
                 .open(path)

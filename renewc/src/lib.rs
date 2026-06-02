@@ -3,9 +3,9 @@
 
 use std::io::Write;
 
+use cert::Signed;
 use cert::format::PemItem;
 use cert::info::Info as CertInfo;
-use cert::Signed;
 use color_eyre::eyre;
 
 pub mod advise;
@@ -15,9 +15,11 @@ pub mod diagnostics;
 pub mod renew;
 
 use advise::CheckResult;
-pub use config::name;
 pub use config::Config;
+pub use config::name;
 use owo_colors::OwoColorize;
+
+use crate::config::RequestTo;
 
 /// during integration testing we do not want to hit lets encrypts backend
 /// by passing the ACME implementation we can test other functionality.
@@ -61,11 +63,14 @@ pub async fn run<P: PemItem>(
         Err(e) => print_advice_error_chain(out, e),
     }
 
-    if config.production {
-        check_against_staging(out, config, acme_impl, debug).await?;
-        info!(out, "requesting production certificate");
-    } else {
-        info!(out, "requesting staging certificate");
+    match config.request_to {
+        RequestTo::Production => {
+            check_against_staging(out, config, acme_impl, debug).await?;
+            info!(out, "requesting production certificate");
+        }
+        RequestTo::Staging => {
+            info!(out, "requesting staging certificate");
+        }
     }
     let mut stdout = IndentedOut::new(out);
     let signed = acme_impl.renew(config, &mut stdout, debug).await?;
@@ -80,7 +85,7 @@ async fn check_against_staging(
 ) -> Result<(), eyre::Error> {
     info!(out, "checking if request can succeed using staging");
     let staging_config = Config {
-        production: false,
+        request_to: RequestTo::Staging,
         ..config.clone()
     };
     Ok({

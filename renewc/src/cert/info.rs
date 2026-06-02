@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use super::format::PemItem;
-use super::{load, Signed};
+use super::{Signed, load};
 use crate::config;
 
 use color_eyre::eyre;
@@ -10,9 +10,15 @@ use time::Duration;
 use tracing::instrument;
 use x509_parser::prelude::{GeneralName, Pem};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CertSource {
+    Staging,
+    Production,
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Info {
-    pub staging: bool,
+    pub from: CertSource,
     pub expires_in: Duration,
     pub domains: Vec<String>,
     // unix timestamp of expiration time
@@ -49,14 +55,24 @@ impl Info {
     }
 
     #[instrument(ret, skip(self))]
-    pub(crate) fn should_renew(&self) -> bool {
-        self.expires_in < self.renew_period()
+    pub(crate) fn should_renew(&self) -> ShouldRenew {
+        if self.expires_in < self.renew_period() {
+            ShouldRenew::Yes
+        } else {
+            ShouldRenew::No
+        }
     }
 
     #[instrument(ret, skip(self))]
     pub fn is_expired(&self) -> bool {
         self.expires_in <= Duration::seconds(0)
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ShouldRenew {
+    Yes,
+    No,
 }
 
 /// returns number of days until the first certificate in the chain
@@ -93,8 +109,14 @@ pub fn analyze(signed: Signed<impl PemItem>) -> eyre::Result<Info> {
         })
         .unwrap_or_default();
 
+    let from = if staging {
+        CertSource::Staging
+    } else {
+        CertSource::Production
+    };
+
     Ok(Info {
-        staging,
+        from,
         expires_in,
         seed: expires_at,
         domains,

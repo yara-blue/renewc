@@ -5,14 +5,14 @@ use itertools::Itertools;
 use rcgen::{Certificate, CertificateParams, IsCa};
 use renewc::cert::format::{Label, PemItem};
 use renewc::cert::Signed;
+use renewc::config::RequestTo;
 use tempfile::TempDir;
 use time::OffsetDateTime;
 
-fn ca_cert(is_staging: bool) -> Certificate {
-    let subject_alt_names = if is_staging {
-        vec!["STAGING.letsencrypt.org".to_string()]
-    } else {
-        vec!["letsencrypt.org".to_string()]
+fn ca_cert(request_to: RequestTo) -> Certificate {
+    let subject_alt_names = match request_to {
+        RequestTo::Production => vec!["letsencrypt.org".to_string()],
+        RequestTo::Staging => vec!["STAGING.letsencrypt.org".to_string()],
     };
     let mut params = CertificateParams::new(subject_alt_names);
     params.not_after = valid();
@@ -30,13 +30,13 @@ pub fn client_cert(valid_till: OffsetDateTime, domains: &[String]) -> Certificat
 /// root cert, signed intermediate cert and signed client cert
 pub fn generate_cert_with_chain<P: PemItem>(
     valid_till: OffsetDateTime,
-    is_staging: bool,
+    request_to: RequestTo,
     domains: &[String],
 ) -> Signed<P> {
-    let root_ca_cert = ca_cert(is_staging);
+    let root_ca_cert = ca_cert(request_to);
     let root_ca = root_ca_cert.serialize_pem().unwrap();
 
-    let intermediate_ca_cert = ca_cert(is_staging);
+    let intermediate_ca_cert = ca_cert(request_to);
     let intermediate_ca = intermediate_ca_cert
         .serialize_pem_with_signer(&root_ca_cert)
         .unwrap();
@@ -78,10 +78,9 @@ pub fn valid() -> OffsetDateTime {
     OffsetDateTime::from_unix_timestamp(16_734_790_789).unwrap()
 }
 
-// not actually dead, modules in integration tests 
+// not actually dead, modules in integration tests
 // give compile warnings if code is not used in each integration test file
-#[allow(dead_code)] 
+#[allow(dead_code)]
 pub fn expired() -> OffsetDateTime {
     OffsetDateTime::from_unix_timestamp(1_683_145_489).unwrap()
 }
-
