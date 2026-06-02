@@ -1,5 +1,6 @@
 use std::fs;
 use std::io::Write;
+use std::os::unix::fs::OpenOptionsExt;
 use std::path::Path;
 
 use super::format::PemItem;
@@ -51,12 +52,18 @@ fn write_key(
 
     match operation {
         Operation::Append(path) => {
-            let mut file = fs::OpenOptions::new().append(true).open(path)?;
+            // open with user: read+write, group: read, other: can't read
+            let mut file = fs::OpenOptions::new().append(true).mode(0o640).open(path)?;
             file.write_all(&bytes)
                 .wrap_err("Could not append private key to pem file")
         }
         Operation::Create(path) => {
-            let mut file = fs::File::create(path)
+            // open with user: read+write, group: read, other: can't read
+            let mut file = fs::OpenOptions::new()
+                .create(true)
+                .truncate(true)
+                .mode(0o640)
+                .open(path)
                 .wrap_err("could not create private key file")
                 .with_note(|| format!("path: {path:?}"))?;
             file.write_all(&bytes)
