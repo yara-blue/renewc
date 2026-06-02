@@ -56,11 +56,16 @@ pub struct InstallArgs {
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Parser, Debug)]
 pub struct RenewArgs {
-    /// domain(s) request certificates for multiple subdomains
+    /// domain(s) request certificates for multiple (sub)domains
     /// by passing this argument multiple times with various domains
     /// note the base domain must be the same in all
-    #[clap(long, short, required = true, value_hint=ValueHint::Other)]
+    #[clap(long, short, required_unless_present("domain_file"), value_hint=ValueHint::Other)]
     pub domain: Vec<String>,
+
+    /// domain file request certificates for all the (sub)domains
+    /// listed in the file. Entries must be separated by a newline
+    #[clap(long, required_unless_present("domain"), value_hint=ValueHint::FilePath)]
+    pub domain_file: Option<PathBuf>,
 
     /// Contact info
     #[clap(long, value_hint = ValueHint::EmailAddress)]

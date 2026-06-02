@@ -1,7 +1,8 @@
 use std::fmt::Display;
 use std::path::Path;
 
-use color_eyre::eyre;
+use color_eyre::Section;
+use color_eyre::eyre::{self, Context};
 use strum::EnumIter;
 
 use crate::diagnostics;
@@ -183,8 +184,16 @@ impl TryFrom<RenewArgs> for Config {
     fn try_from(args: RenewArgs) -> Result<Self, Self::Error> {
         let name = name(&args.domain)?;
         let output_config = OutputConfig::new(args.output_config, &name)?;
+        let mut domains = args.domain;
+        if let Some(path) = args.domain_file {
+            let file = std::fs::read_to_string(&path)
+                .wrap_err("Could not read domain_file")
+                .with_note(|| format!("path: {}", path.display()))?;
+            domains.extend(file.lines().map(|s| s.to_string()));
+        }
+
         Ok(Config {
-            domains: args.domain,
+            domains,
             email: args.email,
             request_to: if args.production {
                 RequestTo::Production

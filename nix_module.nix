@@ -41,10 +41,6 @@ in
 
       domains = mkOption {
         type = listOf types.str;
-        example = [
-          "example.org"
-          "www.example.org"
-        ];
         description = ''
           Domain(s) to request a certificate for. To request a certificate
           covering multiple subdomains pass multiple domains here; note the
@@ -52,10 +48,17 @@ in
         '';
       };
 
+      domain_file = mkOption {
+        type = types.path;
+        description = ''
+			domain file request certificates for all the (sub)domains
+			listed in the file. Entries must be separated by a newline
+		'';
+      };
+
       email = mkOption {
         type = listOf types.str;
         default = [ ];
-        example = [ "you@example.org" ];
         description = "Contact info supplied to the ACME provider.";
       };
 
@@ -64,7 +67,6 @@ in
         default = false;
         description = ''
           Use the Let's Encrypt production environment instead of staging.
-          See https://letsencrypt.org/docs/staging-environment/.
         '';
       };
 
@@ -72,8 +74,7 @@ in
         type = types.port;
         default = 80;
         description = ''
-          Internal port that external port 80 should be forwarded to. renewc
-          listens on this port to answer the ACME HTTP-01 challenge.
+          Internal port that external port 80 should be forwarded to.
         '';
       };
 
@@ -81,7 +82,7 @@ in
         type = types.nullOr types.str;
         default = null;
         example = "haproxy.service";
-        description = "Systemd service to reload after a successful renewal.";
+        description = "Systemd service to reload after renewal.";
       };
 
       renewEarly = mkOption {
@@ -178,6 +179,7 @@ in
             "${pkgs.renewc}/bin/renewc run"
           ]
           ++ map (d: "--domain ${escapeShellArg d}") cfg.domains
+		  ++ optional cfg.domain_file "--domain_file ${escapeShellArg cfg.domain_file}"
           ++ map (e: "--email ${escapeShellArg e}") cfg.email
           ++ optional cfg.production "--production"
           ++ [ "--port ${toString cfg.port}" ]

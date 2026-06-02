@@ -14,6 +14,11 @@ fn format_args(args: InstallArgs) -> Vec<String> {
         res.push(domain);
     }
 
+    if let Some(domain_file) = args.domain_file {
+        res.push("--domain-file".to_string());
+        res.push(domain_file.display().to_string());
+    }
+
     for email in args.email {
         res.push("--email".to_string());
         res.push(email);
