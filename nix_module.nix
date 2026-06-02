@@ -15,6 +15,18 @@ in
     services.renewc = {
       enable = mkEnableOption "renewc, automatic Let's Encrypt certificate renewal";
 
+      user = mkOption {
+        type = types.str;
+        default = "renewc";
+        description = "User account under which renewc runs.";
+      };
+
+      group = mkOption {
+        type = types.str;
+        default = "renewc";
+        description = "Group account under which renewc runs.";
+      };
+
       time = mkOption {
         type = types.str;
         default = "04:00";
@@ -158,6 +170,9 @@ in
 
       serviceConfig = {
         Type = "oneshot";
+        User = cfg.user;
+        Group = cfg.group;
+        AmbientCapabilities = optional (cfg.port < 1024) "CAP_NET_BIND_SERVICE";
         ExecStart = concatStringsSep " " (
           [
             "${pkgs.renewc}/bin/renewc run"
@@ -188,6 +203,19 @@ in
         Persistent = true;
         Unit = "renewc.service";
       };
+    };
+
+    # create default user/group if used
+    # (shamelessly stolen from haproxy flake)
+    users.users = optionalAttrs (cfg.user == "renewc") {
+      renewc = {
+        group = cfg.group;
+        isSystemUser = true;
+      };
+    };
+
+    users.groups = optionalAttrs (cfg.group == "renewc") {
+      renewc = { };
     };
   };
 }
