@@ -41,6 +41,7 @@ in
 
       domains = mkOption {
         type = listOf types.str;
+        default = [ ];
         description = ''
           Domain(s) to request a certificate for. To request a certificate
           covering multiple subdomains pass multiple domains here; note the
@@ -49,7 +50,8 @@ in
       };
 
       domain_file = mkOption {
-        type = types.path;
+        type = types.nullOr types.path;
+        default = null;
         description = ''
 			domain file request certificates for all the (sub)domains
 			listed in the file. Entries must be separated by a newline
@@ -82,7 +84,7 @@ in
         type = types.nullOr types.str;
         default = null;
         example = "haproxy.service";
-        description = "Systemd service to reload after renewal.";
+        description = "Systemd service to reload after renewal, note MUST END in .service";
       };
 
       renewEarly = mkOption {
@@ -179,7 +181,7 @@ in
             "${pkgs.renewc}/bin/renewc run"
           ]
           ++ map (d: "--domain ${escapeShellArg d}") cfg.domains
-		  ++ optional cfg.domain_file "--domain_file ${escapeShellArg cfg.domain_file}"
+    		  ++ optional (cfg.domain_file != null) "--domain-file ${escapeShellArg cfg.domain_file}"
           ++ map (e: "--email ${escapeShellArg e}") cfg.email
           ++ optional cfg.production "--production"
           ++ [ "--port ${toString cfg.port}" ]
@@ -189,14 +191,15 @@ in
           ++ optional cfg.overwriteProduction "--overwrite-production"
           ++ optional cfg.debug "--debug"
           ++ [ "--output ${cfg.output}" ]
-          ++ [ "--certificate-path ${escapeShellArg (toString cfg.certificatePath)}" ]
-          ++ optional (cfg.keyPath != null) "--key-path ${escapeShellArg (toString cfg.keyPath)}"
-          ++ optional (cfg.chainPath != null) "--chain-path ${escapeShellArg (toString cfg.chainPath)}"
+          ++ [ "--certificate-path ${escapeShellArg cfg.certificatePath}" ]
+          ++ optional (cfg.keyPath != null) "--key-path ${escapeShellArg cfg.keyPath}"
+          ++ optional (cfg.chainPath != null) "--chain-path ${escapeShellArg cfg.chainPath}"
         );
       };
     };
 
     # allow reloading the configured systemd service
+    # polkit is javascript cause :cry so we need toJSON :(
     security.polkit.enable = mkIf (cfg.reload != null) true;
     security.polkit.extraConfig = mkIf (cfg.reload != null) ''
       polkit.addRule(function(action, subject) {

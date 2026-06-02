@@ -189,7 +189,7 @@ impl TryFrom<RenewArgs> for Config {
             let file = std::fs::read_to_string(&path)
                 .wrap_err("Could not read domain_file")
                 .with_note(|| format!("path: {}", path.display()))?;
-            domains.extend(file.lines().map(|s| s.to_string()));
+            domains.extend(file.lines().filter(|line| !line.is_empty()).map(|s| s.to_string()));
         }
 
         Ok(Config {
