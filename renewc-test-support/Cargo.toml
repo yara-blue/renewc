@@ -17,7 +17,7 @@ itertools = "0.13"
 
 libc = "0.2"
 proctitle = "0.1"
-fork = "0.2"
+fork = "0.8"
 rcgen.workspace = true
 pem.workspace = true
 tempfile.workspace = true
