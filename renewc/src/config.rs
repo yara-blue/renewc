@@ -182,15 +182,20 @@ impl TryFrom<RenewArgs> for Config {
     type Error = eyre::Report;
 
     fn try_from(args: RenewArgs) -> Result<Self, Self::Error> {
-        let name = name(&args.domain)?;
-        let output_config = OutputConfig::new(args.output_config, &name)?;
         let mut domains = args.domain;
         if let Some(path) = args.domain_file {
             let file = std::fs::read_to_string(&path)
                 .wrap_err("Could not read domain_file")
                 .with_note(|| format!("path: {}", path.display()))?;
-            domains.extend(file.lines().filter(|line| !line.is_empty()).map(|s| s.to_string()));
+            domains.extend(
+                file.lines()
+                    .filter(|line| !line.is_empty())
+                    .map(|s| s.to_string()),
+            );
         }
+
+        let name = name(&domains)?;
+        let output_config = OutputConfig::new(args.output_config, &name)?;
 
         Ok(Config {
             domains,

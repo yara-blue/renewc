@@ -1,5 +1,5 @@
-use color_eyre::eyre::{self, OptionExt};
 use color_eyre::Section;
+use color_eyre::eyre::{self, OptionExt};
 use itertools::Itertools;
 use std::path::{Path, PathBuf};
 use tracing::instrument;
@@ -26,12 +26,14 @@ fn second_and_top_level_domain(full_domain: &str) -> eyre::Result<&str> {
 
 #[test]
 fn test_second_and_top_level_domain() {
-    let inputs = ["yara.blue", "share.yara.blue", "matrix.yara.blue"];
+    let inputs = ["example.org", "share.example.org", "comms.example.org"];
     let outputs = inputs.map(second_and_top_level_domain).map(Result::unwrap);
-    assert_eq!(outputs, ["yara.blue", "yara.blue", "yara.blue"]);
+    assert_eq!(outputs, ["example.org", "example.org", "example.org"]);
 }
 
 pub fn name(domains: &[impl AsRef<str>]) -> eyre::Result<String> {
+    assert!(domains.len() > 0);
+
     let mut name_parts = domains
         .iter()
         .map(AsRef::as_ref)
@@ -40,7 +42,24 @@ pub fn name(domains: &[impl AsRef<str>]) -> eyre::Result<String> {
     name_parts.sort_unstable();
     name_parts.dedup();
 
-    Ok(name_parts.into_iter().join("+"))
+    let res = name_parts.into_iter().join("+");
+    assert!(res.len() > 1);
+    Ok(res)
+}
+
+#[test]
+fn mixed_domains_name() {
+    assert_eq!(
+        name(&[
+            "example.org",
+            "share.example.org",
+            "foobar.example",
+            "www.foobar.example",
+            "share.photos.example"
+        ])
+        .unwrap(),
+        "example.org+foobar.example+photos.example"
+    )
 }
 
 pub(super) fn dir(cert_path: &Path) -> PathBuf {
