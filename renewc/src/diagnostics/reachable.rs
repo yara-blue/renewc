@@ -1,7 +1,10 @@
+use std::future::{Ready, ready};
 use std::time::Duration;
 
 use color_eyre::eyre::Context;
-use color_eyre::{eyre, Help};
+use color_eyre::{Help, eyre};
+use futures::TryStreamExt;
+use futures::stream::FuturesUnordered;
 use reqwest::{Response, StatusCode};
 use tracing::{debug, instrument};
 
@@ -37,7 +40,7 @@ async fn check(path: &str, domain: &str, key_auth: &str) -> eyre::Result<()> {
     let url = format!("http://{domain}{path}");
     debug!("checking: {url}");
     let client = reqwest::Client::new();
-    let get = client.get(&url).timeout(Duration::from_millis(250)).send();
+    let get = client.get(&url).timeout(Duration::from_millis(800)).send();
     match get.await {
         Ok(resp) => check_response(resp, key_auth, domain).await,
         Err(e) if e.is_timeout() || e.is_connect() => {
@@ -56,9 +59,14 @@ pub async fn server(config: &Config, challenges: &[(Token, KeyAuth)]) -> eyre::R
 
     let path = format!("/.well-known/acme-challenge/{token}");
     // TODO: make this run concurrently <02-06-23>
-    for domain in &config.domains {
-        check(&path, domain, key_auth).await?;
-    }
+    let checks: FuturesUnordered<_> = config
+        .domains
+        .iter()
+        .map(|domain| check(&path, domain, key_auth))
+        .collect();
+    checks
+        .try_for_each_concurrent(None, |_| ready(Ok(())))
+        .await?;
 
     Ok(())
 }
