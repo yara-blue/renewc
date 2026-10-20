@@ -115,7 +115,7 @@ async fn wait_for_order_rdy<'a>(
         challenge.set_ready().await?;
     }
 
-    const MAX_DURATION: Duration = Duration::from_secs(10);
+    const MAX_DURATION: Duration = Duration::from_secs(60);
     let mut next_attempt = Instant::now();
     let deadline = Instant::now() + MAX_DURATION;
     let mut print_info = Some(Instant::now() + Duration::from_secs(2));
