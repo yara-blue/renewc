@@ -218,6 +218,7 @@ in
       wantedBy = [ "timers.target" ];
 
       timerConfig = {
+		OnActiveSec = 0; # domain list may have changed, run immediately
         OnCalendar = "*-*-* ${cfg.time}:00";
         Persistent = true;
         Unit = "renewc.service";
